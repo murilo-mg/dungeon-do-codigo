@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Dungeon do Código</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<h1>Dungeon do Código</h1>
+<p class="subtitulo">Cole um arquivo em C. Cada função vira uma sala: quanto mais complexa a função, maior e mais perigosa a sala. Ande com as setas ou WASD para explorar.</p>
+
+<div class="painel configuracao" id="painel-configuracao">
+  <label for="entrada-codigo">Código-fonte em C</label>
+  <textarea id="entrada-codigo"></textarea>
+  <div class="linha">
+    <button id="botao-gerar">Gerar dungeon</button>
+    <span class="dica">Funciona melhor com funções simples, sem structs aninhadas complexas</span>
+  </div>
+</div>
+
+<div class="area-jogo" id="area-jogo" style="display:none;">
+  <div>
+    <canvas id="canvas-jogo" width="560" height="480"></canvas>
+    <p class="dica-controles">Mover: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> ou <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></p>
+    <div class="linha linha-centralizada">
+      <button class="fantasma" id="botao-voltar">&larr; colar outro código</button>
+    </div>
+  </div>
+  <div class="lateral">
+    <div class="painel cartao">
+      <h3>Sala atual</h3>
+      <div id="info-sala"><p class="vazio">Ande até uma sala para inspecionar a função.</p></div>
+    </div>
+    <div class="painel cartao">
+      <h3>Legenda de perigo</h3>
+      <div class="item-legenda"><span class="amostra-cor" style="background:#5a7d3a;"></span>Baixa complexidade</div>
+      <div class="item-legenda"><span class="amostra-cor" style="background:#c2601a;"></span>Complexidade média</div>
+      <div class="item-legenda"><span class="amostra-cor" style="background:#8f2323;"></span>Alta complexidade — sala de chefe</div>
+      <div class="item-legenda"><span class="amostra-cor" style="background:#c9a227;"></span>Sala inicial — main()</div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/principal.js"></script>
+</body>
+</html>

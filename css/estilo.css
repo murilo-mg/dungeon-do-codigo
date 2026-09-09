@@ -1,0 +1,33 @@
+:root {
+  --pedra-escura: #181410;
+  --pedra: #241e17;
+  --pedra-clara: #332a1f;
+  --pergaminho: #e8dcc0;
+  --pergaminho-fraco: #a89a7d;
+  --brasa: #c2601a;
+  --brasa-clara: #e9822f;
+  --musgo: #5a7d3a;
+  --sangue: #8f2323;
+  --ouro: #c9a227;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% 0%, #2a2118 0%, var(--pedra-escura) 60%);
+  color: var(--pergaminho);
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 40px;
+  min-height: 100%;
+}
