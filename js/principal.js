@@ -1,3 +1,6 @@
+import { analisarFuncoes } from './analisadorC.js';
+import { construirMasmorra } from './masmorra.js';
+
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
 
@@ -90,4 +93,18 @@ document.addEventListener('DOMContentLoaded', inicializarAplicacao);
 function inicializarAplicacao() {
   const entradaCodigo = document.getElementById('entrada-codigo');
   entradaCodigo.value = codigoPadrao;
+
+  document.getElementById('botao-gerar').addEventListener('click', () => aoClicarEmGerar(entradaCodigo));
+}
+
+function aoClicarEmGerar(entradaCodigo) {
+  const funcoes = analisarFuncoes(entradaCodigo.value);
+
+  if (funcoes.length === 0) {
+    alert('Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.');
+    return;
+  }
+
+  const salas = construirMasmorra(funcoes);
+  console.log('Masmorra gerada a partir do código analisado:', salas);
 }
