@@ -1,5 +1,9 @@
+// Ponto de entrada da aplicação.
+// Nesta etapa: liga o formulário ao pipeline completo, incluindo o jogo em canvas.
+
 import { analisarFuncoes } from './analisadorC.js';
 import { construirMasmorra } from './masmorra.js';
+import { iniciarJogo } from './jogo.js';
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -95,6 +99,7 @@ function inicializarAplicacao() {
   entradaCodigo.value = codigoPadrao;
 
   document.getElementById('botao-gerar').addEventListener('click', () => aoClicarEmGerar(entradaCodigo));
+  document.getElementById('botao-voltar').addEventListener('click', voltarParaConfiguracao);
 }
 
 function aoClicarEmGerar(entradaCodigo) {
@@ -106,5 +111,12 @@ function aoClicarEmGerar(entradaCodigo) {
   }
 
   const salas = construirMasmorra(funcoes);
-  console.log('Masmorra gerada a partir do código analisado:', salas);
+  document.getElementById('painel-configuracao').style.display = 'none';
+  document.getElementById('area-jogo').style.display = 'flex';
+  iniciarJogo(salas);
+}
+
+function voltarParaConfiguracao() {
+  document.getElementById('area-jogo').style.display = 'none';
+  document.getElementById('painel-configuracao').style.display = 'block';
 }
