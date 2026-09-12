@@ -1,9 +1,11 @@
 // Ponto de entrada da aplicação.
-// Nesta etapa: liga o formulário ao pipeline completo, incluindo o jogo em canvas.
+// Orquestra o pipeline completo: entrada de código, análise, geração da
+// masmorra, renderização do jogo e atualização da interface.
 
 import { analisarFuncoes } from './analisadorC.js';
 import { construirMasmorra } from './masmorra.js';
-import { iniciarJogo } from './jogo.js';
+import { iniciarJogo, pararJogo } from './jogo.js';
+import { exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +101,7 @@ function inicializarAplicacao() {
   entradaCodigo.value = codigoPadrao;
 
   document.getElementById('botao-gerar').addEventListener('click', () => aoClicarEmGerar(entradaCodigo));
-  document.getElementById('botao-voltar').addEventListener('click', voltarParaConfiguracao);
+  document.getElementById('botao-voltar').addEventListener('click', aoClicarEmVoltar);
 }
 
 function aoClicarEmGerar(entradaCodigo) {
@@ -111,12 +113,12 @@ function aoClicarEmGerar(entradaCodigo) {
   }
 
   const salas = construirMasmorra(funcoes);
-  document.getElementById('painel-configuracao').style.display = 'none';
-  document.getElementById('area-jogo').style.display = 'flex';
-  iniciarJogo(salas);
+  exibirTelaDeJogo();
+  atualizarPainelDeSala(null);
+  iniciarJogo(salas, atualizarPainelDeSala);
 }
 
-function voltarParaConfiguracao() {
-  document.getElementById('area-jogo').style.display = 'none';
-  document.getElementById('painel-configuracao').style.display = 'block';
+function aoClicarEmVoltar() {
+  pararJogo();
+  exibirTelaDeConfiguracao();
 }

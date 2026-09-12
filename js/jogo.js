@@ -1,4 +1,7 @@
-// Responsável pela renderização em canvas e pela física de movimento do jogador.
+// Responsável exclusivamente pela renderização em canvas e pela física do jogador.
+// Não manipula DOM diretamente: notifica mudanças de sala por callback.
+
+import { corPorSala } from './masmorra.js';
 
 const VELOCIDADE_JOGADOR = 2.6;
 const TAMANHO_JOGADOR = 14;
@@ -11,21 +14,38 @@ let jogador = { ...POSICAO_INICIAL_JOGADOR };
 let salaAtual = null;
 let teclasPressionadas = {};
 let idQuadroAnimacao = null;
+let funcaoDeNotificacao = null;
 
-export function iniciarJogo(novasSalas) {
+export function iniciarJogo(novasSalas, aoMudarDeSala) {
   salas = novasSalas;
   jogador = { ...POSICAO_INICIAL_JOGADOR };
   salaAtual = null;
+  funcaoDeNotificacao = aoMudarDeSala;
   canvas = document.getElementById('canvas-jogo');
   contexto = canvas.getContext('2d');
 
+  pararJogo();
   registrarEventosDeTeclado();
   executarCicloDeJogo();
+}
+
+export function pararJogo() {
+  if (idQuadroAnimacao !== null) {
+    cancelAnimationFrame(idQuadroAnimacao);
+    idQuadroAnimacao = null;
+  }
+  removerEventosDeTeclado();
+  teclasPressionadas = {};
 }
 
 function registrarEventosDeTeclado() {
   window.addEventListener('keydown', marcarTeclaPressionada);
   window.addEventListener('keyup', marcarTeclaLiberada);
+}
+
+function removerEventosDeTeclado() {
+  window.removeEventListener('keydown', marcarTeclaPressionada);
+  window.removeEventListener('keyup', marcarTeclaLiberada);
 }
 
 function marcarTeclaPressionada(evento) {
@@ -69,7 +89,7 @@ function atualizarSalaAtualSeNecessario() {
   if (salaEncontrada === salaAtual) return;
 
   salaAtual = salaEncontrada;
-  atualizarInformacaoDaSalaAtual(salaAtual);
+  if (funcaoDeNotificacao) funcaoDeNotificacao(salaAtual);
 }
 
 function detectarSalaSobJogador() {
@@ -128,20 +148,4 @@ function desenharJogador() {
   contexto.strokeStyle = '#fff5e8';
   contexto.lineWidth = 1.5;
   contexto.stroke();
-}
-
-function corPorSala(sala) {
-  if (sala.ehSalaInicial) return '#c9a227';
-  if (sala.complexidade <= 2) return '#5a7d3a';
-  if (sala.complexidade <= 6) return '#c2601a';
-  return '#8f2323';
-}
-
-function atualizarInformacaoDaSalaAtual(sala) {
-  const painelInfo = document.getElementById('info-sala');
-  if (!sala) {
-    painelInfo.innerHTML = '<p class="vazio">Ande até uma sala para inspecionar a função.</p>';
-    return;
-  }
-  painelInfo.innerHTML = `<div class="linha-estatistica"><b>${sala.nome}()</b></div>`;
 }
