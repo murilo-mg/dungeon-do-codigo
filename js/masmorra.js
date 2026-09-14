@@ -6,6 +6,8 @@ const CENTRO_X = 280;
 const CENTRO_Y = 240;
 
 export function construirMasmorra(funcoes) {
+  if (funcoes.length === 0) return [];
+
   const funcaoPrincipal = encontrarFuncaoPrincipal(funcoes);
   const outrasFuncoes = funcoes.filter(funcao => funcao !== funcaoPrincipal);
   const quantidade = outrasFuncoes.length || 1;
