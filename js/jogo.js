@@ -2,6 +2,9 @@
 // Não manipula DOM diretamente: notifica mudanças de sala por callback.
 
 import { corPorSala } from './masmorra.js';
+import { PALETA } from './pixelArt.js';
+import { desenharCriatura } from './criaturas.js';
+import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
 import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem } from './personagem.js';
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
@@ -16,6 +19,9 @@ let idQuadroAnimacao = null;
 let funcaoDeNotificacao = null;
 let instanteAnterior = null;
 let preferenciaMovimento = null;
+let tempoCena = 0;
+let particulas = [];
+let primeiraDeteccao = true;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
 
 export function iniciarJogo(novasSalas, aoMudarDeSala) {
@@ -26,6 +32,9 @@ export function iniciarJogo(novasSalas, aoMudarDeSala) {
     salaInicial ? salaInicial.x + salaInicial.largura / 2 : POSICAO_INICIAL_JOGADOR.x,
     salaInicial ? salaInicial.y + salaInicial.altura / 2 : POSICAO_INICIAL_JOGADOR.y);
   salaAtual = null;
+  tempoCena = 0;
+  particulas = [];
+  primeiraDeteccao = true;
   funcaoDeNotificacao = aoMudarDeSala;
   canvas = document.getElementById('canvas-jogo');
   contexto = canvas.getContext('2d');
@@ -42,6 +51,7 @@ export function pararJogo() {
   }
   removerEventosDeTeclado();
   limparTeclas();
+  particulas = [];
   funcaoDeNotificacao = null;
 }
 
@@ -80,9 +90,12 @@ function executarCicloDeJogo(instante) {
   // Limita saltos ao retomar uma aba ou após um quadro lento.
   const segundos = instanteAnterior === null ? 0 : Math.min((instante - instanteAnterior) / 1000, 0.05);
   instanteAnterior = instante;
+  tempoCena += segundos;
+  particulas = preferenciaMovimento.matches ? [] : atualizarParticulas(particulas, segundos);
   atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
     { largura: canvas.width, altura: canvas.height }, preferenciaMovimento.matches);
   atualizarSalaAtualSeNecessario();
+  primeiraDeteccao = false;
   desenharCena();
   idQuadroAnimacao = requestAnimationFrame(executarCicloDeJogo);
 }
@@ -102,6 +115,9 @@ function atualizarSalaAtualSeNecessario() {
   if (salaEncontrada === salaAtual) return;
 
   salaAtual = salaEncontrada;
+  if (salaAtual && !primeiraDeteccao && !preferenciaMovimento.matches) {
+    particulas = criarParticulasDeEntrada(particulas, jogador.x, jogador.y);
+  }
   if (funcaoDeNotificacao) funcaoDeNotificacao(salaAtual);
 }
 
@@ -120,6 +136,7 @@ function desenharCena() {
   desenharCorredores();
   salas.forEach(desenharSala);
   desenharPassos(contexto, jogador);
+  desenharParticulas(contexto, particulas);
   desenharPersonagem(contexto, jogador, preferenciaMovimento.matches);
 }
 
@@ -139,17 +156,42 @@ function desenharCorredores() {
 }
 
 function desenharSala(sala) {
+  const ativa = sala === salaAtual;
+  const x = Math.round(sala.x);
+  const y = Math.round(sala.y);
+  contexto.save();
   contexto.fillStyle = corPorSala(sala);
-  contexto.globalAlpha = sala === salaAtual ? 1 : 0.85;
-  contexto.fillRect(sala.x, sala.y, sala.largura, sala.altura);
+  contexto.globalAlpha = ativa ? 1 : 0.85;
+  contexto.fillRect(x, y, sala.largura, sala.altura);
+  contexto.globalAlpha = 0.13;
+  contexto.fillStyle = PALETA.pedraEscura;
+  for (let linha = 4; linha < sala.altura - 4; linha += 12) {
+    contexto.fillRect(x + 4, y + linha, sala.largura - 8, 1);
+  }
   contexto.globalAlpha = 1;
-
-  contexto.strokeStyle = sala === salaAtual ? '#fff5e8' : '#00000055';
-  contexto.lineWidth = sala === salaAtual ? 2 : 1;
-  contexto.strokeRect(sala.x, sala.y, sala.largura, sala.altura);
-
-  contexto.fillStyle = '#181410';
-  contexto.font = '10px JetBrains Mono';
+  contexto.strokeStyle = '#00000055';
+  contexto.lineWidth = 2;
+  contexto.strokeRect(x + 1, y + 1, sala.largura - 2, sala.altura - 2);
+  if (ativa) {
+    contexto.globalAlpha = preferenciaMovimento.matches ? 0.9 : 0.7 + Math.sin(tempoCena * 3) * 0.2;
+    contexto.strokeStyle = PALETA.pergaminho;
+    contexto.strokeRect(x - 2, y - 2, sala.largura + 4, sala.altura + 4);
+    contexto.globalAlpha = 1;
+  }
+  // Faixa separada mantém o nome legível acima da criatura.
+  contexto.fillStyle = PALETA.pedraEscura;
+  contexto.globalAlpha = 0.85;
+  contexto.fillRect(x + 4, y + 4, sala.largura - 8, 15);
+  contexto.globalAlpha = 1;
+  contexto.fillStyle = PALETA.pergaminho;
+  contexto.font = '10px "JetBrains Mono", monospace';
   contexto.textAlign = 'center';
-  contexto.fillText(`${sala.nome}()`, sala.x + sala.largura / 2, sala.y + sala.altura / 2 + 3);
+  let nome = `${sala.nome}()`;
+  while (nome.length > 1 && contexto.measureText(nome).width > sala.largura - 14) {
+    nome = nome.replace(/…$/, '').slice(0, -1) + '…';
+  }
+  contexto.fillText(nome, x + sala.largura / 2, y + 15);
+  desenharCriatura(contexto, sala.complexidade, x + sala.largura / 2,
+    y + sala.altura - 20, 2, preferenciaMovimento.matches ? 0 : tempoCena + sala.x / 100);
+  contexto.restore();
 }
