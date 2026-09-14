@@ -2,6 +2,7 @@
 // Não manipula DOM diretamente: notifica mudanças de sala por callback.
 
 import { corPorSala } from './masmorra.js';
+import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { PALETA } from './pixelArt.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
@@ -22,6 +23,7 @@ let preferenciaMovimento = null;
 let tempoCena = 0;
 let particulas = [];
 let primeiraDeteccao = true;
+let cenario = null;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
 
 export function iniciarJogo(novasSalas, aoMudarDeSala) {
@@ -39,6 +41,7 @@ export function iniciarJogo(novasSalas, aoMudarDeSala) {
   canvas = document.getElementById('canvas-jogo');
   contexto = canvas.getContext('2d');
   contexto.imageSmoothingEnabled = false;
+  cenario = criarCenario(salas, canvas.width, canvas.height);
   preferenciaMovimento = window.matchMedia('(prefers-reduced-motion: reduce)');
   registrarEventosDeTeclado();
   idQuadroAnimacao = requestAnimationFrame(executarCicloDeJogo);
@@ -133,7 +136,10 @@ function desenharCena() {
   contexto.fillStyle = '#181410';
   contexto.fillRect(0, 0, canvas.width, canvas.height);
 
+  const tempoAmbiente = preferenciaMovimento.matches ? 0 : tempoCena;
+  desenharFundo(contexto, cenario, tempoAmbiente);
   desenharCorredores();
+  desenharDecoracoes(contexto, cenario, tempoAmbiente);
   salas.forEach(desenharSala);
   desenharPassos(contexto, jogador);
   desenharParticulas(contexto, particulas);
