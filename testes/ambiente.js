@@ -13,14 +13,14 @@ export class Emissor {
   }
 }
 
-class Elemento {
+class Elemento extends Emissor {
   filhos = [];
   style = {};
   atributos = {};
   className = '';
   textContent = '';
   classList = { add() {}, remove() {} };
-  constructor(tipo) { this.tipo = tipo; }
+  constructor(tipo) { super(); this.tipo = tipo; }
   append(...filhos) { this.filhos.push(...filhos); }
   replaceChildren(...filhos) { this.filhos = filhos; }
   setAttribute(nome, valor) { this.atributos[nome] = valor; }
@@ -37,7 +37,7 @@ export function criarAmbiente() {
   const documento = new Emissor();
   const preferencia = new Emissor();
   preferencia.matches = false;
-  const elementos = new Map(['canvas-jogo', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo']
+  const elementos = new Map(['canvas-jogo', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar']
     .map(id => [id, new Elemento(id === 'canvas-jogo' ? 'canvas' : 'div')]));
   elementos.get('canvas-jogo').width = 560;
   elementos.get('canvas-jogo').height = 480;
