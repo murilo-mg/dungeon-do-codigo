@@ -23,7 +23,7 @@ python3 -m http.server 8000
 
 Acesse [a aplicação local](http://localhost:8000). Os módulos JavaScript precisam de HTTP; abrir `index.html` diretamente pelo disco pode bloquear os imports. Não há instalação de pacotes nem etapa de compilação para executar o jogo. As fontes externas possuem alternativas locais.
 
-Para executar os testes, use Node.js 22 ou superior:
+Para executar os testes, use Node.js 22 ou superior e abra o terminal na pasta que contém `package.json` (a pasta `dungeon-do-codigo` dentro do pacote):
 
 ```bash
 npm test
@@ -35,6 +35,7 @@ npm test
 | --- | --- |
 | `index.html` | Estrutura da página e controles |
 | `css/estilo.css` | Layout, paleta e transição da barra |
+| `js/lexicoC.js` | Separação de código, comentários e literais; diagnóstico de fechamentos ausentes |
 | `js/analisadorC.js` | Extração simplificada de funções e métricas |
 | `js/masmorra.js` | Geometria, tamanho e cor das salas |
 | `js/jogo.js` | Eventos, ciclo de animação, composição do canvas e transições de sala |
@@ -65,13 +66,15 @@ O painel descreve as métricas disponíveis, sem inferir o objetivo semântico d
 
 ## Limitações e próximos passos
 
-O parser ainda usa expressões regulares e não interpreta C completo. Textos entre aspas podem afetar a extração e a contagem. Muitas funções podem gerar salas sobrepostas; os corredores atuais ligam todas as salas à inicial e ainda não representam chamadas reais.
+O analisador distingue strings, caracteres e comentários antes de localizar funções e contar estruturas. Chaves desbalanceadas, aspas incompletas e comentários de bloco sem fechamento geram um aviso com a linha; a interface mantém o código no editor. O trecho exibido preserva os comentários originais.
 
-Veja [EVOLUCAO.md](EVOLUCAO.md) para os casos reproduzidos, a sequência recomendada e os critérios de entrega.
+A identificação de assinaturas ainda usa uma expressão regular: o projeto não interpreta C completo, não expande macros nem valida todos os erros sintáticos. Construções avançadas e pré-processamento condicional continuam fora do escopo. Muitas funções podem gerar salas sobrepostas; os corredores atuais ligam todas as salas à inicial e ainda não representam chamadas reais.
+
+Veja [CORRECOES.md](CORRECOES.md) para os cinco bugs corrigidos e [EVOLUCAO.md](EVOLUCAO.md) para os próximos passos.
 
 ## Verificação desta evolução
 
-Os 15 testes cobrem velocidade em 30/60/144 Hz, diagonal, parada, pegadas, limites, faixas de criaturas, escala dos retratos, expiração de partículas, posicionamento do cenário, cancelamento do painel, redução de movimento, transições de sala e reinício do jogo sem duplicar eventos ou ciclos.
+Os 32 testes cobrem velocidade em 30/60/144 Hz, diagonal, parada, pegadas, limites, faixas de criaturas, escala dos retratos, expiração de partículas, posicionamento do cenário, cancelamento do painel, redução de movimento, transições de sala e reinício do jogo sem duplicar eventos ou ciclos. Também cobrem os cinco achados da revisão: literais e comentários, fechamentos ausentes ou excedentes, entrada vazia, preservação do código original, CRLF, Unicode e a recuperação da interface após um erro de análise.
 
 A cena e a folha de sprites foram renderizadas com uma implementação de Canvas 2D e conferidas visualmente. O navegador remoto de revisão bloqueou a URL local; a composição HTML/CSS e a percepção das animações ainda precisam de conferência em um navegador comum.
 

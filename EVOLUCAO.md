@@ -4,7 +4,7 @@ A direção recomendada é transformar o Dungeon do Código em uma ferramenta pa
 
 ## Entrega atual
 
-As quatro frentes foram implementadas na ordem combinada e em commits separados: personagem, salas, cenário e painel. Um commit adicional registra os testes de integração e a documentação. Não foi necessário adotar um framework ou motor de jogos.
+As quatro frentes foram implementadas na ordem combinada e em commits separados: personagem, salas, cenário e painel. Um commit adicional registra os testes de integração e a documentação. Não foi necessário adotar um framework ou motor de jogos. A revisão seguinte corrigiu os cinco achados do parser e da entrada vazia, com dois commits de correção e um de documentação; veja `CORRECOES.md`.
 
 O ponto de extensão visual é `criaturas.js`: uma definição abastece tanto a sala quanto o retrato. A física do personagem fica em `personagem.js`; o jogo compõe os desenhos e emite mudanças de sala, sem atualizar o painel diretamente. Os efeitos transitórios têm duração e quantidade limitadas.
 
@@ -14,30 +14,32 @@ Antes de aumentar a quantidade de mecânicas, recomendo uma entrega pequena para
 
 | Ordem | Entrega proposta | Motivo | Critério para concluir |
 | --- | --- | --- | --- |
-| 1 | Scanner que distinga código, comentários, strings e caracteres | A análise atual pode inventar estruturas ou cortar corpos | Aspas escapadas, comentários e chaves em literais não afetam métricas; corpo original é preservado; entrada incompleta produz aviso |
+| Concluído | Scanner que distingue código, comentários, strings e caracteres | Evita estruturas fictícias e corpos truncados nos casos revisados | Testes de aspas escapadas, comentários, literais e entradas incompletas; trecho original preservado e aviso com a linha |
 | 2 | Centralizar as faixas e explicar as métricas | Cor, tamanho, criatura e barra precisam continuar coerentes | Uma definição das faixas serve a todos os módulos; exemplos verificáveis acompanham o índice |
 | 3 | Extrair chamadas diretas entre funções conhecidas | Os corredores podem explicar a estrutura real do programa | `main → a → b` produz essas duas ligações; função isolada e recursão têm representação clara |
 | 4 | Distribuição sem sobreposição e câmera com zoom | O mapa circular fixo perde legibilidade com mais funções | Exemplos com 1, 5, 12 e 30 funções ficam acessíveis; nomes completos podem ser consultados |
 
-Um scanner pequeno é um primeiro passo adequado ao escopo atual. Suporte amplo a macros, ponteiros de função e construções avançadas deve ser tratado como outro ciclo, com avaliação de um parser completo. Não prometer análise geral de C antes de definir e testar o subconjunto suportado.
+O scanner pequeno desta revisão atende ao primeiro passo do escopo atual. Suporte amplo a macros, ponteiros de função e construções avançadas deve ser tratado como outro ciclo, com avaliação de um parser completo. Não prometer análise geral de C antes de definir e testar o subconjunto suportado.
 
-### Problemas reproduzidos na base atual
+### Casos corrigidos na revisão
 
 ```c
 int main() { printf("}"); return 0; }
 ```
 
-A extração termina na chave dentro da string e corta a função.
+Antes, a extração terminava na chave dentro da string. Agora, retorna a função completa.
 
 ```c
 int main() { printf("if for while"); return 0; }
 ```
 
-São contadas três estruturas de controle e o índice chega a 6, embora as palavras estejam apenas em uma mensagem.
+Antes, eram contadas três estruturas e o índice chegava a 6. Agora, são contadas zero estruturas e o índice é 0 para esse exemplo.
+
+### Problemas ainda pendentes
 
 Ao gerar 12 funções com complexidade 8, a distribuição atual apresentou 11 pares de salas sobrepostas. Além disso, `ehChamadaPelaPrincipal` usa uma busca textual simples, e o desenho atual dos corredores não utiliza essa informação.
 
-Esses pontos já existiam na base e ficam documentados para um ciclo dedicado à análise e à geometria.
+A sobreposição e a representação das chamadas continuam documentadas para um ciclo dedicado à geometria e ao grafo de chamadas.
 
 ## Depois: experiência de aprendizagem
 
