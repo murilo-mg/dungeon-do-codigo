@@ -2,7 +2,7 @@
 // Orquestra o pipeline completo: entrada de código, análise, geração da
 // masmorra, renderização do jogo e atualização da interface.
 
-import { analisarFuncoes } from './analisadorC.js';
+import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { construirMasmorra } from './masmorra.js';
 import { iniciarJogo, pararJogo } from './jogo.js';
 import { exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
@@ -105,7 +105,15 @@ function inicializarAplicacao() {
 }
 
 function aoClicarEmGerar(entradaCodigo) {
-  const funcoes = analisarFuncoes(entradaCodigo.value);
+  let funcoes;
+  try {
+    funcoes = analisarFuncoes(entradaCodigo.value);
+  } catch (erro) {
+    if (!(erro instanceof ErroAnaliseC)) throw erro;
+    alert(`Não foi possível analisar o código. ${erro.message}`);
+    entradaCodigo.focus({ preventScroll: true });
+    return;
+  }
 
   if (funcoes.length === 0) {
     alert('Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.');

@@ -1,35 +1,36 @@
 // Responsável por extrair funções de um código-fonte em C
 // e calcular métricas simples de complexidade de cada uma.
 
+import { prepararCodigoParaAnalise } from './lexicoC.js';
+export { ErroAnaliseC } from './lexicoC.js';
+
 const PALAVRAS_RESERVADAS = ['if', 'for', 'while', 'switch', 'return', 'sizeof'];
 const EXPRESSAO_FUNCAO = /(?:^|\n)\s*[\w\*\s]+?\b(\w+)\s*\(([^;{)]*)\)\s*\{/g;
 const EXPRESSAO_ESTRUTURAS_CONTROLE = /\b(if|for|while|switch|case)\b/g;
 
 export function analisarFuncoes(codigoFonte) {
-  const codigoLimpo = removerComentarios(codigoFonte);
+  const { estrutura, semComentarios } = prepararCodigoParaAnalise(codigoFonte);
   const funcoes = [];
   let correspondencia;
 
   EXPRESSAO_FUNCAO.lastIndex = 0;
-  while ((correspondencia = EXPRESSAO_FUNCAO.exec(codigoLimpo)) !== null) {
+  while ((correspondencia = EXPRESSAO_FUNCAO.exec(estrutura)) !== null) {
     const nome = correspondencia[1];
     if (PALAVRAS_RESERVADAS.includes(nome)) continue;
 
     const posicaoChaveAbertura = correspondencia.index + correspondencia[0].length - 1;
-    const posicaoFechamento = encontrarFechamentoDoCorpo(codigoLimpo, posicaoChaveAbertura);
-    const corpo = codigoLimpo.slice(posicaoChaveAbertura + 1, posicaoFechamento - 1);
-    const textoCompleto = codigoLimpo.slice(correspondencia.index, posicaoFechamento).trim();
+    const posicaoFechamento = encontrarFechamentoDoCorpo(estrutura, posicaoChaveAbertura);
+    const inicioDeclaracao = correspondencia.index + correspondencia[0].search(/\S/);
+    const corpo = semComentarios.slice(posicaoChaveAbertura + 1, posicaoFechamento - 1);
+    const textoCompleto = codigoFonte.slice(inicioDeclaracao, posicaoFechamento);
+    const corpoEstrutural = estrutura.slice(posicaoChaveAbertura + 1, posicaoFechamento - 1);
 
-    funcoes.push(construirDescritorDeFuncao(nome, corpo, textoCompleto));
+    funcoes.push(construirDescritorDeFuncao(nome, corpo, textoCompleto, corpoEstrutural));
+    // O corpo já foi consumido; não confundir seus blocos com outras funções.
+    EXPRESSAO_FUNCAO.lastIndex = posicaoFechamento;
   }
 
   return funcoes;
-}
-
-function removerComentarios(codigoFonte) {
-  return codigoFonte
-    .replace(/\/\/.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
 function encontrarFechamentoDoCorpo(codigo, posicaoChaveAbertura) {
@@ -45,8 +46,8 @@ function encontrarFechamentoDoCorpo(codigo, posicaoChaveAbertura) {
   return indice;
 }
 
-function construirDescritorDeFuncao(nome, corpo, textoCompleto) {
-  const estruturasControle = (corpo.match(EXPRESSAO_ESTRUTURAS_CONTROLE) || []).length;
+function construirDescritorDeFuncao(nome, corpo, textoCompleto, corpoEstrutural) {
+  const estruturasControle = (corpoEstrutural.match(EXPRESSAO_ESTRUTURAS_CONTROLE) || []).length;
   const linhas = corpo.split('\n').filter(linha => linha.trim().length > 0).length;
   const complexidade = estruturasControle * 2 + Math.floor(linhas / 4);
 
