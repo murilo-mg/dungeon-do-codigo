@@ -10,7 +10,6 @@ let preferenciaMovimento = null;
 export function exibirTelaDeJogo() {
   document.getElementById('painel-configuracao').style.display = 'none';
   document.getElementById('area-jogo').style.display = 'flex';
-  document.getElementById('canvas-jogo').focus({ preventScroll: true });
 }
 
 export function exibirTelaDeConfiguracao() {

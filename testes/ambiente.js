@@ -25,6 +25,7 @@ class Elemento extends Emissor {
   replaceChildren(...filhos) { this.filhos = filhos; }
   setAttribute(nome, valor) { this.atributos[nome] = valor; }
   focus() { this.focado = true; }
+  blur() { this.focado = false; }
   getContext() {
     return { save() {}, restore() {}, fillRect() {}, clearRect() {}, strokeRect() {},
       beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fillText() {},

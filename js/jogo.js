@@ -23,6 +23,7 @@ let preferenciaMovimento = null;
 let tempoCena = 0;
 let particulas = [];
 let primeiraDeteccao = true;
+let controlesAtivos = false;
 let cenario = null;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
 
@@ -62,6 +63,7 @@ function registrarEventosDeTeclado() {
   window.addEventListener('keydown', marcarTeclaPressionada);
   window.addEventListener('keyup', marcarTeclaLiberada);
   window.addEventListener('blur', limparTeclas);
+  document.addEventListener('pointerdown', atualizarFocoDoJogo, true); 
   document.addEventListener('visibilitychange', limparTeclas);
 }
 
@@ -70,6 +72,21 @@ function removerEventosDeTeclado() {
   window.removeEventListener('keyup', marcarTeclaLiberada);
   window.removeEventListener('blur', limparTeclas);
   document.removeEventListener('visibilitychange', limparTeclas);
+  document.removeEventListener('pointerdown', atualizarFocoDoJogo, true);
+  controlesAtivos = false;
+}
+
+function atualizarFocoDoJogo(evento) {
+  const clicouNoMapa = evento.composedPath().includes(canvas);
+
+  controlesAtivos = clicouNoMapa;
+  limparTeclas();
+
+  if (clicouNoMapa) {
+    canvas.focus({ preventScroll: true });
+  } else {
+    canvas.blur();
+  }
 }
 
 function limparTeclas() {
@@ -79,8 +96,10 @@ function limparTeclas() {
 
 function marcarTeclaPressionada(evento) {
   const tecla = evento.key.toLowerCase();
+
   if (!TECLAS_MOVIMENTO.has(tecla) || evento.ctrlKey || evento.metaKey || evento.altKey) return;
-  if (evento.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  if (!controlesAtivos) return;
+
   evento.preventDefault();
   teclasPressionadas[tecla] = true;
 }
