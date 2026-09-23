@@ -98,6 +98,40 @@ for (const [caso, fonte, mensagem, linha] of [
   });
 }
 
+test('detecta chamadas entre funções e ignora falsas chamadas em textos e comentários', () => {
+  const funcoes = analisarFuncoes(`
+    void validar() {}
+
+    void salvar() {}
+
+    void processar() {
+      printf("validar() salvar()");
+      // salvar();
+      /* validar(); */
+
+      validar();
+      validar();
+      salvar();
+      externa();
+    }
+
+    int main() {
+      processar();
+      return 0;
+    }
+  `);
+
+  const validar = funcoes.find(funcao => funcao.nome === 'validar');
+  const salvar = funcoes.find(funcao => funcao.nome === 'salvar');
+  const processar = funcoes.find(funcao => funcao.nome === 'processar');
+  const main = funcoes.find(funcao => funcao.nome === 'main');
+
+  assert.deepEqual(validar.chamadas, []);
+  assert.deepEqual(salvar.chamadas, []);
+  assert.deepEqual(processar.chamadas, ['validar', 'salvar']);
+  assert.deepEqual(main.chamadas, ['processar']);
+});
+
 test('entrada sem funções não cria descritores', () => {
   for (const fonte of ['', '   ', '// comentário', '/* comentário */', 'int f(void);']) {
     assert.deepEqual(analisarFuncoes(fonte), []);

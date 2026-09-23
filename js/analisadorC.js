@@ -29,8 +29,34 @@ export function analisarFuncoes(codigoFonte) {
     // O corpo já foi consumido; não confundir seus blocos com outras funções.
     EXPRESSAO_FUNCAO.lastIndex = posicaoFechamento;
   }
+  adicionarChamadasEntreFuncoes(funcoes);
 
   return funcoes;
+}
+
+function adicionarChamadasEntreFuncoes(funcoes) {
+  const nomesConhecidos = new Set(funcoes.map(funcao => funcao.nome));
+
+  funcoes.forEach(funcao => {
+    funcao.chamadas = encontrarChamadas(funcao.corpoEstrutural, nomesConhecidos);
+    delete funcao.corpoEstrutural;
+  });
+}
+
+function encontrarChamadas(corpoEstrutural, nomesConhecidos) {
+  const chamadas = [];
+  const expressaoChamada = /\b([A-Za-z_]\w*)\s*\(/g;
+  let correspondencia;
+
+  while ((correspondencia = expressaoChamada.exec(corpoEstrutural)) !== null) {
+    const nome = correspondencia[1];
+
+    if (nomesConhecidos.has(nome) && !chamadas.includes(nome)) {
+      chamadas.push(nome);
+    }
+  }
+
+  return chamadas;
 }
 
 function encontrarFechamentoDoCorpo(codigo, posicaoChaveAbertura) {
@@ -51,5 +77,13 @@ function construirDescritorDeFuncao(nome, corpo, textoCompleto, corpoEstrutural)
   const linhas = corpo.split('\n').filter(linha => linha.trim().length > 0).length;
   const complexidade = estruturasControle * 2 + Math.floor(linhas / 4);
 
-  return { nome, corpo, textoCompleto, linhas, estruturasControle, complexidade };
+  return {
+  nome,
+  corpo,
+  textoCompleto,
+  linhas,
+  estruturasControle,
+  complexidade,
+  corpoEstrutural,
+};
 }
