@@ -147,6 +147,11 @@ canvas {
   touch-action: none;
 }
 
+#canvas-jogo:focus {
+  border-color: var(--ouro);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
+}
+
 .lateral {
   width: 280px;
   display: flex;
