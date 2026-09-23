@@ -16,12 +16,78 @@
 </p>
 <div class="painel configuracao" id="painel-configuracao">
   <label for="entrada-codigo">Código-fonte em C</label>
+  <p class="dica dica-editor">
+    Experimente com o exemplo já carregado ou cole seu próprio código.
+  </p>
   <textarea id="entrada-codigo"></textarea>
   <div class="linha">
+    <p id="mensagem-erro" class="mensagem-erro" role="alert"></p>
     <button id="botao-gerar">Gerar dungeon</button>
     <span class="dica">Funciona melhor com funções simples, sem structs aninhadas complexas</span>
   </div>
 </div>
+
+<section class="preview-dungeon" aria-label="Prévia visual da transformação do código em dungeon">
+  <div class="preview-cabecalho">
+    <span class="preview-etapa">código</span>
+    <span class="preview-seta">→</span>
+    <span class="preview-etapa">função</span>
+    <span class="preview-seta">→</span>
+    <span class="preview-etapa">sala</span>
+  </div>
+
+  <div class="preview-transformacao">
+    <div class="preview-codigo">
+      <span>int main() {</span>
+      <span class="preview-simples">  iniciar();</span>
+      <span>}</span>
+      <span>&nbsp;</span>
+      <span>void processar() {</span>
+      <span class="preview-complexa">  if (...) {</span>
+      <span class="preview-complexa">    for (...) { ... }</span>
+      <span>  }</span>
+      <span>}</span>
+    </div>
+
+    <span class="preview-fluxo">→</span>
+
+    <div class="preview-mapa">
+      <div class="preview-sala preview-sala-simples">
+        <span class="preview-nome">main()</span>
+      </div>
+
+      <div class="preview-corredor"></div>
+
+      <div class="preview-sala preview-sala-complexa">
+        <span class="preview-nome">processar()</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="preview-legenda">
+    O analisador identifica as funções e transforma cada uma em uma sala.
+    Mais estruturas de controle aumentam a complexidade e o perigo.
+  </p>
+</section>
+
+  <div class="preview-mapa">
+    <div class="preview-sala preview-sala-simples">
+      <span class="preview-nome">main()</span>
+      <span class="preview-jogador">@</span>
+    </div>
+
+    <div class="preview-corredor"></div>
+
+    <div class="preview-sala preview-sala-complexa">
+      <span class="preview-nome">processar()</span>
+      <span class="preview-criatura">#</span>
+    </div>
+  </div>
+
+  <p class="preview-legenda">
+    Funções simples geram salas menores. Mais estruturas de controle aumentam a complexidade e o perigo.
+  </p>
+</section>
 
 <div class="area-jogo" id="area-jogo" style="display:none;">
   <div>

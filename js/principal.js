@@ -105,22 +105,46 @@ function inicializarAplicacao() {
 }
 
 function aoClicarEmGerar(entradaCodigo) {
+  const mensagemErro = document.getElementById('mensagem-erro');
+
+  mensagemErro.textContent = '';
+  mensagemErro.classList.remove('ativa');
+
+  if (!entradaCodigo.value.trim()) {
+    mensagemErro.textContent =
+      'Cole um código em C antes de gerar a dungeon.';
+
+    mensagemErro.classList.add('ativa');
+    entradaCodigo.focus({ preventScroll: true });
+    return;
+  }
+
   let funcoes;
+
   try {
     funcoes = analisarFuncoes(entradaCodigo.value);
   } catch (erro) {
     if (!(erro instanceof ErroAnaliseC)) throw erro;
-    alert(`Não foi possível analisar o código. ${erro.message}`);
+
+    mensagemErro.textContent =
+      `Não foi possível analisar o código. ${erro.message}`;
+
+    mensagemErro.classList.add('ativa');
+
     entradaCodigo.focus({ preventScroll: true });
     return;
   }
 
   if (funcoes.length === 0) {
-    alert('Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.');
+    mensagemErro.textContent =
+      'Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.';
+
+    mensagemErro.classList.add('ativa');
     return;
   }
 
   const salas = construirMasmorra(funcoes);
+
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
   iniciarJogo(salas, atualizarPainelDeSala);
