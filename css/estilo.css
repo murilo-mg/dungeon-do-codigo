@@ -32,6 +32,13 @@ body {
   min-height: 100%;
 }
 
+.tela-entrada {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 h1 {
   font-family: 'Cinzel', serif;
   font-size: clamp(24px, 4vw, 38px);

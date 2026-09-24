@@ -8,15 +8,19 @@ let concluirAnimacao = null;
 let preferenciaMovimento = null;
 
 export function exibirTelaDeJogo() {
-  document.getElementById('painel-configuracao').style.display = 'none';
+  document.getElementById('tela-entrada').style.display = 'none';
   document.getElementById('area-jogo').style.display = 'flex';
 }
 
 export function exibirTelaDeConfiguracao() {
   cancelarAnimacaoPainel();
+
   document.getElementById('area-jogo').style.display = 'none';
-  document.getElementById('painel-configuracao').style.display = 'block';
-  document.getElementById('entrada-codigo').focus({ preventScroll: true });
+  document.getElementById('tela-entrada').style.display = 'flex';
+
+  document.getElementById('entrada-codigo').focus({
+    preventScroll: true,
+  });
 }
 
 function cancelarAnimacaoPainel() {

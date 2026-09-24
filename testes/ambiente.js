@@ -38,7 +38,7 @@ export function criarAmbiente() {
   const documento = new Emissor();
   const preferencia = new Emissor();
   preferencia.matches = false;
-  const elementos = new Map(['canvas-jogo','mensagem-erro', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar']
+  const elementos = new Map(['canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar']
     .map(id => [id, new Elemento(id === 'canvas-jogo' ? 'canvas' : 'div')]));
   elementos.get('canvas-jogo').width = 560;
   elementos.get('canvas-jogo').height = 480;

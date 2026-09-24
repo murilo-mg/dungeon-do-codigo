@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente, encontrar } from './ambiente.js';
-import { atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala } from '../js/interface.js';
+import { atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo } from '../js/interface.js';
 
 const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexidade: 11,
   textoCompleto: 'void investigar() { printf("<script> & texto"); }' };
@@ -35,6 +35,34 @@ test('cancela ao sair da sala ou voltar ao editor', () => {
   assert.equal(ambiente.pendentes.size, 0);
   assert.equal(ambiente.preferencia.ouvintes.get('change').size, 0);
   assert.equal(ambiente.elementos.get('entrada-codigo').focado, true);
+});
+
+test('alterna entre a tela de entrada e a exploração', () => {
+  const ambiente = criarAmbiente();
+
+  exibirTelaDeJogo();
+
+  assert.equal(
+    ambiente.elementos.get('tela-entrada').style.display,
+    'none'
+  );
+
+  assert.equal(
+    ambiente.elementos.get('area-jogo').style.display,
+    'flex'
+  );
+
+  exibirTelaDeConfiguracao();
+
+  assert.equal(
+    ambiente.elementos.get('tela-entrada').style.display,
+    'flex'
+  );
+
+  assert.equal(
+    ambiente.elementos.get('area-jogo').style.display,
+    'none'
+  );
 });
 
 test('redução de movimento exibe tudo imediatamente e funciona durante a digitação', () => {
