@@ -4,7 +4,7 @@
 
 A aplicação é um frontend estático em HTML, CSS e JavaScript ES Modules. O código C é tratado como texto: o navegador analisa sua estrutura, gera descritores de funções e monta uma experiência de exploração em Canvas com informações complementares no DOM.
 
-A separação desejada é:
+A separação atual é:
 
 ```text
 verdade do código -> grafo -> layout -> experiência
@@ -99,17 +99,17 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 
 ## Arquitetura futura desejada
 
-Os módulos seguintes são direções de arquitetura e não devem ser criados agora sem necessidade real demonstrada por testes, uso ou complexidade concreta.
+As evoluções e os módulos futuros abaixo não devem ser implementados sem necessidade real demonstrada por testes, uso ou complexidade concreta. O próximo bloco de produto é “Leitura estrutural do programa”: inspector estrutural com callers, callees, caminho desde a entrada/main e estruturas da função, com integração futura com busca e foco. Esse bloco ainda não está implementado; deve preservar o grafo como fonte da verdade estrutural e o DOM sob responsabilidade de `interface.js`.
 
 O módulo `grafoC.js` já existe com a base estrutural descrita acima. Caminhos e detecção mais sofisticada de ciclos continuam sendo evolução futura, não fazem parte da implementação atual.
 
 ### `layoutMasmorra.js`
 
-O módulo já existe e concentra a geometria básica. Continua futuro o aprimoramento para mapas grandes, com menos sobreposição, câmera ou zoom. Não deve decidir o significado das chamadas nem desenhar.
+O módulo já existe e concentra a geometria e o mundo lógico dinâmico. Os testes de estresse com 5, 15, 30 e 60 funções apresentam zero sobreposições de salas nos cenários atuais. Novos aprimoramentos devem partir de problemas medidos. O layout não deve decidir o significado das chamadas nem desenhar.
 
 ### `camera.js`
 
-O acompanhamento básico e a transformação do mundo para o viewport já existem. Ainda são futuros zoom, minimapa, pan manual, drag, easing e otimizações de culling.
+O acompanhamento básico e a transformação do mundo para o viewport de 560x480 estão concluídos, com validação manual realizada pelo mantenedor. A câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. Ainda são futuros zoom, minimapa, pan manual, drag, easing e otimizações de culling.
 
 ### `busca.js`
 

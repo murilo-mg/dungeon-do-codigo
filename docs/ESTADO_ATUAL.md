@@ -20,7 +20,7 @@
 
 ## Último marco
 
-O último marco é o estado visual dos controles e a tecla `Esc` para liberar o mapa. O indicador e o texto do rodapé informam o estado; há cobertura automatizada para ativação, notificações, `Esc`, liberação das setas e reativação.
+O último marco é a câmera básica para explorar o mundo lógico dinâmico, com validação manual concluída pelo mantenedor. O personagem avança além do viewport, a câmera acompanha corretamente, salas e corredores permanecem alinhados e os controles continuam funcionando. Nenhum bug visual foi encontrado nessa validação.
 
 ## Base estrutural atual
 
@@ -63,22 +63,27 @@ Antes do mundo dinâmico, as sobreposições começavam em 15 funções: 31 na c
 
 Nesta execução local, a criação do grafo e o cálculo do layout ficaram na ordem de milissegundos ou menos. Esses tempos são apenas observações da máquina usada, não garantias de performance; o custo computacional continua secundário diante da área visual necessária.
 
-O layout próprio agora garante espaçamento nos cenários medidos. O próximo passo é adicionar câmera/viewport para explorar o mundo maior; só depois de validar essa etapa e medir novos casos deve-se considerar Dagre ou ELK.
+O layout próprio garante espaçamento nos cenários medidos, e a câmera básica já permite explorar o mundo maior, com validação manual concluída. Dagre ou ELK só devem ser considerados se novos casos medidos demonstrarem problemas que a solução atual não resolva.
 
-## Próximo trabalho estrutural
+## Próximo marco: Leitura estrutural do programa
 
-1. Avaliar manualmente a navegação em mundos maiores que o viewport.
-2. Considerar zoom e minimapa somente depois de validar a câmera básica.
-3. Acrescentar caminhos e análises mais avançadas somente quando houver necessidade real.
+O próximo bloco de produto ainda não está implementado. A prioridade é evoluir o inspector estrutural para apresentar:
 
-## Divergências entre plano e código
+1. Callers: funções que chamam a função selecionada.
+2. Callees: funções chamadas pela função selecionada.
+3. Caminho desde a entrada/main.
+4. Estruturas da função.
+
+A integração com busca e foco em função é futura. Zoom e minimapa continuam pendentes e não são a prioridade deste bloco.
+
+## Implementações concluídas e pendências
 
 - O plano define o grafo como fonte de verdade; `grafoC.js` já concentra nós, arestas, chamadas recebidas, alcance e profundidade.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
 - O layout separado já existe em `layoutMasmorra.js`; a câmera básica já acompanha o personagem, mas ainda não há zoom nem minimapa.
-- O plano prevê módulos futuros como `camera.js`, `busca.js`, `arquivos.js` e `exportacao.js`; eles ainda não existem e não devem ser criados sem necessidade real.
-- O plano prevê estresse com 5, 15, 30 e 60 funções; esses cenários ainda não são uma suíte dedicada.
-- O plano prevê comparação A/B apenas após a v1; ela não está implementada.
+- `camera.js` já existe. Busca de função, foco automático em função, importação `.c` e exportação continuam futuros; `busca.js`, `arquivos.js` e `exportacao.js` ainda não existem.
+- Os testes de estresse com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`, com zero sobreposições de salas nos cenários atuais.
+- Inspector estrutural avançado, colisão/topologia, PWA e comparação A/B não estão implementados; a comparação A/B continua prevista para depois da v1. A auditoria final de segurança permanece pendente.
 
 ## Critérios para o próximo ciclo
 

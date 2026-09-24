@@ -8,7 +8,7 @@ A dungeon deve explicar o programa. Aleatoriedade pode dificultar a comparação
 
 ### O layout deve refletir a semântica do programa
 
-Salas representam funções e posições devem comunicar profundidade, alcance e relações. O layout atual usa profundidade para colunas, mas ainda precisa passar a usar arestas reais nos corredores.
+Salas representam funções e posições devem comunicar profundidade, alcance e relações. O layout atual usa profundidade para colunas, e os corredores já representam chamadas reais a partir das arestas de `grafoC.js`.
 
 ### Priorizar determinismo
 
@@ -26,7 +26,7 @@ O mapa atual é 2D e Canvas 2D atende à renderização, física e pixel art. Th
 
 ### Não instalar Dagre/ELK agora
 
-O layout atual ainda precisa de um modelo de grafo explícito e de testes de estresse. Dagre/ELK só deve ser avaliado se os cenários com 5, 15, 30 e 60 funções mostrarem problemas reais que uma implementação pequena não resolva.
+O grafo explícito, o layout separado e os testes de estresse com 5, 15, 30 e 60 funções estão concluídos. O mundo lógico dinâmico apresenta zero sobreposições de salas nos cenários atuais, e a câmera básica foi validada manualmente. Dagre/ELK só deve ser avaliado se novas medições mostrarem problemas reais que uma implementação pequena não resolva.
 
 ### Não usar backend na v1
 
@@ -45,6 +45,10 @@ Preserva privacidade, funciona como aplicação estática e simplifica publicaç
 Não salvar automaticamente o código do usuário. Importação, salvamento de sessão e exportação devem ser ações explícitas e futuras.
 
 ## Interface
+
+### Priorizar leitura estrutural do programa
+
+Após a conclusão e validação manual da câmera básica, o próximo bloco de produto será o inspector estrutural: callers, callees, caminho desde a entrada/main e estruturas da função. A integração com busca e foco será futura. Essa prioridade não implica que o inspector estrutural avançado, busca ou foco automático já estejam implementados.
 
 ### Canvas para mapa; DOM para inspector e controles
 

@@ -16,7 +16,7 @@ Código C
   -> exploração no Canvas e inspector no DOM
 ```
 
-No estado atual, a extração de chamadas e parte das relações ainda vivem em `analisadorC.js` e `masmorra.js`; o grafo explícito e os corredores baseados em arestas ainda são trabalho futuro.
+No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concentra as relações estruturais, `layoutMasmorra.js` calcula a geometria e o mundo lógico dinâmico, e `masmorra.js` monta as salas. Os corredores já consomem as arestas reais, e a câmera básica permite explorar o mundo maior que o viewport.
 
 ## Funcionalidades existentes
 
@@ -33,15 +33,20 @@ No estado atual, a extração de chamadas e parte das relações ainda vivem em 
 - Exploração por WASD/setas, foco no mapa, liberação por clique fora e `Esc`.
 - Preferência de movimento reduzido.
 - Inspector com descrição, perigo, métricas e trecho de código.
-- Testes automatizados Node.js.
+- Grafo explícito em `grafoC.js` e corredores baseados em chamadas reais.
+- Layout separado em `layoutMasmorra.js`, com mundo lógico dinâmico.
+- Testes de estresse com 5, 15, 30 e 60 funções, sem sobreposição de salas nos cenários atuais.
+- Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
+- Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
+- 83 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
-- Modelo de grafo explícito com arestas de chamadas reais.
-- Corredores desenhados conforme as arestas do grafo.
-- Layout sem sobreposição para mapas maiores.
-- Câmera, zoom e navegação para dungeons extensas.
-- Busca por função e navegação direta.
+- Leitura estrutural do programa: inspector estrutural com callers, callees, caminho desde a entrada/main e estruturas da função.
+- Integração futura com busca por função e foco automático em função.
+- Zoom e minimapa.
+- Colisão/topologia.
+- PWA.
 - Importação de arquivos `.c` e exportação de resultados.
 - Comparação antes/depois de duas versões do código.
 - Destaque das estruturas que contribuíram para uma métrica.
@@ -58,21 +63,22 @@ No estado atual, a extração de chamadas e parte das relações ainda vivem em 
 
 ### Fase 2: grafo estrutural
 
-- Extrair o modelo de grafo para um módulo próprio.
-- Representar nós por funções e arestas por chamadas reais.
-- Calcular chamadas recebidas, profundidade, alcançabilidade, caminhos e ciclos.
-- Definir representação clara para recursão, ciclos e funções isoladas.
+- Concluído: modelo explícito em `grafoC.js`, com nós por funções e arestas por chamadas reais.
+- Concluído: chamadas recebidas, profundidade mínima e alcançabilidade, com tratamento de ciclos e recursão sem loop infinito.
+- Pendente: caminhos e análises mais avançadas de ciclos. A apresentação estrutural dessas relações será evoluída no próximo bloco.
 
 ### Fase 3: geometria e exploração
 
-- Mover a geometria para `layoutMasmorra.js`.
-- Eliminar sobreposições em conjuntos de funções pequenos e médios.
-- Fazer o cenário e os corredores consumirem as arestas reais.
-- Adicionar câmera e zoom apenas quando o mapa exigir.
+- Concluído: geometria em `layoutMasmorra.js` e mundo lógico dinâmico.
+- Concluído: testes de estresse com 5, 15, 30 e 60 funções, com zero sobreposições de salas nos cenários atuais.
+- Concluído: cenário e corredores consomem as arestas reais.
+- Concluído: câmera básica com viewport de 560x480 e validação manual pelo mantenedor.
+- Pendentes: zoom, minimapa e colisão/topologia.
 
-### Fase 4: leitura e acessibilidade
+### Fase 4: Leitura estrutural do programa — próximo bloco
 
-- Busca por função.
+- Priorizar o inspector estrutural com callers, callees, caminho desde a entrada/main e estruturas da função.
+- Preparar a integração futura com busca e foco em função, ainda não implementados.
 - Destaque de relações e métricas.
 - Inspector acessível, foco previsível e controles de toque.
 - Validar a experiência com usuários e programas curtos.
@@ -161,9 +167,11 @@ Gerar uma sequência de funções `f01` a `f30`, com `main` chamando algumas fun
 
 ## Testes de estresse
 
-Executar cenários determinísticos com 5, 15, 30 e 60 funções. Medir tempo de análise, construção do grafo, layout, primeiro desenho e interação. Verificar sobreposição, funções isoladas, múltiplos callers, recursão e ciclos. O resultado deve orientar qualquer adoção futura de uma biblioteca de layout.
+Os cenários determinísticos com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`. Cadeias, funções no mesmo nível e combinações com funções isoladas apresentam zero sobreposições de salas nos cenários atuais; os resultados estão em `ESTADO_ATUAL.md`. A navegação com câmera também foi validada manualmente pelo mantenedor. Novas medições de análise, grafo, layout, primeiro desenho e interação, além de casos adicionais, devem orientar qualquer adoção futura de uma biblioteca de layout.
 
 ## Segurança
+
+A auditoria final de segurança permanece pendente. As regras abaixo continuam sendo requisitos do projeto.
 
 - Tratar o texto como dados; não executar, compilar ou interpretar C.
 - Usar `textContent` e elementos DOM criados programaticamente para conteúdo do usuário.
@@ -177,7 +185,7 @@ Manter foco visível e previsível, teclado com ativação no mapa, liberação 
 
 ## Performance
 
-Priorizar análise linear no tamanho do texto, layout determinístico e renderização limitada ao Canvas atual. Medir antes de otimizar. Para mapas maiores, considerar câmera, agrupamento e desenho incremental antes de adotar dependências pesadas.
+Priorizar análise linear no tamanho do texto, layout determinístico e renderização limitada ao Canvas atual. Medir antes de otimizar. A câmera básica já está implementada. Para novas necessidades em mapas maiores, medir antes de considerar agrupamento, desenho incremental ou dependências pesadas.
 
 ## Publicação
 
