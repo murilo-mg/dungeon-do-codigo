@@ -26,6 +26,8 @@ O último marco é o estado visual dos controles e a tecla `Esc` para liberar o 
 
 `grafoC.js` agora representa explicitamente a função de entrada, os nós por nome, as arestas direcionadas, as chamadas recebidas, a profundidade mínima e o alcance a partir da entrada. `masmorra.js` consome esse grafo para manter o layout atual, sem duplicar o cálculo das relações.
 
+`layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições e as dimensões no Canvas lógico de 560x480. `masmorra.js` ficou responsável pela montagem das salas, sem calcular a geometria.
+
 ## Corredores reais
 
 `principal.js` cria o grafo uma única vez, passa o grafo para `masmorra.js` e passa `grafo.arestas` para `jogo.js`. `corredores.js` converte as arestas e as salas em segmentos geométricos válidos. `jogo.js` desenha esses segmentos, enquanto `cenario.js` usa os mesmos segmentos para evitar decorações. Arestas com origem ou destino ausente, duplicatas e autoarestas são ignoradas para a renderização.
@@ -36,15 +38,14 @@ Também existe risco de sobreposição quando muitas funções ocupam os mesmos 
 
 ## Próximo trabalho estrutural
 
-1. Extrair a geometria para `layoutMasmorra.js` quando a complexidade do layout justificar.
-2. Reduzir sobreposição em mapas maiores e avaliar câmera/zoom.
-3. Acrescentar caminhos e análises mais avançadas somente quando houver necessidade real.
+1. Reduzir sobreposição em mapas maiores e avaliar câmera/zoom.
+2. Acrescentar caminhos e análises mais avançadas somente quando houver necessidade real.
 
 ## Divergências entre plano e código
 
 - O plano define o grafo como fonte de verdade; `grafoC.js` já concentra nós, arestas, chamadas recebidas, alcance e profundidade.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
-- O plano prevê layout separado, mas a geometria das salas ainda está em `masmorra.js`.
+- O layout separado já existe em `layoutMasmorra.js`; a geometria básica ainda é limitada para mapas maiores.
 - O plano prevê módulos futuros como `camera.js`, `busca.js`, `arquivos.js` e `exportacao.js`; eles ainda não existem e não devem ser criados sem necessidade real.
 - O plano prevê estresse com 5, 15, 30 e 60 funções; esses cenários ainda não são uma suíte dedicada.
 - O plano prevê comparação A/B apenas após a v1; ela não está implementada.

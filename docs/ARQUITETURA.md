@@ -10,7 +10,7 @@ A separação desejada é:
 verdade do código -> grafo -> layout -> experiência
 ```
 
-`grafoC.js` concentra a estrutura das relações entre funções. `masmorra.js` consome esse grafo, mas ainda mantém a responsabilidade pela geometria e pelo layout das salas. `corredores.js` transforma as arestas em segmentos geométricos compartilhados por jogo e cenário.
+`grafoC.js` concentra a estrutura das relações entre funções. `layoutMasmorra.js` concentra a geometria das salas. `masmorra.js` consome o grafo e o layout para montar as entidades, enquanto `corredores.js` transforma as arestas em segmentos geométricos compartilhados por jogo e cenário.
 
 ## Módulos atuais
 
@@ -32,7 +32,11 @@ Extrai funções por uma expressão de assinatura simplificada, conta linhas e e
 
 ### `js/masmorra.js`
 
-Consome o grafo para obter a função inicial, chamadas recebidas, profundidade e alcance necessários ao layout. Agrupa funções por profundidade, cria salas posicionadas e define tamanho e cor por complexidade. O layout geométrico continua neste módulo nesta etapa.
+Consome o grafo e o layout calculado para montar as salas, copiar metadados estruturais e definir a cor visual de cada sala. Não calcula mais colunas, posições ou dimensões.
+
+### `js/layoutMasmorra.js`
+
+Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições e as dimensões das salas no Canvas lógico de 560x480. Funções não alcançáveis ficam na coluna final e o tamanho continua variando conforme a complexidade. Ainda não resolve sobreposição em mapas grandes.
 
 ### `js/grafoC.js`
 
@@ -81,11 +85,12 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 3. `lexicoC.js` protege strings, caracteres e comentários durante a análise.
 4. `analisadorC.js` devolve funções, métricas e nomes de chamadas conhecidas.
 5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade e alcance.
-6. `masmorra.js` consome o grafo e calcula as posições geométricas.
-7. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
-8. `principal.js` inicia `jogo.js` passando as arestas reais.
-9. `jogo.js` desenha o mapa e notifica a sala atual; `cenario.js` reserva os mesmos segmentos para suas decorações.
-10. `interface.js` atualiza o inspector e o status dos controles.
+6. `layoutMasmorra.js` calcula as posições e dimensões a partir do grafo e das funções.
+7. `masmorra.js` monta as salas usando o grafo e o layout.
+8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
+9. `principal.js` inicia `jogo.js` passando as arestas reais.
+10. `jogo.js` desenha o mapa e notifica a sala atual; `cenario.js` reserva os mesmos segmentos para suas decorações.
+11. `interface.js` atualiza o inspector e o status dos controles.
 
 ## Arquitetura futura desejada
 
@@ -95,7 +100,7 @@ O módulo `grafoC.js` já existe com a base estrutural descrita acima. Caminhos 
 
 ### `layoutMasmorra.js`
 
-Continua futuro e deverá cuidar apenas de geometria e posições: colunas, espaçamento, tamanho, limites e prevenção de sobreposição. Não deve decidir o significado das chamadas nem desenhar.
+O módulo já existe e concentra a geometria básica. Continua futuro o aprimoramento para mapas grandes, com menos sobreposição, câmera ou zoom. Não deve decidir o significado das chamadas nem desenhar.
 
 ### `camera.js`
 
