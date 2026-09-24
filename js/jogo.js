@@ -4,6 +4,7 @@
 import { corPorSala } from './masmorra.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { criarSegmentosDeCorredores } from './corredores.js';
+import { atualizarCamera, criarCamera } from './camera.js';
 import { PALETA } from './pixelArt.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
@@ -28,17 +29,22 @@ let primeiraDeteccao = true;
 let controlesAtivos = false;
 let cenario = null;
 let segmentosDeCorredores = [];
+let camera = null;
+let larguraMundo = 560;
+let alturaMundo = 480;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
 
 export function iniciarJogo(
-  novasSalas,
+  novaMasmorra,
   novasArestas,
   aoMudarDeSala,
   aoMudarControles
 ) {
   pararJogo();
 
-  salas = novasSalas;
+  salas = novaMasmorra.salas;
+  larguraMundo = novaMasmorra.larguraMundo;
+  alturaMundo = novaMasmorra.alturaMundo;
   segmentosDeCorredores = criarSegmentosDeCorredores(salas, novasArestas);
 
   funcaoDeNotificacao = aoMudarDeSala;
@@ -65,11 +71,17 @@ export function iniciarJogo(
   canvas = document.getElementById('canvas-jogo');
   contexto = canvas.getContext('2d');
   contexto.imageSmoothingEnabled = false;
+  camera = criarCamera({
+    larguraViewport: canvas.width,
+    alturaViewport: canvas.height,
+    larguraMundo,
+    alturaMundo,
+  });
 
   cenario = criarCenario(
     salas,
-    canvas.width,
-    canvas.height,
+    larguraMundo,
+    alturaMundo,
     segmentosDeCorredores
   );
 
@@ -94,6 +106,9 @@ export function pararJogo() {
   limparTeclas();
   particulas = [];
   segmentosDeCorredores = [];
+  camera = null;
+  larguraMundo = 560;
+  alturaMundo = 480;
   alterarEstadoControles(false);
   funcaoDeNotificacaoControles = null;
   funcaoDeNotificacao = null;
@@ -171,7 +186,8 @@ function executarCicloDeJogo(instante) {
   tempoCena += segundos;
   particulas = preferenciaMovimento.matches ? [] : atualizarParticulas(particulas, segundos);
   atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
-    { largura: canvas.width, altura: canvas.height }, preferenciaMovimento.matches);
+    { largura: larguraMundo, altura: alturaMundo }, preferenciaMovimento.matches);
+  camera = atualizarCamera(camera, jogador);
   atualizarSalaAtualSeNecessario();
   primeiraDeteccao = false;
   desenharCena();
@@ -211,6 +227,8 @@ function desenharCena() {
   contexto.fillStyle = '#181410';
   contexto.fillRect(0, 0, canvas.width, canvas.height);
 
+  contexto.save();
+  contexto.translate(camera.x ? -camera.x : 0, camera.y ? -camera.y : 0);
   const tempoAmbiente = preferenciaMovimento.matches ? 0 : tempoCena;
   desenharFundo(contexto, cenario, tempoAmbiente);
   desenharCorredores();
@@ -219,6 +237,7 @@ function desenharCena() {
   desenharPassos(contexto, jogador);
   desenharParticulas(contexto, particulas);
   desenharPersonagem(contexto, jogador, preferenciaMovimento.matches);
+  contexto.restore();
 }
 
 function desenharCorredores() {

@@ -7,7 +7,13 @@ import { calcularLayoutMasmorra } from './layoutMasmorra.js';
 export { tamanhoPorComplexidade } from './layoutMasmorra.js';
 
 export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
-  if (funcoes.length === 0) return [];
+  if (funcoes.length === 0) {
+    return {
+      salas: [],
+      larguraMundo: 560,
+      alturaMundo: 480,
+    };
+  }
 
   const funcaoPrincipal = grafo.nos.get(grafo.entrada).funcao;
   const layout = calcularLayoutMasmorra(grafo, funcoes);
@@ -31,7 +37,11 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
     );
   });
 
-  return salas;
+  return {
+    salas,
+    larguraMundo: layout.larguraMundo,
+    alturaMundo: layout.alturaMundo,
+  };
 }
 
 function criarSalaInicial(funcaoPrincipal, no, dimensoes) {

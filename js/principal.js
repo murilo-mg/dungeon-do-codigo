@@ -145,11 +145,11 @@ function aoClicarEmGerar(entradaCodigo) {
   }
 
   const grafo = criarGrafo(funcoes);
-  const salas = construirMasmorra(funcoes, grafo);
+  const masmorra = construirMasmorra(funcoes, grafo);
 
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
-  iniciarJogo(salas, grafo.arestas, atualizarPainelDeSala, atualizarEstadoControles);
+  iniciarJogo(masmorra, grafo.arestas, atualizarPainelDeSala, atualizarEstadoControles);
 }
 
 function aoClicarEmVoltar() {

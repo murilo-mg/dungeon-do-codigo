@@ -15,6 +15,7 @@ export class Emissor {
 
 class Elemento extends Emissor {
   filhos = [];
+  translacoes = [];
   style = {};
   atributos = {};
   className = '';
@@ -28,7 +29,8 @@ class Elemento extends Emissor {
   blur() { this.focado = false; }
   getContext() {
     return { save() {}, restore() {}, fillRect() {}, clearRect() {}, strokeRect() {},
-      beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fillText() {},
+      beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+      translate: (x, y) => this.translacoes.push({ x, y }), fillText() {},
       measureText(texto) { return { width: texto.length * 6 }; } };
   }
 }

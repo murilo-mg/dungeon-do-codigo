@@ -10,7 +10,7 @@ A separação desejada é:
 verdade do código -> grafo -> layout -> experiência
 ```
 
-`grafoC.js` concentra a estrutura das relações entre funções. `layoutMasmorra.js` concentra a geometria das salas. `masmorra.js` consome o grafo e o layout para montar as entidades, enquanto `corredores.js` transforma as arestas em segmentos geométricos compartilhados por jogo e cenário.
+`grafoC.js` concentra a estrutura das relações entre funções. `layoutMasmorra.js` concentra a geometria das salas e do mundo lógico. `masmorra.js` consome o grafo e o layout para montar as entidades, enquanto `corredores.js` transforma as arestas em segmentos geométricos compartilhados por jogo e cenário. `camera.js` transforma a região visível do mundo em viewport.
 
 ## Módulos atuais
 
@@ -37,6 +37,10 @@ Consome o grafo e o layout calculado para montar as salas, copiar metadados estr
 ### `js/layoutMasmorra.js`
 
 Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões das salas e o tamanho do mundo lógico. A API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua sendo 560x480, mas o mundo cresce quando as dimensões reais das salas e os gaps mínimos exigem mais espaço. Funções não alcançáveis ficam na coluna final.
+
+### `js/camera.js`
+
+Calcula, sem DOM, Canvas, eventos ou estado global, a posição da câmera a partir do tamanho do viewport, do tamanho do mundo e do alvo. Mantém a câmera dentro dos limites do mundo e acompanha o personagem sem suavização ou zoom.
 
 ### `js/grafoC.js`
 
@@ -88,9 +92,10 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 6. `layoutMasmorra.js` calcula as posições, dimensões e tamanho do mundo a partir do grafo e das funções.
 7. `masmorra.js` monta as salas usando o grafo e o layout.
 8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
-9. `principal.js` inicia `jogo.js` passando as arestas reais.
-10. `jogo.js` desenha o mapa e notifica a sala atual; `cenario.js` reserva os mesmos segmentos para suas decorações.
-11. `interface.js` atualiza o inspector e o status dos controles.
+9. `principal.js` inicia `jogo.js` passando a masmorra e as arestas reais.
+10. `jogo.js` atualiza a câmera, usa dimensões do mundo na física e desenha a região visível.
+11. `cenario.js` reserva os mesmos segmentos para suas decorações.
+12. `interface.js` atualiza o inspector e o status dos controles.
 
 ## Arquitetura futura desejada
 
@@ -104,7 +109,7 @@ O módulo já existe e concentra a geometria básica. Continua futuro o aprimora
 
 ### `camera.js`
 
-Deverá cuidar de viewport, pan, zoom e transformação entre coordenadas do mundo e do Canvas, quando o mapa exceder a área atual.
+O acompanhamento básico e a transformação do mundo para o viewport já existem. Ainda são futuros zoom, minimapa, pan manual, drag, easing e otimizações de culling.
 
 ### `busca.js`
 

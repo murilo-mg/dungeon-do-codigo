@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 71 testes passando.
+- A suíte registrada no estado deste documento tem 83 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -28,13 +28,17 @@ O último marco é o estado visual dos controles e a tecla `Esc` para liberar o 
 
 `layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
 
+`camera.js` agora acompanha o personagem sem suavização, limitando a posição ao intervalo válido entre o mundo lógico e o viewport. As coordenadas armazenadas de salas, corredores, personagem, partículas e passos continuam sendo coordenadas do mundo.
+
 ## Corredores reais
 
 `principal.js` cria o grafo uma única vez, passa o grafo para `masmorra.js` e passa `grafo.arestas` para `jogo.js`. `corredores.js` converte as arestas e as salas em segmentos geométricos válidos. `jogo.js` desenha esses segmentos, enquanto `cenario.js` usa os mesmos segmentos para evitar decorações. Arestas com origem ou destino ausente, duplicatas e autoarestas são ignoradas para a renderização.
 
-## Limitação atual do mundo lógico
+## Câmera e viewport
 
-O mundo lógico agora cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. A câmera ainda não existe e o viewport continua em 560x480; por isso, mapas maiores podem ter coordenadas fora da área visível até a próxima etapa.
+O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera acompanha o jogador, é limitada às bordas do mundo e aplica uma única transformação de contexto durante o desenho. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
+
+Zoom, minimapa, pan manual, drag, easing, culling e colisão com salas/corredores ainda não existem. A detecção da sala continua comparando coordenadas do mundo sem aplicar a câmera.
 
 ## Resultados de estresse do layout
 
@@ -63,14 +67,15 @@ O layout próprio agora garante espaçamento nos cenários medidos. O próximo p
 
 ## Próximo trabalho estrutural
 
-1. Reduzir sobreposição em mapas maiores e avaliar câmera/zoom.
-2. Acrescentar caminhos e análises mais avançadas somente quando houver necessidade real.
+1. Avaliar manualmente a navegação em mundos maiores que o viewport.
+2. Considerar zoom e minimapa somente depois de validar a câmera básica.
+3. Acrescentar caminhos e análises mais avançadas somente quando houver necessidade real.
 
 ## Divergências entre plano e código
 
 - O plano define o grafo como fonte de verdade; `grafoC.js` já concentra nós, arestas, chamadas recebidas, alcance e profundidade.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
-- O layout separado já existe em `layoutMasmorra.js`; a geometria básica ainda é limitada para mapas maiores.
+- O layout separado já existe em `layoutMasmorra.js`; a câmera básica já acompanha o personagem, mas ainda não há zoom nem minimapa.
 - O plano prevê módulos futuros como `camera.js`, `busca.js`, `arquivos.js` e `exportacao.js`; eles ainda não existem e não devem ser criados sem necessidade real.
 - O plano prevê estresse com 5, 15, 30 e 60 funções; esses cenários ainda não são uma suíte dedicada.
 - O plano prevê comparação A/B apenas após a v1; ela não está implementada.

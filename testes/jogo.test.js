@@ -8,12 +8,13 @@ const salas = [
   { nome: 'outra', complexidade: 4, x: 250, y: 40, largura: 60, altura: 60 },
 ];
 const arestas = [{ origem: 'main', destino: 'outra' }];
+const masmorra = { salas, larguraMundo: 560, alturaMundo: 480 };
 
 test('só captura movimento depois de clicar no mapa e libera ao clicar fora', () => {
   const ambiente = criarAmbiente();
   const notificacoes = [];
 
-  iniciarJogo(salas, arestas, sala => notificacoes.push(sala?.nome ?? null));
+  iniciarJogo(masmorra, arestas, sala => notificacoes.push(sala?.nome ?? null));
   ambiente.avancar();
 
   assert.deepEqual(notificacoes, ['main']);
@@ -62,7 +63,7 @@ test('só captura movimento depois de clicar no mapa e libera ao clicar fora', (
 test('Esc libera os controles e o mapa pode ser ativado novamente', () => {
   const ambiente = criarAmbiente();
   const estados = [];
-  iniciarJogo(salas, arestas, () => {}, estado => estados.push(estado));
+  iniciarJogo(masmorra, arestas, () => {}, estado => estados.push(estado));
   const canvas = ambiente.elementos.get('canvas-jogo');
 
   assert.deepEqual(estados, [false]);
@@ -100,7 +101,7 @@ test('Esc libera os controles e o mapa pode ser ativado novamente', () => {
 
 test('reiniciar mantém apenas um ciclo e parar remove todos os eventos', () => {
   const ambiente = criarAmbiente();
-  for (let indice = 0; indice < 5; indice++) iniciarJogo(salas, arestas, () => {});
+  for (let indice = 0; indice < 5; indice++) iniciarJogo(masmorra, arestas, () => {});
   assert.equal(ambiente.pendentes.size, 1);
   assert.equal(ambiente.janela.ouvintes.get('keydown').size, 1);
   const atalho = ambiente.janela.emitir('keydown', { key: 'd', ctrlKey: true });
@@ -114,7 +115,7 @@ test('reiniciar mantém apenas um ciclo e parar remove todos os eventos', () => 
 test('ignora digitação em campos e libera movimento quando a aba fica oculta', () => {
   const ambiente = criarAmbiente();
   const notificacoes = [];
-  iniciarJogo(salas, arestas, sala => notificacoes.push(sala?.nome ?? null));
+  iniciarJogo(masmorra, arestas, sala => notificacoes.push(sala?.nome ?? null));
   ambiente.avancar();
   const evento = ambiente.janela.emitir('keydown', { key: 'w', target: { closest() { return true; } } });
   assert.equal(evento.prevenido, undefined);
@@ -125,5 +126,66 @@ test('ignora digitação em campos e libera movimento quando a aba fica oculta',
   ambiente.documento.emitir('visibilitychange');
   ambiente.avancar(65);
   assert.deepEqual(notificacoes, ['main']);
+  pararJogo();
+});
+
+test('usa os limites do mundo para alcançar salas além do viewport', () => {
+  const ambiente = criarAmbiente();
+  const notificacoes = [];
+  const masmorraGrande = {
+    salas: [
+      { nome: 'main', complexidade: 0, x: 700, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
+      { nome: 'longe', complexidade: 0, x: 900, y: 200, largura: 60, altura: 60 },
+    ],
+    larguraMundo: 1200,
+    alturaMundo: 480,
+  };
+
+  iniciarJogo(
+    masmorraGrande,
+    [{ origem: 'main', destino: 'longe' }],
+    sala => notificacoes.push(sala?.nome ?? null)
+  );
+  ambiente.avancar();
+
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.documento.emitir('pointerdown', {
+    target: canvas,
+    composedPath() {
+      return [canvas];
+    }
+  });
+  ambiente.janela.emitir('keydown', { key: 'ArrowRight' });
+  ambiente.avancar(80);
+  ambiente.janela.emitir('keyup', { key: 'ArrowRight' });
+
+  assert.deepEqual(notificacoes, ['main', null, 'longe']);
+  pararJogo();
+});
+
+test('reiniciar com mundo pequeno redefine a transformação da câmera', () => {
+  const ambiente = criarAmbiente();
+  const mundoGrande = {
+    salas: [
+      { nome: 'main', complexidade: 0, x: 700, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
+    ],
+    larguraMundo: 1200,
+    alturaMundo: 480,
+  };
+  const mundoPequeno = {
+    salas: [
+      { nome: 'main', complexidade: 0, x: 235, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
+    ],
+    larguraMundo: 560,
+    alturaMundo: 480,
+  };
+
+  iniciarJogo(mundoGrande, [], () => {});
+  ambiente.avancar();
+  assert.notEqual(ambiente.elementos.get('canvas-jogo').translacoes.at(-1).x, 0);
+
+  iniciarJogo(mundoPequeno, [], () => {});
+  ambiente.avancar();
+  assert.deepEqual(ambiente.elementos.get('canvas-jogo').translacoes.at(-1), { x: 0, y: 0 });
   pararJogo();
 });

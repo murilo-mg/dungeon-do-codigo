@@ -15,22 +15,29 @@ function criarFuncao(nome, chamadas = []) {
 }
 
 test('lista vazia produz uma masmorra vazia, sem sala fictícia', () => {
-  assert.deepEqual(construirMasmorra([]), []);
+  assert.deepEqual(construirMasmorra([]), {
+    salas: [],
+    larguraMundo: 560,
+    alturaMundo: 480,
+  });
 });
 
 test('preserva os dados da sala inicial com main ou com a primeira função disponível', () => {
   const auxiliar = criarFuncao('auxiliar');
 
-  assert.equal(construirMasmorra([auxiliar])[0].nome, 'auxiliar');
-  assert.equal(construirMasmorra([auxiliar])[0].profundidade, 0);
+  const masmorraAuxiliar = construirMasmorra([auxiliar]);
+  assert.equal(masmorraAuxiliar.salas[0].nome, 'auxiliar');
+  assert.equal(masmorraAuxiliar.salas[0].profundidade, 0);
 
   const principal = criarFuncao('main', ['auxiliar']);
-  const salas = construirMasmorra([auxiliar, principal]);
-
+  const masmorra = construirMasmorra([auxiliar, principal]);
+  const salas = masmorra.salas;
   assert.equal(salas.length, 2);
   assert.equal(salas[0].nome, 'main');
   assert.equal(salas[0].ehSalaInicial, true);
   assert.equal(salas[0].profundidade, 0);
+  assert.equal(masmorra.larguraMundo, 560);
+  assert.equal(masmorra.alturaMundo, 480);
 
   assert.equal(salas[1].ehChamadaPelaPrincipal, true);
   assert.equal(salas[1].profundidade, 1);
@@ -51,7 +58,7 @@ test('calcula chamadas recebidas e profundidade a partir da função inicial', (
     criarFuncao('main', ['carregar', 'processar']),
   ];
 
-  const salas = construirMasmorra(funcoes);
+  const salas = construirMasmorra(funcoes).salas;
   const porNome = new Map(
     salas.map(sala => [sala.nome, sala])
   );
@@ -100,7 +107,7 @@ test('organiza salas em colunas conforme a profundidade das chamadas', () => {
     criarFuncao('main', ['carregar', 'processar']),
   ];
 
-  const salas = construirMasmorra(funcoes);
+  const salas = construirMasmorra(funcoes).salas;
 
   const porNome = new Map(
     salas.map(sala => [sala.nome, sala])
