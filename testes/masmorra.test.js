@@ -89,3 +89,39 @@ test('calcula chamadas recebidas e profundidade a partir da função inicial', (
     false
   );
 });
+
+test('organiza salas em colunas conforme a profundidade das chamadas', () => {
+  const funcoes = [
+    criarFuncao('validar'),
+    criarFuncao('salvar'),
+    criarFuncao('carregar', ['validar']),
+    criarFuncao('processar', ['salvar']),
+    criarFuncao('isolada'),
+    criarFuncao('main', ['carregar', 'processar']),
+  ];
+
+  const salas = construirMasmorra(funcoes);
+
+  const porNome = new Map(
+    salas.map(sala => [sala.nome, sala])
+  );
+
+  const main = porNome.get('main');
+  const carregar = porNome.get('carregar');
+  const processar = porNome.get('processar');
+  const validar = porNome.get('validar');
+  const salvar = porNome.get('salvar');
+  const isolada = porNome.get('isolada');
+
+  assert.ok(main.x < carregar.x);
+  assert.equal(carregar.x, processar.x);
+
+  assert.ok(carregar.x < validar.x);
+  assert.equal(validar.x, salvar.x);
+
+  assert.notEqual(carregar.y, processar.y);
+  assert.notEqual(validar.y, salvar.y);
+
+  assert.ok(isolada.x > validar.x);
+  assert.equal(isolada.profundidade, null);
+});
