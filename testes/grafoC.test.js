@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { criarGrafo } from '../js/grafoC.js';
+import { criarGrafo, encontrarCaminhoDaEntrada, obterEstruturaDaFuncao } from '../js/grafoC.js';
 
 function criarFuncao(nome, chamadas = []) {
   return { nome, chamadas };
@@ -137,4 +137,83 @@ test('usa a menor profundidade entre caminhos possíveis', () => {
   ]);
 
   assert.equal(grafo.nos.get('meio').profundidade, 2);
+});
+
+test('caminho da entrada para ela mesma, inclusive com recursão direta', () => {
+  const grafo = criarGrafo([criarFuncao('main', ['main'])]);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'main'), ['main']);
+});
+
+test('caminho segue uma cadeia e coincide com a profundidade', () => {
+  const grafo = criarGrafo([
+    criarFuncao('main', ['a']), criarFuncao('a', ['b']), criarFuncao('b'),
+  ]);
+  const caminho = encontrarCaminhoDaEntrada(grafo, 'b');
+  assert.deepEqual(caminho, ['main', 'a', 'b']);
+  assert.equal(caminho.length - 1, grafo.nos.get('b').profundidade);
+});
+
+test('ramificação escolhe cada destino sem criar ligação entre irmãos', () => {
+  const grafo = criarGrafo([
+    criarFuncao('main', ['a', 'b']), criarFuncao('a'), criarFuncao('b'),
+  ]);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'a'), ['main', 'a']);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'b'), ['main', 'b']);
+});
+
+test('múltiplos caminhos mínimos seguem a ordem estrutural das chamadas', () => {
+  const grafo = criarGrafo([
+    criarFuncao('main', ['b', 'a']), criarFuncao('a', ['fim']),
+    criarFuncao('b', ['fim']), criarFuncao('fim'),
+  ]);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'fim'), ['main', 'b', 'fim']);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'fim'), ['main', 'b', 'fim']);
+});
+
+test('prefere caminho direto a cadeia mais longa', () => {
+  const grafo = criarGrafo([
+    criarFuncao('main', ['a', 'fim']), criarFuncao('a', ['fim']), criarFuncao('fim'),
+  ]);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'fim'), ['main', 'fim']);
+});
+
+test('função isolada e destino inexistente não têm caminho', () => {
+  const grafo = criarGrafo([criarFuncao('main'), criarFuncao('isolada')]);
+  assert.equal(encontrarCaminhoDaEntrada(grafo, 'isolada'), null);
+  assert.equal(encontrarCaminhoDaEntrada(grafo, 'inexistente'), null);
+  assert.equal(obterEstruturaDaFuncao(grafo, 'inexistente'), null);
+});
+
+test('ciclo e recursão não repetem nós no caminho', () => {
+  const grafo = criarGrafo([
+    criarFuncao('main', ['a']), criarFuncao('a', ['a', 'b']),
+    criarFuncao('b', ['a']),
+  ]);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'b'), ['main', 'a', 'b']);
+});
+
+test('grafo vazio não tem caminho', () => {
+  assert.equal(encontrarCaminhoDaEntrada(criarGrafo([]), 'main'), null);
+});
+
+test('sem main usa a primeira função como entrada', () => {
+  const grafo = criarGrafo([criarFuncao('inicio', ['fim']), criarFuncao('fim')]);
+  assert.deepEqual(encontrarCaminhoDaEntrada(grafo, 'fim'), ['inicio', 'fim']);
+});
+
+test('resumo estrutural usa chamadas recebidas e arestas conhecidas', () => {
+  const grafo = criarGrafo([
+    criarFuncao('main', ['a', 'b', 'printf']), criarFuncao('a', ['b']),
+    criarFuncao('b'), criarFuncao('isolada'),
+  ]);
+  assert.deepEqual(obterEstruturaDaFuncao(grafo, 'b'), {
+    profundidade: 1,
+    ehEntrada: false,
+    callers: ['main', 'a'],
+    callees: [],
+    caminho: ['main', 'b'],
+  });
+  assert.deepEqual(obterEstruturaDaFuncao(grafo, 'main').callees, ['a', 'b']);
+  assert.equal(obterEstruturaDaFuncao(grafo, 'isolada').profundidade, null);
+  assert.equal(obterEstruturaDaFuncao(grafo, 'isolada').caminho, null);
 });

@@ -66,10 +66,13 @@ export function descreverSala(sala) {
   const observacao = sala.complexidade <= 2 ? 'Uma sala tranquila para começar a exploração.'
     : sala.complexidade <= 6 ? 'Há mais caminhos de decisão para investigar aqui.'
       : 'Esta sala merece atenção: o índice indica mais complexidade para explorar.';
-  return `${sala.nome}() tem ${sala.linhas} linha(s) de corpo e ${sala.estruturasControle} estrutura(s) de controle. ${observacao}`;
+  const estruturas = sala.estruturasControle == null
+    ? 'total de estruturas de controle indisponível'
+    : `${sala.estruturasControle} estrutura(s) de controle`;
+  return `${sala.nome}() tem ${sala.linhas} linha(s) de corpo e ${estruturas}. ${observacao}`;
 }
 
-export function atualizarPainelDeSala(sala) {
+export function atualizarPainelDeSala(sala, estrutura = null) {
   cancelarAnimacaoPainel();
   const painelInfo = document.getElementById('info-sala');
   painelInfo.replaceChildren();
@@ -117,8 +120,48 @@ export function atualizarPainelDeSala(sala) {
     + (sala.textoCompleto.length > TAMANHO_MAXIMO_TRECHO ? '\n...' : ''));
   painelInfo.append(cabecalho, descricao, descricaoAcessivel,
     criarEstatistica('Linhas de corpo', sala.linhas),
-    criarEstatistica('Estruturas de controle', sala.estruturasControle), perigo, codigo);
+    criarEstatistica('Complexidade', sala.complexidade));
+  if (estrutura) {
+    painelInfo.append(criarEstatistica('Profundidade',
+      estrutura.profundidade ?? 'Não alcançável a partir da entrada'));
+  }
+  painelInfo.append(criarSecao('Estruturas', 'estruturas-funcao',
+    sala.estruturasControle == null ? 'Informação não disponível'
+      : sala.estruturasControle === 0 ? 'Nenhuma estrutura de controle'
+        : `${sala.estruturasControle} estrutura(s) de controle (total)`));
+  if (estrutura) {
+    painelInfo.append(
+      criarListaDeFuncoes('Chamada por', 'callers-funcao', estrutura.callers,
+        estrutura.ehEntrada ? 'Entrada do programa' : 'Nenhuma chamada conhecida'),
+      criarListaDeFuncoes('Chama', 'callees-funcao', estrutura.callees,
+        'Nenhuma função conhecida'),
+      criarSecao('Caminho desde a entrada', 'caminho-funcao',
+        estrutura.caminho ? estrutura.caminho.map(nome => `${nome}()`).join(' → ')
+          : 'Não alcançável a partir da entrada'));
+  }
+  const secaoCodigo = criarSecao('Código', 'trecho-funcao');
+  secaoCodigo.append(codigo);
+  painelInfo.append(perigo, secaoCodigo);
   animarPainel(descricao, textoDescricao, preenchimento, criatura.preenchimento);
+}
+
+function criarSecao(titulo, classe, texto) {
+  const secao = criarElemento('section', `secao-inspector ${classe}`);
+  secao.append(criarElemento('h4', 'titulo-inspector', titulo));
+  if (texto !== undefined) secao.append(criarElemento('p', classe, texto));
+  return secao;
+}
+
+function criarListaDeFuncoes(titulo, classe, nomes, mensagemVazia) {
+  const secao = criarSecao(titulo, classe);
+  if (nomes.length === 0) {
+    secao.append(criarElemento('p', classe, mensagemVazia));
+  } else {
+    const lista = criarElemento('ul', classe);
+    for (const nome of nomes) lista.append(criarElemento('li', '', `${nome}()`));
+    secao.append(lista);
+  }
+  return secao;
 }
 
 function animarPainel(descricao, texto, preenchimento, valor) {

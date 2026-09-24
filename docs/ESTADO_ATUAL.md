@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 83 testes passando.
+- A suíte registrada no estado deste documento tem 99 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -14,13 +14,13 @@
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
 - O layout atual organiza salas em colunas conforme a profundidade e separa funções inalcançáveis em uma coluna de isoladas.
 - O Canvas renderiza cenário, salas, criaturas, personagem, passos e efeitos.
-- O inspector no DOM mostra função, métricas, perigo e trecho do código.
+- O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada e total de estruturas de controle.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
 - A preferência `prefers-reduced-motion` é respeitada em animações relevantes.
 
 ## Último marco
 
-O último marco é a câmera básica para explorar o mundo lógico dinâmico, com validação manual concluída pelo mantenedor. O personagem avança além do viewport, a câmera acompanha corretamente, salas e corredores permanecem alinhados e os controles continuam funcionando. Nenhum bug visual foi encontrado nessa validação.
+O último marco é o primeiro bloco de “Leitura estrutural do programa”: inspector estrutural com callers, callees, caminho mínimo desde a entrada e total de estruturas de controle. A câmera básica permanece concluída, com validação manual pelo mantenedor: o personagem avança além do viewport, a câmera acompanha corretamente, salas e corredores permanecem alinhados e os controles continuam funcionando. Nenhum bug visual foi encontrado nessa validação da câmera.
 
 ## Base estrutural atual
 
@@ -65,16 +65,16 @@ Nesta execução local, a criação do grafo e o cálculo do layout ficaram na o
 
 O layout próprio garante espaçamento nos cenários medidos, e a câmera básica já permite explorar o mundo maior, com validação manual concluída. Dagre ou ELK só devem ser considerados se novos casos medidos demonstrarem problemas que a solução atual não resolva.
 
-## Próximo marco: Leitura estrutural do programa
+## Leitura estrutural do programa
 
-O próximo bloco de produto ainda não está implementado. A prioridade é evoluir o inspector estrutural para apresentar:
+O primeiro bloco está implementado no inspector, com:
 
 1. Callers: funções que chamam a função selecionada.
 2. Callees: funções chamadas pela função selecionada.
-3. Caminho desde a entrada/main.
-4. Estruturas da função.
+3. Um caminho mínimo desde a entrada, que usa `main` quando ela existe.
+4. Total de estruturas de controle da função. O analisador ainda não fornece contagens separadas por tipo.
 
-A integração com busca e foco em função é futura. Zoom e minimapa continuam pendentes e não são a prioridade deste bloco.
+A integração com busca e foco em função é futura. Zoom e minimapa continuam pendentes.
 
 ## Implementações concluídas e pendências
 
@@ -83,7 +83,7 @@ A integração com busca e foco em função é futura. Zoom e minimapa continuam
 - O layout separado já existe em `layoutMasmorra.js`; a câmera básica já acompanha o personagem, mas ainda não há zoom nem minimapa.
 - `camera.js` já existe. Busca de função, foco automático em função, importação `.c` e exportação continuam futuros; `busca.js`, `arquivos.js` e `exportacao.js` ainda não existem.
 - Os testes de estresse com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`, com zero sobreposições de salas nos cenários atuais.
-- Inspector estrutural avançado, colisão/topologia, PWA e comparação A/B não estão implementados; a comparação A/B continua prevista para depois da v1. A auditoria final de segurança permanece pendente.
+- Navegação por clique nas relações, busca, foco automático, análise de todos os caminhos, colisão/topologia, PWA e comparação A/B não estão implementados; a comparação A/B continua prevista para depois da v1. A auditoria final de segurança permanece pendente.
 
 ## Critérios para o próximo ciclo
 

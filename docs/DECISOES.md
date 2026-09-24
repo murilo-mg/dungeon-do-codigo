@@ -48,7 +48,7 @@ Não salvar automaticamente o código do usuário. Importação, salvamento de s
 
 ### Priorizar leitura estrutural do programa
 
-Após a conclusão e validação manual da câmera básica, o próximo bloco de produto será o inspector estrutural: callers, callees, caminho desde a entrada/main e estruturas da função. A integração com busca e foco será futura. Essa prioridade não implica que o inspector estrutural avançado, busca ou foco automático já estejam implementados.
+Após a conclusão e validação manual da câmera básica, o primeiro bloco de leitura estrutural foi implementado no inspector: callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle disponível no analisador. Busca, foco automático e navegação por clique nas relações continuam futuros.
 
 ### Canvas para mapa; DOM para inspector e controles
 

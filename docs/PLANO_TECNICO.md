@@ -38,11 +38,12 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Testes de estresse com 5, 15, 30 e 60 funções, sem sobreposição de salas nos cenários atuais.
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
-- 83 testes automatizados Node.js registrados como passando.
+- Inspector estrutural com callers, callees, caminho mínimo desde a entrada e total de estruturas de controle.
+- 99 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
-- Leitura estrutural do programa: inspector estrutural com callers, callees, caminho desde a entrada/main e estruturas da função.
+- Leitura estrutural avançada: navegação por clique nas relações e contagens de estruturas por tipo, que ainda não são produzidas pelo analisador.
 - Integração futura com busca por função e foco automático em função.
 - Zoom e minimapa.
 - Colisão/topologia.
@@ -65,7 +66,8 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 
 - Concluído: modelo explícito em `grafoC.js`, com nós por funções e arestas por chamadas reais.
 - Concluído: chamadas recebidas, profundidade mínima e alcançabilidade, com tratamento de ciclos e recursão sem loop infinito.
-- Pendente: caminhos e análises mais avançadas de ciclos. A apresentação estrutural dessas relações será evoluída no próximo bloco.
+- Concluído: um caminho mínimo e determinístico desde a entrada para cada função alcançável.
+- Pendente: enumeração de múltiplos caminhos e análises mais avançadas de ciclos.
 
 ### Fase 3: geometria e exploração
 
@@ -75,9 +77,9 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: câmera básica com viewport de 560x480 e validação manual pelo mantenedor.
 - Pendentes: zoom, minimapa e colisão/topologia.
 
-### Fase 4: Leitura estrutural do programa — próximo bloco
+### Fase 4: leitura estrutural do programa
 
-- Priorizar o inspector estrutural com callers, callees, caminho desde a entrada/main e estruturas da função.
+- Concluído: inspector estrutural com callers, callees, um caminho mínimo desde a entrada e total de estruturas de controle.
 - Preparar a integração futura com busca e foco em função, ainda não implementados.
 - Destaque de relações e métricas.
 - Inspector acessível, foco previsível e controles de toque.

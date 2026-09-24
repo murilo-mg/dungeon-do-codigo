@@ -44,7 +44,7 @@ Calcula, sem DOM, Canvas, eventos ou estado global, a posição da câmera a par
 
 ### `js/grafoC.js`
 
-Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e trata ciclos e recursão sem loop infinito. Não depende de Canvas, DOM ou geometria.
+Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Também fornece callers, callees e um caminho mínimo e determinístico desde a entrada para uma função alcançável. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e trata ciclos e recursão sem loop infinito. Não depende de Canvas, DOM ou geometria.
 
 ### `js/cenario.js`
 
@@ -76,7 +76,7 @@ Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sa
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, atualiza o inspector, anima descrições, desenha retratos e atualiza o estado visual dos controles. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
@@ -99,9 +99,9 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 
 ## Arquitetura futura desejada
 
-As evoluções e os módulos futuros abaixo não devem ser implementados sem necessidade real demonstrada por testes, uso ou complexidade concreta. O próximo bloco de produto é “Leitura estrutural do programa”: inspector estrutural com callers, callees, caminho desde a entrada/main e estruturas da função, com integração futura com busca e foco. Esse bloco ainda não está implementado; deve preservar o grafo como fonte da verdade estrutural e o DOM sob responsabilidade de `interface.js`.
+O primeiro bloco de “Leitura estrutural do programa” está implementado no inspector: callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle da função. A integração com busca e foco continua futura. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
 
-O módulo `grafoC.js` já existe com a base estrutural descrita acima. Caminhos e detecção mais sofisticada de ciclos continuam sendo evolução futura, não fazem parte da implementação atual.
+O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
 
 ### `layoutMasmorra.js`
 

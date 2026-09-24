@@ -66,3 +66,46 @@ function calcularAlcanceEDistancias(entrada, nos) {
     }
   }
 }
+
+// BFS pelas arestas: o primeiro predecessor preserva a ordem estrutural
+// e produz um caminho mínimo, inclusive na presença de ciclos.
+export function encontrarCaminhoDaEntrada(grafo, nomeDestino) {
+  if (!grafo.nos.has(grafo.entrada) || !grafo.nos.has(nomeDestino)) return null;
+
+  const adjacencias = new Map();
+  for (const { origem, destino } of grafo.arestas) {
+    if (!adjacencias.has(origem)) adjacencias.set(origem, []);
+    adjacencias.get(origem).push(destino);
+  }
+  const predecessores = new Map([[grafo.entrada, null]]);
+  const fila = [grafo.entrada];
+  for (let indice = 0; indice < fila.length; indice++) {
+    const atual = fila[indice];
+    if (atual === nomeDestino) {
+      const caminho = [];
+      for (let nome = atual; nome !== null; nome = predecessores.get(nome)) {
+        caminho.push(nome);
+      }
+      return caminho.reverse();
+    }
+    for (const destino of adjacencias.get(atual) ?? []) {
+      if (!grafo.nos.has(destino) || predecessores.has(destino)) continue;
+      predecessores.set(destino, atual);
+      fila.push(destino);
+    }
+  }
+  return null;
+}
+
+export function obterEstruturaDaFuncao(grafo, nome) {
+  const no = grafo.nos.get(nome);
+  if (!no) return null;
+  return {
+    profundidade: no.profundidade,
+    ehEntrada: nome === grafo.entrada,
+    callers: [...no.chamadaPor],
+    callees: grafo.arestas.filter(aresta => aresta.origem === nome)
+      .map(aresta => aresta.destino),
+    caminho: encontrarCaminhoDaEntrada(grafo, nome),
+  };
+}
