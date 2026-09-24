@@ -1,6 +1,8 @@
 // Responsável por transformar a lista de funções analisadas
 // em salas posicionadas geometricamente ao redor da sala inicial (main).
 
+import { criarGrafo } from './grafoC.js';
+
 const LARGURA_MAPA = 560;
 const ALTURA_MAPA = 480;
 const CENTRO_X = LARGURA_MAPA / 2;
@@ -11,18 +13,18 @@ const MARGEM_Y = 70;
 export function construirMasmorra(funcoes) {
   if (funcoes.length === 0) return [];
 
-  const funcaoPrincipal = encontrarFuncaoPrincipal(funcoes);
-  const relacoes = calcularRelacoesEntreFuncoes(funcoes, funcaoPrincipal);
+  const grafo = criarGrafo(funcoes);
+  const funcaoPrincipal = grafo.nos.get(grafo.entrada).funcao;
   const posicoes = calcularLayoutHierarquico(
   funcoes,
   funcaoPrincipal,
-  relacoes
+    grafo.nos
 );
   const outrasFuncoes = funcoes.filter(funcao => funcao !== funcaoPrincipal);
 const salas = [
   criarSalaInicial(
     funcaoPrincipal,
-    relacoes.get(funcaoPrincipal.nome),
+    grafo.nos.get(funcaoPrincipal.nome),
     posicoes.get(funcaoPrincipal.nome)
   ),
 ];
@@ -32,7 +34,7 @@ outrasFuncoes.forEach(funcao => {
     criarSalaSecundaria(
       funcao,
       funcaoPrincipal,
-      relacoes.get(funcao.nome),
+      grafo.nos.get(funcao.nome),
       posicoes.get(funcao.nome)
     )
   );
@@ -41,66 +43,11 @@ outrasFuncoes.forEach(funcao => {
   return salas;
 }
 
-function encontrarFuncaoPrincipal(funcoes) {
-  const indiceMain = funcoes.findIndex(funcao => funcao.nome === 'main');
-  return indiceMain >= 0 ? funcoes[indiceMain] : funcoes[0];
-}
-
-function calcularRelacoesEntreFuncoes(funcoes, funcaoPrincipal) {
-  const funcoesPorNome = new Map(
-    funcoes.map(funcao => [funcao.nome, funcao])
-  );
-
-  const relacoes = new Map(
-    funcoes.map(funcao => [
-      funcao.nome,
-      {
-        chamadaPor: [],
-        profundidade: null,
-      },
-    ])
-  );
-
-  funcoes.forEach(funcao => {
-    for (const nomeChamado of funcao.chamadas ?? []) {
-      if (!funcoesPorNome.has(nomeChamado)) continue;
-
-      const relacao = relacoes.get(nomeChamado);
-
-      if (!relacao.chamadaPor.includes(funcao.nome)) {
-        relacao.chamadaPor.push(funcao.nome);
-      }
-    }
-  });
-
-  relacoes.get(funcaoPrincipal.nome).profundidade = 0;
-
-  const fila = [funcaoPrincipal.nome];
-
-  for (let indice = 0; indice < fila.length; indice++) {
-    const nomeAtual = fila[indice];
-    const funcaoAtual = funcoesPorNome.get(nomeAtual);
-    const profundidadeAtual = relacoes.get(nomeAtual).profundidade;
-
-    for (const nomeChamado of funcaoAtual.chamadas ?? []) {
-      const relacaoChamada = relacoes.get(nomeChamado);
-
-      if (!relacaoChamada) continue;
-      if (relacaoChamada.profundidade !== null) continue;
-
-      relacaoChamada.profundidade = profundidadeAtual + 1;
-      fila.push(nomeChamado);
-    }
-  }
-
-  return relacoes;
-}
-
-function calcularLayoutHierarquico(funcoes, funcaoPrincipal, relacoes) {
+function calcularLayoutHierarquico(funcoes, funcaoPrincipal, nos) {
   const niveis = new Map();
 
   funcoes.forEach(funcao => {
-    const profundidade = relacoes.get(funcao.nome).profundidade;
+    const profundidade = nos.get(funcao.nome).profundidade;
     const chave = profundidade === null ? 'isoladas' : profundidade;
 
     if (!niveis.has(chave)) {
@@ -177,11 +124,11 @@ function calcularCentroVertical(indice, quantidade) {
   return MARGEM_Y + indice * intervalo;
 }
 
-function criarSalaInicial(funcaoPrincipal, relacao, posicao) {
+function criarSalaInicial(funcaoPrincipal, no, posicao) {
   return {
     ...funcaoPrincipal,
-    chamadaPor: relacao.chamadaPor,
-    profundidade: relacao.profundidade,
+    chamadaPor: no.chamadaPor,
+    profundidade: no.profundidade,
     ehSalaInicial: true,
     x: posicao.x,
     y: posicao.y,
@@ -193,22 +140,22 @@ function criarSalaInicial(funcaoPrincipal, relacao, posicao) {
 function criarSalaSecundaria(
   funcao,
   funcaoPrincipal,
-  relacao,
+  no,
   posicao
 ) {
   const tamanho = tamanhoPorComplexidade(funcao.complexidade);
 
   return {
     ...funcao,
-    chamadaPor: relacao.chamadaPor,
-    profundidade: relacao.profundidade,
+    chamadaPor: no.chamadaPor,
+    profundidade: no.profundidade,
     ehSalaInicial: false,
     x: posicao.x,
     y: posicao.y,
     largura: tamanho,
     altura: tamanho,
     ehChamadaPelaPrincipal:
-      relacao.chamadaPor.includes(funcaoPrincipal.nome),
+      no.chamadaPor.includes(funcaoPrincipal.nome),
   };
 }
 

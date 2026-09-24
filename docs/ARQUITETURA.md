@@ -10,7 +10,7 @@ A separação desejada é:
 verdade do código -> grafo -> layout -> experiência
 ```
 
-A implementação atual ainda combina parte de grafo e layout em `masmorra.js`; essa é uma divergência conhecida, não uma capacidade já concluída.
+`grafoC.js` concentra a estrutura das relações entre funções. `masmorra.js` consome esse grafo, mas ainda mantém a responsabilidade pela geometria e pelo layout das salas.
 
 ## Módulos atuais
 
@@ -32,11 +32,15 @@ Extrai funções por uma expressão de assinatura simplificada, conta linhas e e
 
 ### `js/masmorra.js`
 
-Escolhe a função inicial, calcula relações de chamadas recebidas e profundidade alcançável, agrupa funções por profundidade e cria salas posicionadas. Também define tamanho e cor por complexidade. Atualmente não expõe um grafo com arestas explícitas.
+Consome o grafo para obter a função inicial, chamadas recebidas, profundidade e alcance necessários ao layout. Agrupa funções por profundidade, cria salas posicionadas e define tamanho e cor por complexidade. O layout geométrico continua neste módulo nesta etapa.
+
+### `js/grafoC.js`
+
+Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e trata ciclos e recursão sem loop infinito. Não depende de Canvas, DOM ou geometria.
 
 ### `js/cenario.js`
 
-Cria e desenha o cenário de fundo e suas decorações, evitando áreas ocupadas pelas salas e corredores conforme o modelo que recebe.
+Cria e desenha o cenário de fundo e suas decorações, evitando áreas ocupadas pelas salas e pelos corredores do modelo atual. Ainda não usa as arestas reais do grafo.
 
 ### `js/personagem.js`
 
@@ -56,7 +60,7 @@ Fornece paleta e dados/recursos de pixel art usados pela renderização.
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Os corredores ainda são desenhados a partir da sala inicial, sem consumir as arestas reais do grafo. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
@@ -72,22 +76,21 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 2. `principal.js` chama `analisarFuncoes`.
 3. `lexicoC.js` protege strings, caracteres e comentários durante a análise.
 4. `analisadorC.js` devolve funções, métricas e nomes de chamadas conhecidas.
-5. `masmorra.js` calcula relações, profundidade e posições.
-6. `principal.js` inicia `jogo.js` e `interface.js`.
-7. `jogo.js` desenha o mapa e notifica a sala atual.
-8. `interface.js` atualiza o inspector e o status dos controles.
+5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade e alcance.
+6. `masmorra.js` consome o grafo e calcula as posições geométricas.
+7. `principal.js` inicia `jogo.js` e `interface.js`.
+8. `jogo.js` desenha o mapa e notifica a sala atual.
+9. `interface.js` atualiza o inspector e o status dos controles.
 
 ## Arquitetura futura desejada
 
 Os módulos seguintes são direções de arquitetura e não devem ser criados agora sem necessidade real demonstrada por testes, uso ou complexidade concreta.
 
-### `grafoC.js`
-
-Deverá concentrar a estrutura semântica do programa: nós de funções, arestas de chamadas, chamadas recebidas, profundidade, alcançabilidade, caminhos e ciclos. Deve ser independente de posições, pixels, DOM e física.
+O módulo `grafoC.js` já existe com a base estrutural descrita acima. Caminhos e detecção mais sofisticada de ciclos continuam sendo evolução futura, não fazem parte da implementação atual.
 
 ### `layoutMasmorra.js`
 
-Deverá cuidar apenas de geometria e posições: colunas, espaçamento, tamanho, limites e prevenção de sobreposição. Não deve decidir o significado das chamadas nem desenhar.
+Continua futuro e deverá cuidar apenas de geometria e posições: colunas, espaçamento, tamanho, limites e prevenção de sobreposição. Não deve decidir o significado das chamadas nem desenhar.
 
 ### `camera.js`
 
