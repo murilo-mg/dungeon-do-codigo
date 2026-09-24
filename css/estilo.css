@@ -375,11 +375,6 @@ textarea:focus-visible {
     align-items: flex-start;
   }
 
-  #canvas-jogo {
-    width: min(560px, calc(100vh - 215px));
-    height: auto;
-  }
-
   .lateral {
     max-height: calc(100vh - 190px);
     overflow-y: auto;
@@ -589,12 +584,144 @@ textarea:focus-visible {
   58%, 82% { opacity: 1; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .preview-simples,
-  .preview-complexa,
-  .preview-sala-simples,
-  .preview-sala-complexa {
-    animation: none;
-    opacity: 1;
+.workspace {
+  width: min(1180px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.workspace-topo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--pedra-clara);
+  background: var(--pedra);
+  border-radius: 4px;
+}
+
+.workspace-marca {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  color: var(--brasa-clara);
+  font-size: 16px;
+}
+
+.workspace-contexto {
+  margin: 3px 0 0;
+  color: var(--pergaminho-fraco);
+  font-size: 10px;
+}
+
+.workspace-conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  align-items: start;
+}
+
+.workspace-mapa {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.workspace-mapa canvas {
+  display: block;
+  width: min(100%, 560px);
+  height: auto;
+}
+
+.workspace-inspetor {
+  min-width: 0;
+  max-height: 480px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.workspace-inspetor .cartao {
+  min-height: 100%;
+}
+
+.workspace-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border: 1px solid var(--pedra-clara);
+  background: var(--pedra);
+  border-radius: 4px;
+  color: var(--pergaminho-fraco);
+  font-size: 10px;
+}
+
+.status-controles,
+.status-legenda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-indicador {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pergaminho-fraco);
+}
+
+.status-separador {
+  opacity: 0.55;
+}
+
+.status-legenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.amostra-cor.baixa {
+  background: var(--musgo);
+}
+
+.amostra-cor.media {
+  background: var(--brasa);
+}
+
+.amostra-cor.alta {
+  background: var(--sangue);
+}
+
+.amostra-cor.inicial {
+  background: var(--ouro);
+}
+
+@media (max-width: 899px) {
+  .workspace {
+    width: 100%;
+  }
+
+  .workspace-topo {
+    align-items: flex-start;
+  }
+
+  .workspace-conteudo {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-inspetor {
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+}
+
+  .workspace-status {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

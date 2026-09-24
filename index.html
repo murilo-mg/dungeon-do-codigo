@@ -73,40 +73,77 @@
 </section>
 </main>
 
-<div class="area-jogo" id="area-jogo" style="display:none;">
-  <div>
-    <canvas id="canvas-jogo" tabindex="0" aria-label="Masmorra explorável. Use as setas ou WASD para andar." width="560" height="480"></canvas>
-    <p class="dica-controles">
-      Clique no mapa para ativar os controles.
-      Mover:
-      <kbd>&larr;</kbd>
-      <kbd>&uarr;</kbd>
-      <kbd>&darr;</kbd>
-      <kbd>&rarr;</kbd>
-      ou
-      <kbd>W</kbd>
-      <kbd>A</kbd>
-      <kbd>S</kbd>
-      <kbd>D</kbd>
-    </p>
-    <div class="linha linha-centralizada">
-      <button class="fantasma" id="botao-voltar">&larr; colar outro código</button>
+<section class="workspace" id="area-jogo" style="display:none;">
+
+  <header class="workspace-topo">
+    <div>
+      <p class="workspace-marca">Dungeon do Código</p>
+      <p class="workspace-contexto">Exploração do programa</p>
     </div>
+
+    <button class="fantasma" id="botao-voltar">
+      ← novo código
+    </button>
+  </header>
+
+  <div class="workspace-conteudo">
+
+    <div class="workspace-mapa">
+      <canvas
+        id="canvas-jogo"
+        tabindex="0"
+        aria-label="Masmorra explorável. Use as setas ou WASD para andar."
+        width="560"
+        height="480"
+      ></canvas>
+    </div>
+
+    <aside class="workspace-inspetor">
+      <div class="painel cartao">
+        <h3>Função atual</h3>
+
+        <div id="info-sala">
+          <p class="vazio">
+            Explore uma sala para inspecionar a função.
+          </p>
+        </div>
+      </div>
+    </aside>
+
   </div>
-  <div class="lateral">
-    <div class="painel cartao">
-      <h3>Sala atual</h3>
-      <div id="info-sala"><p class="vazio">Ande até uma sala para inspecionar a função.</p></div>
+
+  <footer class="workspace-status">
+    <div class="status-controles">
+      <span class="status-indicador"></span>
+      <span>Clique no mapa para explorar</span>
+      <span class="status-separador">·</span>
+      <span>WASD / setas</span>
     </div>
-    <div class="painel cartao">
-      <h3>Legenda de perigo</h3>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#5a7d3a;"></span>Baixa complexidade</div>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#c2601a;"></span>Complexidade média</div>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#8f2323;"></span>Alta complexidade — sala de chefe</div>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#c9a227;"></span>Sala inicial — main()</div>
+
+    <div class="status-legenda">
+      <span>
+        <span class="amostra-cor baixa"></span>
+        baixa
+      </span>
+
+      <span>
+        <span class="amostra-cor media"></span>
+        média
+      </span>
+
+      <span>
+        <span class="amostra-cor alta"></span>
+        alta
+      </span>
+
+      <span>
+        <span class="amostra-cor inicial"></span>
+        main
+      </span>
     </div>
-  </div>
-</div>
+  </footer>
+
+</section>
 
 <script type="module" src="js/principal.js"></script>
 </body>
