@@ -16,7 +16,7 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
     criarSalaInicial(
       funcaoPrincipal,
       grafo.nos.get(funcaoPrincipal.nome),
-      layout.get(funcaoPrincipal.nome)
+      layout.salas.get(funcaoPrincipal.nome)
     ),
   ];
 
@@ -26,7 +26,7 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
         funcao,
         funcaoPrincipal,
         grafo.nos.get(funcao.nome),
-        layout.get(funcao.nome)
+        layout.salas.get(funcao.nome)
       )
     );
   });

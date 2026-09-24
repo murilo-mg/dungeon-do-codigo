@@ -36,7 +36,7 @@ Consome o grafo e o layout calculado para montar as salas, copiar metadados estr
 
 ### `js/layoutMasmorra.js`
 
-Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições e as dimensões das salas no Canvas lógico de 560x480. Funções não alcançáveis ficam na coluna final e o tamanho continua variando conforme a complexidade. Ainda não resolve sobreposição em mapas grandes.
+Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões das salas e o tamanho do mundo lógico. A API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua sendo 560x480, mas o mundo cresce quando as dimensões reais das salas e os gaps mínimos exigem mais espaço. Funções não alcançáveis ficam na coluna final.
 
 ### `js/grafoC.js`
 
@@ -85,7 +85,7 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 3. `lexicoC.js` protege strings, caracteres e comentários durante a análise.
 4. `analisadorC.js` devolve funções, métricas e nomes de chamadas conhecidas.
 5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade e alcance.
-6. `layoutMasmorra.js` calcula as posições e dimensões a partir do grafo e das funções.
+6. `layoutMasmorra.js` calcula as posições, dimensões e tamanho do mundo a partir do grafo e das funções.
 7. `masmorra.js` monta as salas usando o grafo e o layout.
 8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
 9. `principal.js` inicia `jogo.js` passando as arestas reais.

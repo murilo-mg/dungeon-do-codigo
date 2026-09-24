@@ -1,47 +1,71 @@
 // Calcula somente a geometria das salas a partir do grafo e das funções.
 
-const LARGURA_MAPA = 560;
-const ALTURA_MAPA = 480;
-const CENTRO_X = LARGURA_MAPA / 2;
-const CENTRO_Y = ALTURA_MAPA / 2;
-const MARGEM_X = 80;
-const MARGEM_Y = 70;
+const LARGURA_VIEWPORT = 560;
+const ALTURA_VIEWPORT = 480;
+const MARGEM_EXTERNA = 24;
+const GAP_HORIZONTAL = 20;
+const GAP_VERTICAL = 20;
 
 export function calcularLayoutMasmorra(grafo, funcoes) {
-  if (funcoes.length === 0) return new Map();
+  if (funcoes.length === 0) {
+    return {
+      salas: new Map(),
+      larguraMundo: LARGURA_VIEWPORT,
+      alturaMundo: ALTURA_VIEWPORT,
+    };
+  }
 
   const funcaoPrincipal = grafo.nos.get(grafo.entrada).funcao;
   const niveis = agruparPorProfundidade(grafo, funcoes);
-  const profundidades = [...niveis.keys()]
-    .filter(chave => typeof chave === 'number');
-  const maiorProfundidade = Math.max(...profundidades, 0);
-  const possuiIsoladas = niveis.has('isoladas');
-  const quantidadeColunas =
-    maiorProfundidade + 1 + (possuiIsoladas ? 1 : 0);
-  const layout = new Map();
+  const colunas = [...niveis.entries()]
+    .sort(([chaveA], [chaveB]) => {
+      if (chaveA === 'isoladas') return 1;
+      if (chaveB === 'isoladas') return -1;
+      return chaveA - chaveB;
+    })
+    .map(([, funcoesDoNivel]) => funcoesDoNivel);
+  const largurasDasColunas = colunas.map(funcoesDaColuna =>
+    Math.max(...funcoesDaColuna.map(funcao =>
+      dimensoesDaFuncao(funcao, funcao === funcaoPrincipal).largura
+    ))
+  );
+  const larguraConteudo = soma(largurasDasColunas) +
+    GAP_HORIZONTAL * Math.max(0, colunas.length - 1);
+  const larguraMundo = Math.max(
+    LARGURA_VIEWPORT,
+    larguraConteudo + MARGEM_EXTERNA * 2
+  );
+  const alturasDosNiveis = colunas.map(funcoesDoNivel =>
+    alturaDoNivel(funcoesDoNivel, funcaoPrincipal)
+  );
+  const alturaConteudo = Math.max(...alturasDosNiveis, 0);
+  const alturaMundo = Math.max(
+    ALTURA_VIEWPORT,
+    alturaConteudo + MARGEM_EXTERNA * 2
+  );
+  const salas = new Map();
+  const inicioX = (larguraMundo - larguraConteudo) / 2;
+  let x = inicioX;
 
-  niveis.forEach((funcoesDoNivel, chave) => {
-    const coluna = chave === 'isoladas'
-      ? quantidadeColunas - 1
-      : chave;
-    const centroX = calcularCentroDaColuna(coluna, quantidadeColunas);
+  colunas.forEach((funcoesDoNivel, indiceColuna) => {
+    const larguraColuna = largurasDasColunas[indiceColuna];
+    const alturaNivel = alturasDosNiveis[indiceColuna];
+    let y = (alturaMundo - alturaNivel) / 2;
 
-    funcoesDoNivel.forEach((funcao, indice) => {
-      const centroY = calcularCentroVertical(
-        indice,
-        funcoesDoNivel.length
-      );
+    funcoesDoNivel.forEach(funcao => {
       const dimensoes = dimensoesDaFuncao(funcao, funcao === funcaoPrincipal);
-
-      layout.set(funcao.nome, {
-        x: centroX - dimensoes.largura / 2,
-        y: centroY - dimensoes.altura / 2,
+      salas.set(funcao.nome, {
+        x: x + (larguraColuna - dimensoes.largura) / 2,
+        y,
         ...dimensoes,
       });
+      y += dimensoes.altura + GAP_VERTICAL;
     });
+
+    x += larguraColuna + GAP_HORIZONTAL;
   });
 
-  return layout;
+  return { salas, larguraMundo, alturaMundo };
 }
 
 function agruparPorProfundidade(grafo, funcoes) {
@@ -66,20 +90,15 @@ function dimensoesDaFuncao(funcao, ehInicial) {
   };
 }
 
-function calcularCentroDaColuna(coluna, quantidadeColunas) {
-  if (quantidadeColunas === 1) return CENTRO_X;
-
-  const larguraUtil = LARGURA_MAPA - MARGEM_X * 2;
-  const intervalo = larguraUtil / (quantidadeColunas - 1);
-  return MARGEM_X + coluna * intervalo;
+function alturaDoNivel(funcoesDoNivel, funcaoPrincipal) {
+  const alturas = funcoesDoNivel.map(funcao =>
+    dimensoesDaFuncao(funcao, funcao === funcaoPrincipal).altura
+  );
+  return soma(alturas) + GAP_VERTICAL * Math.max(0, alturas.length - 1);
 }
 
-function calcularCentroVertical(indice, quantidade) {
-  if (quantidade === 1) return CENTRO_Y;
-
-  const alturaUtil = ALTURA_MAPA - MARGEM_Y * 2;
-  const intervalo = alturaUtil / (quantidade - 1);
-  return MARGEM_Y + indice * intervalo;
+function soma(valores) {
+  return valores.reduce((total, valor) => total + valor, 0);
 }
 
 export function tamanhoPorComplexidade(complexidade) {

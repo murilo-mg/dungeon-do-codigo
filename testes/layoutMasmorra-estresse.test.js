@@ -23,6 +23,8 @@ function criarFuncoes(quantidade, tipo) {
     });
   } else if (tipo === 'mesmoNivel') {
     chamadas.set('main', nomes);
+  } else if (tipo === 'isoladas') {
+    chamadas.set('main', []);
   } else {
     chamadas.set('main', nomes.slice(0, 2));
     for (let indice = 0; indice < Math.floor((quantidade - 1) / 2) - 1; indice++) {
@@ -85,19 +87,21 @@ function medirCenario(funcoes, inicio) {
   const depoisDoGrafo = performance.now();
   const layout = calcularLayoutMasmorra(grafo, funcoes);
   const fim = performance.now();
-  const foraDosLimites = [...layout.values()].filter(dimensoes =>
+  const foraDosLimites = [...layout.salas.values()].filter(dimensoes =>
     dimensoes.x < 0 || dimensoes.y < 0 ||
-    dimensoes.x + dimensoes.largura > 560 ||
-    dimensoes.y + dimensoes.altura > 480
+    dimensoes.x + dimensoes.largura > layout.larguraMundo ||
+    dimensoes.y + dimensoes.altura > layout.alturaMundo
   ).length;
 
   return {
     quantidade: funcoes.length,
-    entradas: layout.size,
-    sobreposicoes: retangulosSobrepostos(layout),
-    menorDistanciaVertical: menorDistanciaVerticalNoMesmoNivel(grafo, layout),
-    colunas: new Set([...layout.values()].map(dimensoes => dimensoes.x)).size,
+    entradas: layout.salas.size,
+    sobreposicoes: retangulosSobrepostos(layout.salas),
+    menorDistanciaVertical: menorDistanciaVerticalNoMesmoNivel(grafo, layout.salas),
+    colunas: new Set([...layout.salas.values()].map(dimensoes => dimensoes.x)).size,
     foraDosLimites,
+    larguraMundo: layout.larguraMundo,
+    alturaMundo: layout.alturaMundo,
     tempoGrafoMs: depoisDoGrafo - inicio,
     tempoLayoutMs: fim - depoisDoGrafo,
     grafo,
@@ -109,7 +113,7 @@ function validarIntegridade(relatorio, funcoes) {
   assert.equal(relatorio.entradas, funcoes.length);
   assert.equal(relatorio.foraDosLimites, 0);
 
-  for (const dimensoes of relatorio.layout.values()) {
+  for (const dimensoes of relatorio.layout.salas.values()) {
     assert.ok(Number.isFinite(dimensoes.x));
     assert.ok(Number.isFinite(dimensoes.y));
     assert.ok(Number.isFinite(dimensoes.largura));
@@ -128,7 +132,8 @@ test('mede o layout em cadeias, níveis amplos e combinações maiores', () => {
       const inicio = performance.now();
       const relatorio = medirCenario(funcoes, inicio);
       validarIntegridade(relatorio, funcoes);
-      assert.deepEqual(relatorio.layout, calcularLayoutMasmorra(relatorio.grafo, funcoes));
+      assert.equal(relatorio.sobreposicoes, 0);
+        assert.deepEqual(relatorio.layout, calcularLayoutMasmorra(relatorio.grafo, funcoes));
 
       if (tipo === 'combinacao') {
         assert.ok([...relatorio.grafo.nos.values()].some(no => !no.alcancavel));
@@ -141,6 +146,8 @@ test('mede o layout em cadeias, níveis amplos e combinações maiores', () => {
         menorDistanciaVertical: relatorio.menorDistanciaVertical,
         colunas: relatorio.colunas,
         foraDosLimites: relatorio.foraDosLimites,
+        larguraMundo: relatorio.larguraMundo,
+        alturaMundo: relatorio.alturaMundo,
         tempoGrafoMs: Number(relatorio.tempoGrafoMs.toFixed(3)),
         tempoLayoutMs: Number(relatorio.tempoLayoutMs.toFixed(3)),
       });
@@ -162,7 +169,16 @@ test('nomes longos não influenciam as posições geométricas', () => {
   const layoutLongo = calcularLayoutMasmorra(criarGrafo(longas), longas);
 
   assert.deepEqual(
-    [...layoutCurto.values()].map(({ x, y, largura, altura }) => ({ x, y, largura, altura })),
-    [...layoutLongo.values()].map(({ x, y, largura, altura }) => ({ x, y, largura, altura }))
+    [...layoutCurto.salas.values()].map(({ x, y, largura, altura }) => ({ x, y, largura, altura })),
+    [...layoutLongo.salas.values()].map(({ x, y, largura, altura }) => ({ x, y, largura, altura }))
   );
+});
+
+test('sessenta funções isoladas expandem a altura sem sobreposição', () => {
+  const funcoes = criarFuncoes(60, 'isoladas');
+  const relatorio = medirCenario(funcoes, performance.now());
+
+  validarIntegridade(relatorio, funcoes);
+  assert.equal(relatorio.sobreposicoes, 0);
+  assert.ok(relatorio.alturaMundo > 480);
 });

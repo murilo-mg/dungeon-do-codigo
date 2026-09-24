@@ -113,7 +113,7 @@ test('organiza salas em colunas conforme a profundidade das chamadas', () => {
   const salvar = porNome.get('salvar');
   const isolada = porNome.get('isolada');
 
-  assert.ok(main.x < carregar.x);
+  assert.ok(main.x + main.largura / 2 < carregar.x + carregar.largura / 2);
   assert.equal(carregar.x, processar.x);
 
   assert.ok(carregar.x < validar.x);

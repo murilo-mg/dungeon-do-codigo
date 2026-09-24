@@ -12,14 +12,20 @@ function criarLayout(funcoes) {
 }
 
 test('grafo vazio produz layout vazio', () => {
-  assert.deepEqual(criarLayout([]), new Map());
+  assert.deepEqual(criarLayout([]), {
+    salas: new Map(),
+    larguraMundo: 560,
+    alturaMundo: 480,
+  });
 });
 
 test('posiciona somente main no centro com seu tamanho', () => {
   const layout = criarLayout([criarFuncao('main')]);
-  const main = layout.get('main');
+  const main = layout.salas.get('main');
 
   assert.deepEqual(main, { x: 235, y: 200, largura: 90, altura: 80 });
+  assert.equal(layout.larguraMundo, 560);
+  assert.equal(layout.alturaMundo, 480);
 });
 
 test('distribui duas funções no mesmo nível verticalmente', () => {
@@ -30,10 +36,10 @@ test('distribui duas funções no mesmo nível verticalmente', () => {
   ];
   const layout = criarLayout(funcoes);
 
-  assert.equal(layout.get('a').x, layout.get('b').x);
+  assert.equal(layout.salas.get('a').x, layout.salas.get('b').x);
   assert.notEqual(
-    layout.get('a').y + layout.get('a').altura / 2,
-    layout.get('b').y + layout.get('b').altura / 2
+    layout.salas.get('a').y + layout.salas.get('a').altura / 2,
+    layout.salas.get('b').y + layout.salas.get('b').altura / 2
   );
 });
 
@@ -45,8 +51,8 @@ test('distribui cadeia em colunas de profundidades diferentes', () => {
   ];
   const layout = criarLayout(funcoes);
 
-  assert.ok(layout.get('main').x < layout.get('a').x);
-  assert.ok(layout.get('a').x < layout.get('b').x);
+  assert.ok(layout.salas.get('main').x < layout.salas.get('a').x);
+  assert.ok(layout.salas.get('a').x < layout.salas.get('b').x);
 });
 
 test('coloca funções isoladas na última coluna', () => {
@@ -56,7 +62,7 @@ test('coloca funções isoladas na última coluna', () => {
   ];
   const layout = criarLayout(funcoes);
 
-  assert.ok(layout.get('isolada').x > layout.get('main').x);
+  assert.ok(layout.salas.get('isolada').x > layout.salas.get('main').x);
 });
 
 test('a mesma entrada produz exatamente o mesmo layout', () => {
@@ -77,11 +83,11 @@ test('mantém posições dentro dos limites previstos do canvas lógico', () => 
   ];
   const layout = criarLayout(funcoes);
 
-  for (const dimensoes of layout.values()) {
+  for (const dimensoes of layout.salas.values()) {
     assert.ok(dimensoes.x >= 0);
     assert.ok(dimensoes.y >= 0);
-    assert.ok(dimensoes.x + dimensoes.largura <= 560);
-    assert.ok(dimensoes.y + dimensoes.altura <= 480);
+    assert.ok(dimensoes.x + dimensoes.largura <= layout.larguraMundo);
+    assert.ok(dimensoes.y + dimensoes.altura <= layout.alturaMundo);
   }
 });
 
@@ -93,7 +99,7 @@ test('funções no mesmo nível não ocupam o mesmo centro', () => {
   ];
   const layout = criarLayout(funcoes);
   const centros = ['a', 'b'].map(nome => {
-    const dimensoes = layout.get(nome);
+    const dimensoes = layout.salas.get(nome);
     return dimensoes.y + dimensoes.altura / 2;
   });
 
@@ -109,9 +115,28 @@ test('respeita tamanhos diferentes conforme a complexidade', () => {
   ];
   const layout = criarLayout(funcoes);
 
-  assert.equal(layout.get('baixa').largura, 60);
-  assert.equal(layout.get('media').largura, 80);
-  assert.equal(layout.get('alta').largura, 105);
+  assert.equal(layout.salas.get('baixa').largura, 60);
+  assert.equal(layout.salas.get('media').largura, 80);
+  assert.equal(layout.salas.get('alta').largura, 105);
+});
+
+test('respeita o gap vertical considerando as alturas reais', () => {
+  const funcoes = [
+    criarFuncao('main', 0, ['baixa', 'media', 'alta']),
+    criarFuncao('baixa', 0),
+    criarFuncao('media', 4),
+    criarFuncao('alta', 8),
+  ];
+  const layout = criarLayout(funcoes);
+  const salas = ['baixa', 'media', 'alta']
+    .map(nome => layout.salas.get(nome))
+    .sort((a, b) => a.y - b.y);
+
+  for (let indice = 1; indice < salas.length; indice++) {
+    const gap = salas[indice].y -
+      (salas[indice - 1].y + salas[indice - 1].altura);
+    assert.ok(gap >= 20);
+  }
 });
 
 test('usa a entrada do grafo quando não há main', () => {
@@ -122,5 +147,5 @@ test('usa a entrada do grafo quando não há main', () => {
   const grafo = criarGrafo(funcoes);
   const layout = calcularLayoutMasmorra(grafo, funcoes);
 
-  assert.ok(layout.get('entrada').x < layout.get('proxima').x);
+  assert.ok(layout.salas.get('entrada').x < layout.salas.get('proxima').x);
 });

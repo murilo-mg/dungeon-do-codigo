@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 69 testes passando.
+- A suíte registrada no estado deste documento tem 71 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -26,40 +26,40 @@ O último marco é o estado visual dos controles e a tecla `Esc` para liberar o 
 
 `grafoC.js` agora representa explicitamente a função de entrada, os nós por nome, as arestas direcionadas, as chamadas recebidas, a profundidade mínima e o alcance a partir da entrada. `masmorra.js` consome esse grafo para manter o layout atual, sem duplicar o cálculo das relações.
 
-`layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições e as dimensões no Canvas lógico de 560x480. `masmorra.js` ficou responsável pela montagem das salas, sem calcular a geometria.
+`layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
 
 ## Corredores reais
 
 `principal.js` cria o grafo uma única vez, passa o grafo para `masmorra.js` e passa `grafo.arestas` para `jogo.js`. `corredores.js` converte as arestas e as salas em segmentos geométricos válidos. `jogo.js` desenha esses segmentos, enquanto `cenario.js` usa os mesmos segmentos para evitar decorações. Arestas com origem ou destino ausente, duplicatas e autoarestas são ignoradas para a renderização.
 
-## Problema estrutural importante
+## Limitação atual do mundo lógico
 
-Também existe risco de sobreposição quando muitas funções ocupam os mesmos níveis/posições. A geometria atual é fixa para um Canvas de 560x480 e não oferece câmera ou zoom.
+O mundo lógico agora cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. A câmera ainda não existe e o viewport continua em 560x480; por isso, mapas maiores podem ter coordenadas fora da área visível até a próxima etapa.
 
 ## Resultados de estresse do layout
 
-Os testes determinísticos cobrem cadeia profunda, muitas funções no mesmo nível e combinação de ramificações com funções isoladas. A contagem indica pares de salas com interseção; zero significa que não houve sobreposição.
+Os testes determinísticos cobrem cadeia profunda, muitas funções no mesmo nível e combinação de ramificações com funções isoladas. A contagem indica pares de salas com interseção; zero significa que não houve sobreposição. O mundo mínimo continua sendo 560x480.
 
-| Funções | Cenário | Sobreposições | Menor distância vertical | Colunas | Fora de 560x480 |
+| Funções | Cenário | Mundo lógico | Sobreposições | Menor distância vertical | Colunas |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 5 | cadeia | 0 | não se aplica | 5 | 0 |
-| 5 | mesmo nível | 0 | 113,33 | 4 | 0 |
-| 5 | combinação | 0 | 340 | 5 | 0 |
-| 15 | cadeia | 31 | não se aplica | 15 | 0 |
-| 15 | mesmo nível | 32 | 26,15 | 4 | 0 |
-| 15 | combinação | 13 | 340 | 11 | 0 |
-| 30 | cadeia | 143 | não se aplica | 30 | 0 |
-| 30 | mesmo nível | 152 | 12,14 | 4 | 0 |
-| 30 | combinação | 75 | 340 | 18 | 0 |
-| 60 | cadeia | 606 | não se aplica | 60 | 0 |
-| 60 | mesmo nível | 688 | 5,86 | 4 | 0 |
-| 60 | combinação | 373 | 340 | 33 | 0 |
+| 5 | cadeia | 560x480 | 0 | não se aplica | 5 |
+| 5 | mesmo nível | 560x480 | 0 | 90 | 4 |
+| 5 | combinação | 560x480 | 0 | 90 | 5 |
+| 15 | cadeia | 1538x480 | 0 | não se aplica | 15 |
+| 15 | mesmo nível | 560x1428 | 0 | 90 | 4 |
+| 15 | combinação | 873x738 | 0 | 90 | 11 |
+| 30 | cadeia | 3063x480 | 0 | não se aplica | 30 |
+| 30 | mesmo nível | 560x2953 | 0 | 90 | 4 |
+| 30 | combinação | 1583x1553 | 0 | 90 | 18 |
+| 60 | cadeia | 6113x480 | 0 | não se aplica | 60 |
+| 60 | mesmo nível | 560x6003 | 0 | 90 | 4 |
+| 60 | combinação | 3108x3078 | 0 | 90 | 33 |
 
-As sobreposições começam nos cenários com 15 funções. O pior caso é a concentração no mesmo nível, por causa da distribuição vertical; a cadeia também apresenta sobreposição a partir de 15 funções porque as colunas ficam estreitas horizontalmente. O problema é, portanto, espacial nos dois eixos, não uma falha de cálculo ou de limites.
+Antes do mundo dinâmico, as sobreposições começavam em 15 funções: 31 na cadeia, 32 no mesmo nível e 13 na combinação; em 60 funções chegavam a 606, 688 e 373, respectivamente. Depois da mudança, os 12 cenários apresentam zero sobreposições e nenhuma sala ultrapassa os limites do mundo calculado.
 
-Nesta execução local, a criação do grafo e o cálculo do layout ficaram na ordem de milissegundos ou menos, sem crescimento relevante entre 5 e 60 funções. Esses tempos são apenas observações da máquina usada, não garantias de performance; o gargalo atual é visual/espacial.
+Nesta execução local, a criação do grafo e o cálculo do layout ficaram na ordem de milissegundos ou menos. Esses tempos são apenas observações da máquina usada, não garantias de performance; o custo computacional continua secundário diante da área visual necessária.
 
-O caminho tecnicamente justificável é fazer ambos em etapas: primeiro melhorar o layout próprio para distribuir melhor salas e trabalhar com um espaço lógico maior; depois adicionar câmera ou zoom para explorar esse mundo. Só depois de medir novamente e verificar problemas reais remanescentes deve-se considerar Dagre ou ELK.
+O layout próprio agora garante espaçamento nos cenários medidos. O próximo passo é adicionar câmera/viewport para explorar o mundo maior; só depois de validar essa etapa e medir novos casos deve-se considerar Dagre ou ELK.
 
 ## Próximo trabalho estrutural
 
