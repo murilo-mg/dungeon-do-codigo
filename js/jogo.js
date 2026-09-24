@@ -3,6 +3,7 @@
 
 import { corPorSala } from './masmorra.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
+import { criarSegmentosDeCorredores } from './corredores.js';
 import { PALETA } from './pixelArt.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
@@ -26,16 +27,19 @@ let particulas = [];
 let primeiraDeteccao = true;
 let controlesAtivos = false;
 let cenario = null;
+let segmentosDeCorredores = [];
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
 
 export function iniciarJogo(
   novasSalas,
+  novasArestas,
   aoMudarDeSala,
   aoMudarControles
 ) {
   pararJogo();
 
   salas = novasSalas;
+  segmentosDeCorredores = criarSegmentosDeCorredores(salas, novasArestas);
 
   funcaoDeNotificacao = aoMudarDeSala;
   funcaoDeNotificacaoControles = aoMudarControles;
@@ -65,7 +69,8 @@ export function iniciarJogo(
   cenario = criarCenario(
     salas,
     canvas.width,
-    canvas.height
+    canvas.height,
+    segmentosDeCorredores
   );
 
   preferenciaMovimento = window.matchMedia(
@@ -88,6 +93,7 @@ export function pararJogo() {
   removerEventosDeTeclado();
   limparTeclas();
   particulas = [];
+  segmentosDeCorredores = [];
   alterarEstadoControles(false);
   funcaoDeNotificacaoControles = null;
   funcaoDeNotificacao = null;
@@ -216,16 +222,12 @@ function desenharCena() {
 }
 
 function desenharCorredores() {
-  const salaInicial = salas.find(sala => sala.ehSalaInicial);
-  if (!salaInicial) return;
-
   contexto.strokeStyle = '#332a1f';
   contexto.lineWidth = 10;
-  salas.forEach(sala => {
-    if (sala.ehSalaInicial) return;
+  segmentosDeCorredores.forEach(segmento => {
     contexto.beginPath();
-    contexto.moveTo(salaInicial.x + salaInicial.largura / 2, salaInicial.y + salaInicial.altura / 2);
-    contexto.lineTo(sala.x + sala.largura / 2, sala.y + sala.altura / 2);
+    contexto.moveTo(segmento.inicio.x, segmento.inicio.y);
+    contexto.lineTo(segmento.fim.x, segmento.fim.y);
     contexto.stroke();
   });
 }

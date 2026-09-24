@@ -10,7 +10,7 @@ A separação desejada é:
 verdade do código -> grafo -> layout -> experiência
 ```
 
-`grafoC.js` concentra a estrutura das relações entre funções. `masmorra.js` consome esse grafo, mas ainda mantém a responsabilidade pela geometria e pelo layout das salas.
+`grafoC.js` concentra a estrutura das relações entre funções. `masmorra.js` consome esse grafo, mas ainda mantém a responsabilidade pela geometria e pelo layout das salas. `corredores.js` transforma as arestas em segmentos geométricos compartilhados por jogo e cenário.
 
 ## Módulos atuais
 
@@ -40,7 +40,11 @@ Representa explicitamente a estrutura do programa: função de entrada, nós por
 
 ### `js/cenario.js`
 
-Cria e desenha o cenário de fundo e suas decorações, evitando áreas ocupadas pelas salas e pelos corredores do modelo atual. Ainda não usa as arestas reais do grafo.
+Cria e desenha o cenário de fundo e suas decorações, evitando áreas ocupadas pelas salas e pelos segmentos de corredores reais recebidos do jogo. Não reconstrói o grafo nem cria corredores próprios.
+
+### `js/corredores.js`
+
+Converte `salas + arestas` em segmentos com origem, destino, início e fim. Ignora salas ausentes, autoarestas e duplicatas. É uma função pura, sem Canvas ou DOM, usada para manter a geometria dos corredores igual no jogo e no cenário.
 
 ### `js/personagem.js`
 
@@ -60,7 +64,7 @@ Fornece paleta e dados/recursos de pixel art usados pela renderização.
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Os corredores ainda são desenhados a partir da sala inicial, sem consumir as arestas reais do grafo. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
@@ -78,9 +82,10 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 4. `analisadorC.js` devolve funções, métricas e nomes de chamadas conhecidas.
 5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade e alcance.
 6. `masmorra.js` consome o grafo e calcula as posições geométricas.
-7. `principal.js` inicia `jogo.js` e `interface.js`.
-8. `jogo.js` desenha o mapa e notifica a sala atual.
-9. `interface.js` atualiza o inspector e o status dos controles.
+7. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
+8. `principal.js` inicia `jogo.js` passando as arestas reais.
+9. `jogo.js` desenha o mapa e notifica a sala atual; `cenario.js` reserva os mesmos segmentos para suas decorações.
+10. `interface.js` atualiza o inspector e o status dos controles.
 
 ## Arquitetura futura desejada
 

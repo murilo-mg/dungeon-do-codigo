@@ -10,10 +10,9 @@ const CENTRO_Y = ALTURA_MAPA / 2;
 const MARGEM_X = 80;
 const MARGEM_Y = 70;
 
-export function construirMasmorra(funcoes) {
+export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
   if (funcoes.length === 0) return [];
 
-  const grafo = criarGrafo(funcoes);
   const funcaoPrincipal = grafo.nos.get(grafo.entrada).funcao;
   const posicoes = calcularLayoutHierarquico(
   funcoes,

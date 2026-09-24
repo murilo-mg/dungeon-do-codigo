@@ -7,12 +7,13 @@ const salas = [
   { nome: 'main', complexidade: 0, x: 235, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
   { nome: 'outra', complexidade: 4, x: 250, y: 40, largura: 60, altura: 60 },
 ];
+const arestas = [{ origem: 'main', destino: 'outra' }];
 
 test('só captura movimento depois de clicar no mapa e libera ao clicar fora', () => {
   const ambiente = criarAmbiente();
   const notificacoes = [];
 
-  iniciarJogo(salas, sala => notificacoes.push(sala?.nome ?? null));
+  iniciarJogo(salas, arestas, sala => notificacoes.push(sala?.nome ?? null));
   ambiente.avancar();
 
   assert.deepEqual(notificacoes, ['main']);
@@ -61,7 +62,7 @@ test('só captura movimento depois de clicar no mapa e libera ao clicar fora', (
 test('Esc libera os controles e o mapa pode ser ativado novamente', () => {
   const ambiente = criarAmbiente();
   const estados = [];
-  iniciarJogo(salas, () => {}, estado => estados.push(estado));
+  iniciarJogo(salas, arestas, () => {}, estado => estados.push(estado));
   const canvas = ambiente.elementos.get('canvas-jogo');
 
   assert.deepEqual(estados, [false]);
@@ -99,7 +100,7 @@ test('Esc libera os controles e o mapa pode ser ativado novamente', () => {
 
 test('reiniciar mantém apenas um ciclo e parar remove todos os eventos', () => {
   const ambiente = criarAmbiente();
-  for (let indice = 0; indice < 5; indice++) iniciarJogo(salas, () => {});
+  for (let indice = 0; indice < 5; indice++) iniciarJogo(salas, arestas, () => {});
   assert.equal(ambiente.pendentes.size, 1);
   assert.equal(ambiente.janela.ouvintes.get('keydown').size, 1);
   const atalho = ambiente.janela.emitir('keydown', { key: 'd', ctrlKey: true });
@@ -113,7 +114,7 @@ test('reiniciar mantém apenas um ciclo e parar remove todos os eventos', () => 
 test('ignora digitação em campos e libera movimento quando a aba fica oculta', () => {
   const ambiente = criarAmbiente();
   const notificacoes = [];
-  iniciarJogo(salas, sala => notificacoes.push(sala?.nome ?? null));
+  iniciarJogo(salas, arestas, sala => notificacoes.push(sala?.nome ?? null));
   ambiente.avancar();
   const evento = ambiente.janela.emitir('keydown', { key: 'w', target: { closest() { return true; } } });
   assert.equal(evento.prevenido, undefined);

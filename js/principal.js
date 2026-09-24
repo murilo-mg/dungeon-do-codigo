@@ -3,6 +3,7 @@
 // masmorra, renderização do jogo e atualização da interface.
 
 import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
+import { criarGrafo } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
 import { iniciarJogo, pararJogo } from './jogo.js';
 import { atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
@@ -143,11 +144,12 @@ function aoClicarEmGerar(entradaCodigo) {
     return;
   }
 
-  const salas = construirMasmorra(funcoes);
+  const grafo = criarGrafo(funcoes);
+  const salas = construirMasmorra(funcoes, grafo);
 
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
-  iniciarJogo(salas, atualizarPainelDeSala, atualizarEstadoControles);
+  iniciarJogo(salas, grafo.arestas, atualizarPainelDeSala, atualizarEstadoControles);
 }
 
 function aoClicarEmVoltar() {

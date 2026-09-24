@@ -10,26 +10,22 @@ function distanciaDoSegmento(ponto, inicio, fim) {
   return Math.hypot(ponto.x - inicio.x - x * proporcao, ponto.y - inicio.y - y * proporcao);
 }
 
-function centroDaSala(sala) {
-  return { x: sala.x + sala.largura / 2, y: sala.y + sala.altura / 2 };
-}
-
-export function posicaoLivreParaDecoracao(ponto, salas) {
+export function posicaoLivreParaDecoracao(ponto, salas, segmentos = []) {
   if (salas.some(sala => ponto.x >= sala.x - 18 && ponto.x <= sala.x + sala.largura + 18 &&
     ponto.y >= sala.y - 22 && ponto.y <= sala.y + sala.altura + 22)) return false;
-  const inicial = salas.find(sala => sala.ehSalaInicial);
-  return !inicial || salas.every(sala => sala === inicial ||
-    distanciaDoSegmento(ponto, centroDaSala(inicial), centroDaSala(sala)) > 22);
+  return segmentos.every(segmento =>
+    distanciaDoSegmento(ponto, segmento.inicio, segmento.fim) > 22
+  );
 }
 
-export function criarCenario(salas, largura, altura) {
+export function criarCenario(salas, largura, altura, segmentos = []) {
   const decoracoes = [];
   let indice = 0;
   for (let y = 35; y < altura - 24; y += 70) {
     for (let x = 30; x < largura - 24; x += 70) {
       indice++;
       const ponto = { x: x + (indice * 17 % 19) - 9, y: y + (indice * 11 % 15) - 7 };
-      if (indice % 2 === 0 || !posicaoLivreParaDecoracao(ponto, salas)) continue;
+      if (indice % 2 === 0 || !posicaoLivreParaDecoracao(ponto, salas, segmentos)) continue;
       decoracoes.push({ ...ponto, tipo: indice % 5 === 0 ? 'tocha' : 'pedra', fase: indice });
     }
   }
