@@ -675,6 +675,11 @@ textarea:focus-visible {
   background: var(--pergaminho-fraco);
 }
 
+.status-indicador.ativo {
+  background: var(--musgo);
+  box-shadow: 0 0 6px rgba(90, 125, 58, 0.55);
+}
+
 .status-separador {
   opacity: 0.55;
 }

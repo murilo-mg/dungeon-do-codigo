@@ -10,6 +10,7 @@ import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonage
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
 
+let funcaoDeNotificacaoControles = null;
 let contexto = null;
 let canvas = null;
 let salas = [];
@@ -27,25 +28,56 @@ let controlesAtivos = false;
 let cenario = null;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
 
-export function iniciarJogo(novasSalas, aoMudarDeSala) {
+export function iniciarJogo(
+  novasSalas,
+  aoMudarDeSala,
+  aoMudarControles
+) {
   pararJogo();
+
   salas = novasSalas;
-  const salaInicial = salas.find(sala => sala.ehSalaInicial);
+
+  funcaoDeNotificacao = aoMudarDeSala;
+  funcaoDeNotificacaoControles = aoMudarControles;
+
+  const salaInicial = salas.find(
+    sala => sala.ehSalaInicial
+  );
+
   jogador = criarPersonagem(
-    salaInicial ? salaInicial.x + salaInicial.largura / 2 : POSICAO_INICIAL_JOGADOR.x,
-    salaInicial ? salaInicial.y + salaInicial.altura / 2 : POSICAO_INICIAL_JOGADOR.y);
+    salaInicial
+      ? salaInicial.x + salaInicial.largura / 2
+      : POSICAO_INICIAL_JOGADOR.x,
+    salaInicial
+      ? salaInicial.y + salaInicial.altura / 2
+      : POSICAO_INICIAL_JOGADOR.y
+  );
+
   salaAtual = null;
   tempoCena = 0;
   particulas = [];
   primeiraDeteccao = true;
-  funcaoDeNotificacao = aoMudarDeSala;
+
   canvas = document.getElementById('canvas-jogo');
   contexto = canvas.getContext('2d');
   contexto.imageSmoothingEnabled = false;
-  cenario = criarCenario(salas, canvas.width, canvas.height);
-  preferenciaMovimento = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  cenario = criarCenario(
+    salas,
+    canvas.width,
+    canvas.height
+  );
+
+  preferenciaMovimento = window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  );
+
+  alterarEstadoControles(false);
+
   registrarEventosDeTeclado();
-  idQuadroAnimacao = requestAnimationFrame(executarCicloDeJogo);
+
+  idQuadroAnimacao =
+    requestAnimationFrame(executarCicloDeJogo);
 }
 
 export function pararJogo() {
@@ -56,6 +88,8 @@ export function pararJogo() {
   removerEventosDeTeclado();
   limparTeclas();
   particulas = [];
+  alterarEstadoControles(false);
+  funcaoDeNotificacaoControles = null;
   funcaoDeNotificacao = null;
 }
 
@@ -63,7 +97,7 @@ function registrarEventosDeTeclado() {
   window.addEventListener('keydown', marcarTeclaPressionada);
   window.addEventListener('keyup', marcarTeclaLiberada);
   window.addEventListener('blur', limparTeclas);
-  document.addEventListener('pointerdown', atualizarFocoDoJogo, true); 
+  document.addEventListener('pointerdown', atualizarFocoDoJogo, true);
   document.addEventListener('visibilitychange', limparTeclas);
 }
 
@@ -76,11 +110,21 @@ function removerEventosDeTeclado() {
   controlesAtivos = false;
 }
 
+function alterarEstadoControles(ativos) {
+  if (controlesAtivos === ativos) {
+    funcaoDeNotificacaoControles?.(ativos);
+    return;
+  }
+
+  controlesAtivos = ativos;
+  limparTeclas();
+  funcaoDeNotificacaoControles?.(ativos);
+}
+
 function atualizarFocoDoJogo(evento) {
   const clicouNoMapa = evento.composedPath().includes(canvas);
 
-  controlesAtivos = clicouNoMapa;
-  limparTeclas();
+  alterarEstadoControles(clicouNoMapa);
 
   if (clicouNoMapa) {
     canvas.focus({ preventScroll: true });
@@ -96,6 +140,12 @@ function limparTeclas() {
 
 function marcarTeclaPressionada(evento) {
   const tecla = evento.key.toLowerCase();
+
+  if (tecla === 'escape' && controlesAtivos) {
+    alterarEstadoControles(false);
+    canvas.blur();
+    return;
+  }
 
   if (!TECLAS_MOVIMENTO.has(tecla) || evento.ctrlKey || evento.metaKey || evento.altKey) return;
   if (!controlesAtivos) return;

@@ -114,10 +114,18 @@
 
   <footer class="workspace-status">
     <div class="status-controles">
-      <span class="status-indicador"></span>
-      <span>Clique no mapa para explorar</span>
-      <span class="status-separador">·</span>
-      <span>WASD / setas</span>
+      <span
+        id="status-indicador"
+        class="status-indicador"
+        aria-hidden="true"
+      ></span>
+
+      <span
+        id="status-controles-texto"
+        aria-live="polite"
+      >
+        Clique no mapa para explorar · WASD / setas
+      </span>
     </div>
 
     <div class="status-legenda">

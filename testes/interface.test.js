@@ -1,10 +1,38 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente, encontrar } from './ambiente.js';
-import { atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo } from '../js/interface.js';
+import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo } from '../js/interface.js';
 
 const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexidade: 11,
   textoCompleto: 'void investigar() { printf("<script> & texto"); }' };
+
+test('mostra quando os controles da exploração estão ativos', () => {
+  const ambiente = criarAmbiente();
+
+  atualizarEstadoControles(false);
+
+  assert.equal(
+    ambiente.elementos.get('status-indicador').className,
+    'status-indicador'
+  );
+
+  assert.equal(
+    ambiente.elementos.get('status-controles-texto').textContent,
+    'Clique no mapa para explorar · WASD / setas'
+  );
+
+  atualizarEstadoControles(true);
+
+  assert.equal(
+    ambiente.elementos.get('status-indicador').className,
+    'status-indicador ativo'
+  );
+
+  assert.equal(
+    ambiente.elementos.get('status-controles-texto').textContent,
+    'Exploração ativa · WASD / setas · Esc libera'
+  );
+});
 
 test('digita progressivamente e troca de sala sem manter animações antigas', () => {
   const ambiente = criarAmbiente();

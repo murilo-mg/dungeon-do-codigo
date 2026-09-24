@@ -58,6 +58,45 @@ test('só captura movimento depois de clicar no mapa e libera ao clicar fora', (
   assert.equal(ambiente.pendentes.size, 0);
 });
 
+test('Esc libera os controles e o mapa pode ser ativado novamente', () => {
+  const ambiente = criarAmbiente();
+  const estados = [];
+  iniciarJogo(salas, () => {}, estado => estados.push(estado));
+  const canvas = ambiente.elementos.get('canvas-jogo');
+
+  assert.deepEqual(estados, [false]);
+
+  ambiente.documento.emitir('pointerdown', {
+    target: canvas,
+    composedPath() {
+      return [canvas];
+    }
+  });
+
+  assert.deepEqual(estados, [false, true]);
+  const duranteExploracao = ambiente.janela.emitir('keydown', { key: 'ArrowRight' });
+  assert.equal(duranteExploracao.prevenido, true);
+
+  ambiente.janela.emitir('keydown', { key: 'Escape' });
+
+  assert.deepEqual(estados, [false, true, false]);
+  const depoisDoEscape = ambiente.janela.emitir('keydown', { key: 'ArrowRight' });
+  assert.equal(depoisDoEscape.prevenido, undefined);
+
+  ambiente.documento.emitir('pointerdown', {
+    target: canvas,
+    composedPath() {
+      return [canvas];
+    }
+  });
+
+  assert.deepEqual(estados, [false, true, false, true]);
+  const depoisDaReativacao = ambiente.janela.emitir('keydown', { key: 'ArrowRight' });
+  assert.equal(depoisDaReativacao.prevenido, true);
+
+  pararJogo();
+});
+
 test('reiniciar mantém apenas um ciclo e parar remove todos os eventos', () => {
   const ambiente = criarAmbiente();
   for (let indice = 0; indice < 5; indice++) iniciarJogo(salas, () => {});

@@ -12,6 +12,20 @@ export function exibirTelaDeJogo() {
   document.getElementById('area-jogo').style.display = 'flex';
 }
 
+export function atualizarEstadoControles(ativos) {
+  const indicador = document.getElementById('status-indicador');
+  const texto = document.getElementById('status-controles-texto');
+
+  indicador.className =
+    ativos
+      ? 'status-indicador ativo'
+      : 'status-indicador';
+
+  texto.textContent = ativos
+    ? 'Exploração ativa · WASD / setas · Esc libera'
+    : 'Clique no mapa para explorar · WASD / setas';
+}
+
 export function exibirTelaDeConfiguracao() {
   cancelarAnimacaoPainel();
 

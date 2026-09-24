@@ -5,7 +5,7 @@
 import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { construirMasmorra } from './masmorra.js';
 import { iniciarJogo, pararJogo } from './jogo.js';
-import { exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
+import { atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -147,7 +147,7 @@ function aoClicarEmGerar(entradaCodigo) {
 
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
-  iniciarJogo(salas, atualizarPainelDeSala);
+  iniciarJogo(salas, atualizarPainelDeSala, atualizarEstadoControles);
 }
 
 function aoClicarEmVoltar() {
