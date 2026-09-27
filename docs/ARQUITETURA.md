@@ -16,7 +16,7 @@ verdade do código -> grafo -> layout -> experiência
 
 ### `index.html`
 
-Define as telas de entrada e exploração, editor, Canvas, campo de busca, inspector, status dos controles e legenda. É a estrutura estática da aplicação.
+Define as telas de entrada e exploração, editor, Canvas, barra de câmera, campo de busca, inspector, status dos controles e legenda. É a estrutura estática da aplicação.
 
 ### `css/estilo.css`
 
@@ -40,7 +40,7 @@ Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as 
 
 ### `js/camera.js`
 
-Calcula, sem DOM, Canvas, eventos ou estado global, a posição da câmera a partir do tamanho do viewport, do tamanho do mundo e do alvo. Mantém a câmera dentro dos limites do mundo; `jogo.js` escolhe como alvo o personagem ou o centro de uma sala em foco manual, sem suavização ou zoom.
+Calcula, sem DOM, Canvas, eventos ou estado global, a posição e o zoom da câmera. Usa o zoom para calcular a área visível do mundo e os limites de deslocamento. Também calcula o zoom mínimo que encaixa o mundo inteiro no viewport; `jogo.js` escolhe como alvo o personagem ou o centro de uma sala em foco manual.
 
 ### `js/grafoC.js`
 
@@ -72,15 +72,15 @@ Fornece paleta e dados/recursos de pixel art usados pela renderização.
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual, alterna a câmera entre seguir o jogador e focar a sala selecionada e desenha um contorno adicional nessa sala. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles. Busca, callers e callees comunicam a função escolhida por callback. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles e do percentual de zoom. Busca, callers, callees e barra de câmera comunicam ações por callbacks. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector.
+Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
 
 ## Fluxo atual
 
@@ -93,7 +93,7 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 7. `masmorra.js` monta as salas usando o grafo e o layout.
 8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
 9. `principal.js` inicia `jogo.js` passando a masmorra e as arestas reais.
-10. `jogo.js` atualiza a câmera, usa dimensões do mundo na física e desenha a região visível.
+10. `jogo.js` atualiza a câmera, usa dimensões do mundo na física e projeta a região visível no Canvas conforme o zoom.
 11. `cenario.js` reserva os mesmos segmentos para suas decorações.
 12. `interface.js` atualiza o inspector e o status dos controles.
 
@@ -109,7 +109,7 @@ O módulo já existe e concentra a geometria e o mundo lógico dinâmico. Os tes
 
 ### `camera.js`
 
-O acompanhamento básico e a transformação do mundo para o viewport de 560x480 estão concluídos, com validação manual realizada pelo mantenedor. A câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. Ainda são futuros zoom, minimapa, pan manual, drag, easing e otimizações de culling.
+O acompanhamento básico e o zoom manual em passos de 25%, limitado ao intervalo entre o encaixe do mundo e 200%, estão implementados. O botão Encaixar mostra o mundo inteiro sem ampliá-lo acima de 100% e mantém a visão geral até uma nova ação de navegação. O viewport permanece em 560x480, a câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. A validação manual anterior da câmera básica foi realizada pelo mantenedor; o zoom e a visão geral ainda precisam de validação visual. Minimap, pan manual, drag, easing e otimizações de culling continuam futuros.
 
 ### `arquivos.js`
 

@@ -16,7 +16,7 @@ Código C
   -> exploração no Canvas e inspector no DOM
 ```
 
-No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concentra as relações estruturais, `layoutMasmorra.js` calcula a geometria e o mundo lógico dinâmico, e `masmorra.js` monta as salas. Os corredores já consomem as arestas reais, e a câmera básica permite explorar o mundo maior que o viewport.
+No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concentra as relações estruturais, `layoutMasmorra.js` calcula a geometria e o mundo lógico dinâmico, e `masmorra.js` monta as salas. Os corredores já consomem as arestas reais, e a câmera permite seguir o personagem, focar uma sala e encaixar o mundo inteiro no viewport.
 
 ## Funcionalidades existentes
 
@@ -38,15 +38,16 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Testes de estresse com 5, 15, 30 e 60 funções, sem sobreposição de salas nos cenários atuais.
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
+- Barra de câmera com zoom manual em passos de 25%, retorno a 100% e visão geral que encaixa a dungeon inteira no viewport. A validação visual desse novo recurso ainda está pendente.
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada e total de estruturas de controle.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 110 testes automatizados Node.js registrados como passando.
+- 132 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
 - Leitura estrutural avançada: navegação pelo caminho completo e contagens de estruturas por tipo, que ainda não são produzidas pelo analisador.
-- Zoom e minimapa.
+- Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
 - PWA.
 - Importação de arquivos `.c` e exportação de resultados.
@@ -76,7 +77,8 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: testes de estresse com 5, 15, 30 e 60 funções, com zero sobreposições de salas nos cenários atuais.
 - Concluído: cenário e corredores consomem as arestas reais.
 - Concluído: câmera básica com viewport de 560x480 e validação manual pelo mantenedor.
-- Pendentes: zoom, minimapa e colisão/topologia.
+- Concluído: zoom manual, retorno a 100% e Encaixar para visão geral da dungeon; validação visual desse recurso pendente.
+- Pendentes: minimapa e colisão/topologia.
 
 ### Fase 4: leitura estrutural do programa
 

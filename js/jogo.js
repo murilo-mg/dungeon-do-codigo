@@ -4,7 +4,7 @@
 import { corPorSala } from './masmorra.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { criarSegmentosDeCorredores } from './corredores.js';
-import { atualizarCamera, criarCamera } from './camera.js';
+import { alterarZoom, atualizarCamera, criarCamera, definirZoom, encaixarCamera } from './camera.js';
 import { PALETA } from './pixelArt.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
@@ -22,6 +22,7 @@ let salaSelecionada = null;
 let teclasPressionadas = {};
 let idQuadroAnimacao = null;
 let funcaoDeNotificacao = null;
+let funcaoDeNotificacaoZoom = null;
 let instanteAnterior = null;
 let preferenciaMovimento = null;
 let tempoCena = 0;
@@ -31,6 +32,7 @@ let controlesAtivos = false;
 let cenario = null;
 let segmentosDeCorredores = [];
 let camera = null;
+let modoCamera = 'jogador';
 let larguraMundo = 560;
 let alturaMundo = 480;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
@@ -39,7 +41,8 @@ export function iniciarJogo(
   novaMasmorra,
   novasArestas,
   aoMudarDeSala,
-  aoMudarControles
+  aoMudarControles,
+  aoMudarZoom
 ) {
   pararJogo();
 
@@ -50,6 +53,7 @@ export function iniciarJogo(
 
   funcaoDeNotificacao = aoMudarDeSala;
   funcaoDeNotificacaoControles = aoMudarControles;
+  funcaoDeNotificacaoZoom = aoMudarZoom;
 
   const salaInicial = salas.find(
     sala => sala.ehSalaInicial
@@ -79,6 +83,7 @@ export function iniciarJogo(
     larguraMundo,
     alturaMundo,
   });
+  modoCamera = 'jogador';
 
   cenario = criarCenario(
     salas,
@@ -109,6 +114,7 @@ export function pararJogo() {
   particulas = [];
   segmentosDeCorredores = [];
   camera = null;
+  modoCamera = 'jogador';
   salaSelecionada = null;
   salaAtual = null;
   jogador = null;
@@ -117,18 +123,60 @@ export function pararJogo() {
   alterarEstadoControles(false);
   funcaoDeNotificacaoControles = null;
   funcaoDeNotificacao = null;
+  funcaoDeNotificacaoZoom = null;
 }
 
 export function focarSala(nome) {
   if (!camera) return null;
   const sala = salas.find(candidata => candidata.nome === nome);
   if (!sala) return null;
+  if (modoCamera === 'visao-geral') {
+    camera = definirZoom(camera, 1);
+    funcaoDeNotificacaoZoom?.(camera.zoom);
+  }
   salaSelecionada = sala;
+  modoCamera = 'sala';
   camera = atualizarCamera(camera, {
     x: sala.x + sala.largura / 2,
     y: sala.y + sala.altura / 2,
   });
   return sala;
+}
+
+function mudarZoom(novaCamera) {
+  if (!camera) return 1;
+  camera = novaCamera;
+  modoCamera = salaSelecionada ? 'sala' : 'jogador';
+  atualizarAlvoCamera();
+  return camera.zoom;
+}
+
+export function aproximarCamera() {
+  return mudarZoom(camera ? alterarZoom(camera, 0.25) : null);
+}
+
+export function afastarCamera() {
+  return mudarZoom(camera ? alterarZoom(camera, -0.25) : null);
+}
+
+export function restaurarZoomCamera() {
+  return mudarZoom(camera ? definirZoom(camera, 1) : null);
+}
+
+export function encaixarMasmorra() {
+  if (!camera) return 1;
+  camera = encaixarCamera(camera);
+  modoCamera = 'visao-geral';
+  return camera.zoom;
+}
+
+function atualizarAlvoCamera() {
+  if (modoCamera === 'visao-geral') return;
+  const alvo = modoCamera === 'sala' && salaSelecionada
+    ? { x: salaSelecionada.x + salaSelecionada.largura / 2,
+      y: salaSelecionada.y + salaSelecionada.altura / 2 }
+    : jogador;
+  camera = atualizarCamera(camera, alvo);
 }
 
 function registrarEventosDeTeclado() {
@@ -165,6 +213,11 @@ function atualizarFocoDoJogo(evento) {
   alterarEstadoControles(clicouNoMapa);
 
   if (clicouNoMapa) {
+    if (modoCamera === 'visao-geral') {
+      camera = definirZoom(camera, 1);
+      funcaoDeNotificacaoZoom?.(camera.zoom);
+    }
+    modoCamera = 'jogador';
     if (salaSelecionada) {
       salaSelecionada = null;
       funcaoDeNotificacao?.(salaAtual);
@@ -209,11 +262,7 @@ function executarCicloDeJogo(instante) {
   particulas = preferenciaMovimento.matches ? [] : atualizarParticulas(particulas, segundos);
   atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
     { largura: larguraMundo, altura: alturaMundo }, preferenciaMovimento.matches);
-  const alvoCamera = salaSelecionada
-    ? { x: salaSelecionada.x + salaSelecionada.largura / 2,
-      y: salaSelecionada.y + salaSelecionada.altura / 2 }
-    : jogador;
-  camera = atualizarCamera(camera, alvoCamera);
+  atualizarAlvoCamera();
   atualizarSalaAtualSeNecessario();
   primeiraDeteccao = false;
   desenharCena();
@@ -254,6 +303,7 @@ function desenharCena() {
   contexto.fillRect(0, 0, canvas.width, canvas.height);
 
   contexto.save();
+  contexto.scale(camera.zoom, camera.zoom);
   contexto.translate(camera.x ? -camera.x : 0, camera.y ? -camera.y : 0);
   const tempoAmbiente = preferenciaMovimento.matches ? 0 : tempoCena;
   desenharFundo(contexto, cenario, tempoAmbiente);

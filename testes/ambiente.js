@@ -16,6 +16,11 @@ export class Emissor {
 class Elemento extends Emissor {
   filhos = [];
   translacoes = [];
+  escalas = [];
+  limpezas = [];
+  posicoesPersonagem = [];
+  salvamentos = 0;
+  restauracoes = 0;
   contornos = [];
   style = {};
   atributos = {};
@@ -30,9 +35,17 @@ class Elemento extends Emissor {
   focus() { this.focado = true; }
   blur() { this.focado = false; }
   getContext() {
-    return { save() {}, restore() {}, fillRect() {}, clearRect() {},
+    return { save: () => { this.salvamentos++; }, restore: () => { this.restauracoes++; },
+      fillRect: function(x, y, largura, altura) {
+        if (largura === 20 && altura === 5 && this.fillStyle === '#00000055') {
+          this.canvas.posicoesPersonagem.push({ x: x + 10, y: y - 10 });
+        }
+      },
+      canvas: this,
+      clearRect: (x, y, largura, altura) => this.limpezas.push({ x, y, largura, altura }),
       strokeRect: (x, y, largura, altura) => this.contornos.push({ x, y, largura, altura }),
       beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+      scale: (x, y) => this.escalas.push({ x, y }),
       translate: (x, y) => this.translacoes.push({ x, y }), fillText() {},
       measureText(texto) { return { width: texto.length * 6 }; } };
   }
@@ -43,9 +56,9 @@ export function criarAmbiente() {
   const documento = new Emissor();
   const preferencia = new Emissor();
   preferencia.matches = false;
-  const elementos = new Map([ 'status-indicador', 'status-controles-texto','canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar', 'busca-funcao', 'resultados-busca']
+  const elementos = new Map([ 'status-indicador', 'status-controles-texto','canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar', 'busca-funcao', 'resultados-busca', 'camera-afastar', 'camera-zoom', 'camera-aproximar', 'camera-encaixar']
     .map(id => [id, new Elemento(id === 'canvas-jogo' ? 'canvas'
-      : id === 'busca-funcao' ? 'input' : 'div')]));
+      : id === 'busca-funcao' ? 'input' : id.startsWith('camera-') ? 'button' : 'div')]));
   elementos.get('busca-funcao').value = '';
   elementos.get('canvas-jogo').width = 560;
   elementos.get('canvas-jogo').height = 480;

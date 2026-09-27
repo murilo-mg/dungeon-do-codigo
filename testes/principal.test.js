@@ -156,3 +156,54 @@ test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra 
   assert.equal(resultados.filhos[0].textContent, 'Nenhuma função encontrada.');
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
+
+test('controles de câmera convivem com caller, callee, busca e nova dungeon', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?zoom-integracao');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const entrada = ambiente.elementos.get('entrada-codigo');
+  entrada.value = 'void f(){}\nvoid e(){f();}\nvoid d(){e();}\nvoid c(){d();}\n'
+    + 'void b(){c();}\nvoid a(){b();}\nint main(){a();}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  const zoom = ambiente.elementos.get('camera-zoom');
+  const painel = ambiente.elementos.get('info-sala');
+  const nome = () => encontrar(painel, 'nome-funcao').textContent;
+  const botaoRelacao = classe => painel.filhos.find(filho =>
+    filho.className === `secao-inspector ${classe}`).filhos[1].filhos[0].filhos[0];
+  const canvas = ambiente.elementos.get('canvas-jogo');
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [ambiente.elementos.get('camera-encaixar')] });
+  assert.equal(ambiente.janela.emitir('keydown', { key: 'ArrowRight' }).prevenido, undefined);
+  ambiente.elementos.get('camera-encaixar').emitir('click');
+  assert.notEqual(zoom.textContent, '100%');
+  botaoRelacao('callees-funcao').emitir('click');
+  assert.equal(nome(), 'a()');
+  assert.equal(zoom.textContent, '100%');
+  ambiente.elementos.get('camera-encaixar').emitir('click');
+  botaoRelacao('callers-funcao').emitir('click');
+  assert.equal(nome(), 'main()');
+  assert.equal(zoom.textContent, '100%');
+  ambiente.elementos.get('camera-encaixar').emitir('click');
+  const busca = ambiente.elementos.get('busca-funcao');
+  busca.value = 'b';
+  busca.emitir('input');
+  ambiente.elementos.get('resultados-busca').filhos[0].filhos[0].filhos[0].emitir('click');
+  assert.equal(nome(), 'b()');
+  assert.equal(zoom.textContent, '100%');
+  ambiente.elementos.get('camera-encaixar').emitir('click');
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  assert.equal(zoom.textContent, '100%');
+  ambiente.elementos.get('camera-aproximar').emitir('click');
+  assert.notEqual(zoom.textContent, '100%');
+  ambiente.elementos.get('camera-zoom').emitir('click');
+  assert.equal(zoom.textContent, '100%');
+  ambiente.elementos.get('botao-voltar').emitir('click');
+  entrada.value = 'int main(){return 0;}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  assert.equal(zoom.textContent, '100%');
+  assert.equal(ambiente.elementos.get('camera-encaixar').ouvintes.get('click').size, 1);
+  ambiente.elementos.get('botao-voltar').emitir('click');
+});

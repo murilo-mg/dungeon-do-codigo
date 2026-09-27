@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente } from './ambiente.js';
-import { focarSala, iniciarJogo, pararJogo } from '../js/jogo.js';
+import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
+  iniciarJogo, pararJogo, restaurarZoomCamera } from '../js/jogo.js';
 
 const salas = [
   { nome: 'main', complexidade: 0, x: 235, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
@@ -276,4 +277,167 @@ test('detecção física continua durante foco manual e reaparece ao retomar exp
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
   assert.deepEqual(notificacoes, ['main', 'outra']);
   pararJogo();
+});
+
+const mundoZoom = { salas: [
+  { nome: 'main', complexidade: 0, x: 700, y: 200, largura: 90, altura: 80,
+    ehSalaInicial: true },
+  { nome: 'distante', complexidade: 0, x: 1900, y: 700, largura: 60, altura: 60 },
+], larguraMundo: 2400, alturaMundo: 1000 };
+
+test('zoom inicial, passos de 25%, limites e retorno a 100%', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(mundoZoom, [], () => {});
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  assert.deepEqual(canvas.escalas.at(-1), { x: 1, y: 1 });
+  assert.equal(aproximarCamera(), 1.25);
+  ambiente.avancar();
+  assert.deepEqual(canvas.escalas.at(-1), { x: 1.25, y: 1.25 });
+  for (let indice = 0; indice < 8; indice++) aproximarCamera();
+  assert.equal(aproximarCamera(), 2);
+  for (let indice = 0; indice < 12; indice++) afastarCamera();
+  assert.equal(afastarCamera(), 560 / 2400);
+  assert.equal(restaurarZoomCamera(), 1);
+  pararJogo();
+});
+
+test('zoom, visão geral e foco de sala não mudam posição física ou sala detectada', () => {
+  const ambiente = criarAmbiente();
+  const notificacoes = [];
+  iniciarJogo(mundoZoom, [], sala => notificacoes.push(sala?.nome ?? null));
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const posicao = canvas.posicoesPersonagem.at(-1);
+  aproximarCamera();
+  ambiente.avancar();
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicao);
+  encaixarMasmorra();
+  ambiente.avancar();
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicao);
+  focarSala('distante');
+  ambiente.avancar();
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicao);
+  assert.deepEqual(notificacoes, ['main']);
+  pararJogo();
+});
+
+test('zoom acompanha jogador ou sala selecionada sem mover o personagem', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(mundoZoom, [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const posicao = canvas.posicoesPersonagem.at(-1);
+  aproximarCamera();
+  ambiente.avancar();
+  assert.deepEqual(canvas.translacoes.at(-1), { x: -521, y: -48 });
+  focarSala('distante');
+  aproximarCamera();
+  ambiente.avancar();
+  assert.ok(canvas.translacoes.at(-1).x < -1500);
+  assert.ok(canvas.translacoes.at(-1).y < -500);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicao);
+  pararJogo();
+});
+
+test('Encaixar mostra o mundo inteiro e permanece ativo entre quadros', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(mundoZoom, [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.equal(encaixarMasmorra(), 560 / 2400);
+  ambiente.avancar(4);
+  assert.deepEqual(canvas.translacoes.slice(-4), Array(4).fill({ x: 0, y: 0 }));
+  assert.deepEqual(canvas.escalas.at(-1), { x: 560 / 2400, y: 560 / 2400 });
+  assert.ok(2400 * canvas.escalas.at(-1).x <= canvas.width);
+  assert.ok(1000 * canvas.escalas.at(-1).y <= canvas.height);
+  assert.deepEqual(canvas.limpezas.at(-1), { x: 0, y: 0, largura: 560, altura: 480 });
+  assert.equal(canvas.salvamentos, canvas.restauracoes);
+  pararJogo();
+});
+
+test('seleção após Encaixar foca sala e preserva destaque e posição do jogador', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(mundoZoom, [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const posicao = canvas.posicoesPersonagem.at(-1);
+  focarSala('distante');
+  encaixarMasmorra();
+  ambiente.avancar();
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 1895));
+  assert.equal(focarSala('distante')?.nome, 'distante');
+  ambiente.avancar();
+  assert.ok(canvas.translacoes.at(-1).x < 0);
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 1895));
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicao);
+  pararJogo();
+});
+
+test('clique no Canvas sai da visão geral ou do foco e retoma sala física', () => {
+  const ambiente = criarAmbiente();
+  const notificacoes = [];
+  iniciarJogo(mundoZoom, [], sala => notificacoes.push(sala?.nome ?? null));
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  encaixarMasmorra();
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.ok(canvas.translacoes.at(-1).x < 0);
+  focarSala('distante');
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.equal(notificacoes.at(-1), 'main');
+  assert.ok(canvas.translacoes.at(-1).x > -1000);
+  pararJogo();
+});
+
+test('zoom manual após visão geral volta ao alvo selecionado ou jogador', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(mundoZoom, [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  encaixarMasmorra();
+  restaurarZoomCamera();
+  ambiente.avancar();
+  const jogadorX = canvas.translacoes.at(-1).x;
+  focarSala('distante');
+  encaixarMasmorra();
+  restaurarZoomCamera();
+  ambiente.avancar();
+  assert.ok(canvas.translacoes.at(-1).x < jogadorX);
+  pararJogo();
+});
+
+test('nova dungeon restaura zoom, seguimento e transforma sem acúmulo', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(mundoZoom, [], () => {});
+  focarSala('distante');
+  encaixarMasmorra();
+  iniciarJogo(mundoZoom, [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.deepEqual(canvas.escalas.at(-1), { x: 1, y: 1 });
+  assert.ok(canvas.translacoes.at(-1).x > -1000);
+  assert.equal(canvas.salvamentos, canvas.restauracoes);
+  assert.equal(ambiente.pendentes.size, 1);
+  pararJogo();
+});
+
+test('mesmo movimento percorre a mesma distância lógica em 100% e 200%', () => {
+  const finais = [];
+  for (const zoom of [1, 2]) {
+    const ambiente = criarAmbiente();
+    iniciarJogo(mundoZoom, [], () => {});
+    ambiente.avancar();
+    const canvas = ambiente.elementos.get('canvas-jogo');
+    ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+    if (zoom === 2) for (let indice = 0; indice < 4; indice++) aproximarCamera();
+    ambiente.janela.emitir('keydown', { key: 'ArrowRight' });
+    ambiente.avancar(30);
+    ambiente.janela.emitir('keyup', { key: 'ArrowRight' });
+    finais.push(canvas.posicoesPersonagem.at(-1));
+    pararJogo();
+  }
+  assert.deepEqual(finais[0], finais[1]);
 });

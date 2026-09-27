@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 110 testes passando.
+- A suíte registrada no estado deste documento tem 132 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -21,7 +21,7 @@
 
 ## Último marco
 
-O último marco é a busca por função na dungeon atual. Seus resultados preservam a ordem do grafo e reutilizam a seleção estrutural: o painel mostra a função escolhida e a câmera foca sua sala sem mover o personagem. A busca é limpa ao sair ou gerar outra dungeon. A validação manual anterior da câmera básica permanece concluída; a experiência visual da busca ainda deve ser conferida no navegador.
+O último marco é o controle de zoom e a visão geral da dungeon. A barra próxima ao Canvas afasta, aproxima, restaura 100% e encaixa o mundo inteiro no viewport. O personagem e a geometria mantêm suas coordenadas lógicas. A busca e os botões de relações continuam focando salas sem teleportar o personagem. A validação manual anterior da câmera básica permanece concluída; zoom, visão geral e a experiência visual da busca ainda devem ser conferidos no navegador.
 
 ## Base estrutural atual
 
@@ -29,7 +29,7 @@ O último marco é a busca por função na dungeon atual. Seus resultados preser
 
 `layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
 
-`camera.js` calcula a posição a partir de um alvo sem suavização, limitando-a ao intervalo válido entre o mundo lógico e o viewport. `jogo.js` usa o personagem como alvo durante a exploração e o centro da sala selecionada no foco manual. As coordenadas armazenadas de salas, corredores, personagem, partículas e passos continuam sendo coordenadas do mundo.
+`camera.js` calcula a posição a partir de um alvo sem suavização, considerando a área visível definida pelo zoom para limitar o deslocamento. Também calcula o menor zoom que encaixa o mundo e limita o zoom manual a 200%. `jogo.js` usa o personagem como alvo durante a exploração, o centro da sala selecionada no foco manual e mantém a visão geral fixa enquanto ela está ativa. As coordenadas armazenadas de salas, corredores, personagem, partículas e passos continuam sendo coordenadas do mundo.
 
 ## Corredores reais
 
@@ -37,9 +37,9 @@ O último marco é a busca por função na dungeon atual. Seus resultados preser
 
 ## Câmera e viewport
 
-O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera segue o jogador ou foca manualmente a sala selecionada, é limitada às bordas do mundo e aplica uma única transformação de contexto durante o desenho. Um novo clique no Canvas restaura o seguimento do jogador. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
+O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera segue o jogador, foca manualmente a sala selecionada ou mostra o mundo inteiro em visão geral. O zoom manual avança em passos de 25%, entre o encaixe do mundo e 200%; Encaixar escolhe o zoom necessário para mostrar toda a dungeon, sem ampliar mundos pequenos acima de 100%. Escala e deslocamento são aplicados somente durante o desenho. Selecionar uma função após Encaixar restaura 100% e foca a sala; um clique no Canvas restaura 100% e o seguimento do jogador. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
 
-Zoom, minimapa, pan manual, drag, easing, culling e colisão com salas/corredores ainda não existem. A detecção da sala continua comparando coordenadas do mundo sem aplicar a câmera.
+Minimapa, pan manual, drag, easing, culling e colisão com salas/corredores ainda não existem. A detecção da sala continua comparando coordenadas do mundo sem aplicar a câmera.
 
 ## Resultados de estresse do layout
 
@@ -75,13 +75,13 @@ O primeiro bloco está implementado no inspector, com:
 3. Um caminho mínimo desde a entrada, que usa `main` quando ela existe.
 4. Total de estruturas de controle da função. O analisador ainda não fornece contagens separadas por tipo.
 
-A navegação pelos botões de callers, callees e resultados da busca seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa. Navegação pelo caminho completo, zoom e minimapa continuam futuros.
+A navegação pelos botões de callers, callees e resultados da busca seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
 
 ## Implementações concluídas e pendências
 
 - O plano define o grafo como fonte de verdade; `grafoC.js` já concentra nós, arestas, chamadas recebidas, alcance e profundidade.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
-- O layout separado já existe em `layoutMasmorra.js`; a câmera básica já acompanha o personagem, mas ainda não há zoom nem minimapa.
+- O layout separado já existe em `layoutMasmorra.js`; a câmera acompanha o personagem e oferece zoom manual e visão geral, mas ainda não há minimapa.
 - `camera.js` já existe e o foco a partir da busca usa a seleção manual. Importação `.c` e exportação continuam futuras; `arquivos.js` e `exportacao.js` ainda não existem.
 - Os testes de estresse com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`, com zero sobreposições de salas nos cenários atuais.
 - Navegação pelo caminho completo, análise de todos os caminhos, colisão/topologia, PWA e comparação A/B não estão implementados; a comparação A/B continua prevista para depois da v1. A auditoria final de segurança permanece pendente.

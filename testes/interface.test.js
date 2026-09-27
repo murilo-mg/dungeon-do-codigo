@@ -1,11 +1,44 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { criarAmbiente, encontrar } from './ambiente.js';
-import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes } from '../js/interface.js';
+import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes, configurarControlesCamera, atualizarZoomCamera } from '../js/interface.js';
 import { criarGrafo, obterEstruturaDaFuncao } from '../js/grafoC.js';
 
 const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexidade: 11,
   textoCompleto: 'void investigar() { printf("<script> & texto"); }' };
+
+test('barra de câmera conecta os quatro botões e atualiza percentual acessível', () => {
+  const ambiente = criarAmbiente();
+  const acionados = [];
+  configurarControlesCamera({
+    aoAfastar: () => { acionados.push('afastar'); return 0.75; },
+    aoRestaurar: () => { acionados.push('restaurar'); return 1; },
+    aoAproximar: () => { acionados.push('aproximar'); return 1.25; },
+    aoEncaixar: () => { acionados.push('encaixar'); return 0.2; },
+  });
+  for (const id of ['camera-afastar', 'camera-aproximar', 'camera-encaixar', 'camera-zoom']) {
+    ambiente.elementos.get(id).emitir('click');
+  }
+  assert.deepEqual(acionados, ['afastar', 'aproximar', 'encaixar', 'restaurar']);
+  const indicador = ambiente.elementos.get('camera-zoom');
+  assert.equal(indicador.textContent, '100%');
+  atualizarZoomCamera(0.2333);
+  assert.equal(indicador.textContent, '23%');
+  assert.equal(indicador.atributos['aria-label'], 'Zoom atual: 23%. Restaurar para 100%');
+  assert.equal(indicador.filhos.length, 0);
+  for (const id of ['camera-afastar', 'camera-aproximar', 'camera-encaixar', 'camera-zoom']) {
+    assert.equal(ambiente.elementos.get(id).ouvintes.get('click').size, 1);
+  }
+});
+
+test('controles de câmera no HTML são botões nativos acessíveis', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  for (const id of ['camera-afastar', 'camera-aproximar', 'camera-encaixar', 'camera-zoom']) {
+    assert.match(html, new RegExp(`<button id="${id}" type="button"[^>]*>[^<]+</button>`));
+  }
+  assert.match(html, /role="group" aria-label="Controles da câmera"/);
+});
 
 test('mostra quando os controles da exploração estão ativos', () => {
   const ambiente = criarAmbiente();

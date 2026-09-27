@@ -54,6 +54,10 @@ O inspector mostra callers, callees, um caminho mínimo desde a entrada e o tota
 
 Canvas é adequado para mapa, criaturas, cenário e animações. DOM é melhor para texto, foco, leitores de tela, inspector e controles acessíveis.
 
+### Zoom altera somente a projeção do mundo
+
+`camera.js` calcula área visível, limites e encaixe. `jogo.js` mantém os modos de seguimento, foco em sala e visão geral; apenas a transformação do Canvas recebe o zoom. Física, detecção de sala, personagem e geometria continuam em coordenadas do mundo. Selecionar uma função ou clicar no Canvas após Encaixar restaura 100% para tornar o foco visível. A barra de câmera fica no DOM e é conectada pelo orquestrador.
+
 ### Preservar HTML/CSS/JavaScript ES Modules + Canvas
 
 Essa combinação é suficiente para a v1 e mantém o projeto fácil de explicar em entrevista. Novas tecnologias precisam de justificativa técnica e aprovação antes de entrar.

@@ -627,13 +627,27 @@ textarea:focus-visible {
 .workspace-mapa {
   min-width: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .workspace-mapa canvas {
   display: block;
   width: min(100%, 560px);
   height: auto;
+}
+
+.controles-camera {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.controles-camera button {
+  padding: 5px 9px;
+  font-size: 11px;
 }
 
 .workspace-inspetor {

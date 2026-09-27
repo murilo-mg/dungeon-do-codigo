@@ -10,6 +10,25 @@ let nomesDaBusca = [];
 let resultadosDaBusca = [];
 let aoSelecionarResultado = null;
 
+export function configurarControlesCamera({ aoAfastar, aoRestaurar, aoAproximar, aoEncaixar }) {
+  const acoes = [
+    ['camera-afastar', aoAfastar],
+    ['camera-zoom', aoRestaurar],
+    ['camera-aproximar', aoAproximar],
+    ['camera-encaixar', aoEncaixar],
+  ];
+  for (const [id, acao] of acoes) {
+    document.getElementById(id).addEventListener('click', () => atualizarZoomCamera(acao()));
+  }
+}
+
+export function atualizarZoomCamera(zoom) {
+  const percentual = `${Math.round(zoom * 100)}%`;
+  const botao = document.getElementById('camera-zoom');
+  botao.textContent = percentual;
+  botao.setAttribute('aria-label', `Zoom atual: ${percentual}. Restaurar para 100%`);
+}
+
 export function inicializarBuscaFuncoes() {
   const campo = document.getElementById('busca-funcao');
   campo.addEventListener('input', atualizarResultadosBusca);
