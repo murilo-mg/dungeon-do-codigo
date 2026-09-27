@@ -129,6 +129,23 @@ test('ignora digitação em campos e libera movimento quando a aba fica oculta',
   pararJogo();
 });
 
+test('buscar com WASD ou setas não move o personagem mesmo após ativar o mapa', () => {
+  const ambiente = criarAmbiente();
+  const notificacoes = [];
+  iniciarJogo(masmorra, arestas, sala => notificacoes.push(sala?.nome ?? null));
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const campo = ambiente.elementos.get('busca-funcao');
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  for (const key of ['w', 'ArrowUp', 'a', 'ArrowLeft']) {
+    const evento = ambiente.janela.emitir('keydown', { key, target: campo });
+    assert.equal(evento.prevenido, undefined);
+  }
+  ambiente.avancar(65);
+  assert.deepEqual(notificacoes, ['main']);
+  pararJogo();
+});
+
 test('usa os limites do mundo para alcançar salas além do viewport', () => {
   const ambiente = criarAmbiente();
   const notificacoes = [];

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente, encontrar } from './ambiente.js';
-import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo } from '../js/interface.js';
+import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes } from '../js/interface.js';
 import { criarGrafo, obterEstruturaDaFuncao } from '../js/grafoC.js';
 
 const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexidade: 11,
@@ -244,4 +244,83 @@ test('sem main, caminho mostra o nome real da entrada', () => {
   atualizarPainelDeSala({ ...sala, nome: 'inicio' }, obterEstruturaDaFuncao(grafo, 'inicio'));
   assert.equal(conteudoDaSecao(ambiente.elementos.get('info-sala'), 'caminho-funcao').textContent,
     'inicio()');
+});
+
+function prepararBusca(nomes, aoSelecionar = () => {}) {
+  const ambiente = criarAmbiente();
+  inicializarBuscaFuncoes();
+  configurarBuscaFuncoes(nomes, aoSelecionar);
+  const campo = ambiente.elementos.get('busca-funcao');
+  const painel = ambiente.elementos.get('resultados-busca');
+  return { ambiente, campo, painel, buscar(texto) {
+    campo.value = texto;
+    campo.emitir('input');
+  } };
+}
+
+function botoesDaBusca(painel) {
+  return painel.filhos[0]?.tipo === 'ul'
+    ? painel.filhos[0].filhos.map(item => item.filhos[0]) : [];
+}
+
+test('busca vazia não mostra resultados e consulta parcial ignora caixa e preserva ordem', () => {
+  const busca = prepararBusca(['carregar', 'processar', 'processarArquivo', 'salvar']);
+  assert.equal(busca.painel.filhos.length, 0);
+  busca.buscar('PROCESS');
+  assert.deepEqual(botoesDaBusca(busca.painel).map(botao => botao.textContent),
+    ['processar()', 'processarArquivo()']);
+  assert.ok(botoesDaBusca(busca.painel).every(botao =>
+    botao.tipo === 'button' && botao.atributos.type === 'button'));
+  busca.buscar('  ');
+  assert.equal(busca.painel.filhos.length, 0);
+});
+
+test('busca sem correspondência mostra mensagem e Enter escolhe o primeiro resultado', () => {
+  const selecionados = [];
+  const busca = prepararBusca(['processar', 'processarArquivo'],
+    nome => selecionados.push(nome));
+  busca.buscar('inexistente');
+  assert.equal(busca.painel.filhos[0].textContent, 'Nenhuma função encontrada.');
+  const semResultado = busca.campo.emitir('keydown', { key: 'Enter' });
+  assert.equal(semResultado.prevenido, undefined);
+  busca.buscar('process');
+  const enter = busca.campo.emitir('keydown', { key: 'Enter' });
+  assert.equal(enter.prevenido, true);
+  assert.deepEqual(selecionados, ['processar']);
+});
+
+test('resultado isolado e nome com aparência de HTML são texto seguro e clicáveis', () => {
+  const selecionados = [];
+  const nome = '<img src=x onerror=alert(1)>';
+  const busca = prepararBusca(['main', 'isolada', nome],
+    escolhido => selecionados.push(escolhido));
+  busca.buscar('isol');
+  botoesDaBusca(busca.painel)[0].emitir('click');
+  busca.buscar('<img');
+  const botao = botoesDaBusca(busca.painel)[0];
+  assert.equal(botao.textContent, `${nome}()`);
+  assert.equal(botao.filhos.length, 0);
+  botao.emitir('click');
+  assert.deepEqual(selecionados, ['isolada', nome]);
+});
+
+test('configurar nova dungeon e sair limpam consulta, resultados e callback anterior', () => {
+  const antigo = [];
+  const novo = [];
+  const busca = prepararBusca(['antiga'], nome => antigo.push(nome));
+  busca.buscar('ant');
+  configurarBuscaFuncoes(['nova'], nome => novo.push(nome));
+  assert.equal(busca.campo.ouvintes.get('input').size, 1);
+  assert.equal(busca.campo.ouvintes.get('keydown').size, 1);
+  assert.equal(busca.campo.value, '');
+  assert.equal(busca.painel.filhos.length, 0);
+  busca.buscar('ant');
+  assert.equal(busca.painel.filhos[0].textContent, 'Nenhuma função encontrada.');
+  busca.buscar('nov');
+  botoesDaBusca(busca.painel)[0].emitir('click');
+  assert.deepEqual(antigo, []);
+  assert.deepEqual(novo, ['nova']);
+  limparBuscaFuncoes();
+  assert.equal(busca.campo.value, '');
+  assert.equal(busca.painel.filhos.length, 0);
 });

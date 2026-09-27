@@ -6,6 +6,57 @@ const MILISSEGUNDOS_POR_LETRA = 18;
 let idAnimacaoPainel = null;
 let concluirAnimacao = null;
 let preferenciaMovimento = null;
+let nomesDaBusca = [];
+let resultadosDaBusca = [];
+let aoSelecionarResultado = null;
+
+export function inicializarBuscaFuncoes() {
+  const campo = document.getElementById('busca-funcao');
+  campo.addEventListener('input', atualizarResultadosBusca);
+  campo.addEventListener('keydown', evento => {
+    if (evento.key !== 'Enter' || resultadosDaBusca.length === 0) return;
+    evento.preventDefault();
+    aoSelecionarResultado?.(resultadosDaBusca[0]);
+  });
+}
+
+export function configurarBuscaFuncoes(nomes, aoSelecionar) {
+  limparBuscaFuncoes();
+  nomesDaBusca = [...nomes];
+  aoSelecionarResultado = aoSelecionar;
+}
+
+export function limparBuscaFuncoes() {
+  nomesDaBusca = [];
+  resultadosDaBusca = [];
+  aoSelecionarResultado = null;
+  document.getElementById('busca-funcao').value = '';
+  document.getElementById('resultados-busca').replaceChildren();
+}
+
+function atualizarResultadosBusca() {
+  const consulta = document.getElementById('busca-funcao').value.trim().toLowerCase();
+  const painel = document.getElementById('resultados-busca');
+  painel.replaceChildren();
+  resultadosDaBusca = consulta
+    ? nomesDaBusca.filter(nome => nome.toLowerCase().includes(consulta))
+    : [];
+  if (!consulta) return;
+  if (resultadosDaBusca.length === 0) {
+    painel.append(criarElemento('p', 'busca-vazia', 'Nenhuma função encontrada.'));
+    return;
+  }
+  const lista = criarElemento('ul', 'lista-busca');
+  for (const nome of resultadosDaBusca) {
+    const item = criarElemento('li');
+    const botao = criarElemento('button', 'resultado-busca', `${nome}()`);
+    botao.setAttribute('type', 'button');
+    botao.addEventListener('click', () => aoSelecionarResultado?.(nome));
+    item.append(botao);
+    lista.append(item);
+  }
+  painel.append(lista);
+}
 
 export function exibirTelaDeJogo() {
   document.getElementById('tela-entrada').style.display = 'none';

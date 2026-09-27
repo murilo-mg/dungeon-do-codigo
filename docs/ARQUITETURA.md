@@ -16,7 +16,7 @@ verdade do código -> grafo -> layout -> experiência
 
 ### `index.html`
 
-Define as telas de entrada e exploração, editor, Canvas, inspector, status dos controles e legenda. É a estrutura estática da aplicação.
+Define as telas de entrada e exploração, editor, Canvas, campo de busca, inspector, status dos controles e legenda. É a estrutura estática da aplicação.
 
 ### `css/estilo.css`
 
@@ -76,11 +76,11 @@ Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sa
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles. Callers e callees são botões semânticos que comunicam a função escolhida por callback. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles. Busca, callers e callees comunicam a função escolhida por callback. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Orquestra a seleção de uma relação, localiza a sala no jogo e entrega seus dados estruturais ao inspector.
+Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector.
 
 ## Fluxo atual
 
@@ -99,7 +99,7 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 
 ## Arquitetura futura desejada
 
-O inspector já mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle. Os botões de callers e callees permitem selecionar uma função e focar sua sala sem mover o personagem. Busca por função e navegação por outros meios continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
+O inspector já mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle. Os botões de callers, callees e resultados da busca permitem selecionar uma função e focar sua sala sem mover o personagem. Navegação pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
 
 O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
 
@@ -110,10 +110,6 @@ O módulo já existe e concentra a geometria e o mundo lógico dinâmico. Os tes
 ### `camera.js`
 
 O acompanhamento básico e a transformação do mundo para o viewport de 560x480 estão concluídos, com validação manual realizada pelo mantenedor. A câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. Ainda são futuros zoom, minimapa, pan manual, drag, easing e otimizações de culling.
-
-### `busca.js`
-
-Deverá indexar e localizar funções, permitindo selecionar uma sala e navegar até ela sem misturar busca com análise ou renderização.
 
 ### `arquivos.js`
 

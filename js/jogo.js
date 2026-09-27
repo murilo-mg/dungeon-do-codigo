@@ -189,6 +189,7 @@ function marcarTeclaPressionada(evento) {
     return;
   }
 
+  if (evento.target?.closest?.('input, textarea, [contenteditable="true"]')) return;
   if (!TECLAS_MOVIMENTO.has(tecla) || evento.ctrlKey || evento.metaKey || evento.altKey) return;
   if (!controlesAtivos) return;
 

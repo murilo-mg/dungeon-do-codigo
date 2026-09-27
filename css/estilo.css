@@ -345,6 +345,7 @@ kbd {
 
 button:focus-visible,
 #canvas-jogo:focus-visible,
+input:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--ouro);
   outline-offset: 3px;
@@ -769,4 +770,60 @@ textarea:focus-visible {
 .secao-inspector button.relacao-funcao:hover {
   background: var(--pedra-clara);
   color: var(--brasa-clara);
+}
+
+.busca-funcoes {
+  margin-bottom: 14px;
+}
+
+.busca-funcoes label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--pergaminho-fraco);
+  font-size: 11px;
+}
+
+.busca-funcoes input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--pedra-clara);
+  border-radius: 3px;
+  background: var(--pedra-escura);
+  color: var(--pergaminho);
+  font: 11px 'JetBrains Mono', monospace;
+}
+
+.busca-funcoes input::placeholder {
+  color: var(--pergaminho-fraco);
+}
+
+.lista-busca {
+  max-height: 150px;
+  margin: 5px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.lista-busca button.resultado-busca {
+  width: 100%;
+  padding: 5px 7px;
+  background: transparent;
+  color: var(--pergaminho);
+  font-size: 11px;
+  font-weight: 400;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.lista-busca button.resultado-busca:hover,
+.lista-busca button.resultado-busca:focus-visible {
+  background: var(--pedra-clara);
+  color: var(--brasa-clara);
+}
+
+.busca-vazia {
+  margin: 6px 0 0;
+  color: var(--pergaminho-fraco);
+  font-size: 11px;
 }

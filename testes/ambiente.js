@@ -26,6 +26,7 @@ class Elemento extends Emissor {
   append(...filhos) { this.filhos.push(...filhos); }
   replaceChildren(...filhos) { this.filhos = filhos; }
   setAttribute(nome, valor) { this.atributos[nome] = valor; }
+  closest() { return this.tipo === 'input' ? this : null; }
   focus() { this.focado = true; }
   blur() { this.focado = false; }
   getContext() {
@@ -42,8 +43,10 @@ export function criarAmbiente() {
   const documento = new Emissor();
   const preferencia = new Emissor();
   preferencia.matches = false;
-  const elementos = new Map([ 'status-indicador', 'status-controles-texto','canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar']
-    .map(id => [id, new Elemento(id === 'canvas-jogo' ? 'canvas' : 'div')]));
+  const elementos = new Map([ 'status-indicador', 'status-controles-texto','canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar', 'busca-funcao', 'resultados-busca']
+    .map(id => [id, new Elemento(id === 'canvas-jogo' ? 'canvas'
+      : id === 'busca-funcao' ? 'input' : 'div')]));
+  elementos.get('busca-funcao').value = '';
   elementos.get('canvas-jogo').width = 560;
   elementos.get('canvas-jogo').height = 480;
   documento.getElementById = id => elementos.get(id);

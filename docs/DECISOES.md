@@ -48,7 +48,7 @@ Não salvar automaticamente o código do usuário. Importação, salvamento de s
 
 ### Priorizar leitura estrutural do programa
 
-O inspector mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle disponível no analisador. Callers e callees são botões: a seleção foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Busca por função e navegação pelo caminho completo continuam futuras.
+O inspector mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle disponível no analisador. Callers, callees e resultados da busca usam a mesma seleção: ela foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Navegação pelo caminho completo continua futura.
 
 ### Canvas para mapa; DOM para inspector e controles
 

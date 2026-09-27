@@ -6,7 +6,11 @@ import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
 import { focarSala, iniciarJogo, pararJogo } from './jogo.js';
-import { atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
+import {
+  atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao,
+  atualizarPainelDeSala, inicializarBuscaFuncoes, configurarBuscaFuncoes,
+  limparBuscaFuncoes,
+} from './interface.js';
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -98,6 +102,7 @@ int main() {
 document.addEventListener('DOMContentLoaded', inicializarAplicacao);
 
 function inicializarAplicacao() {
+  inicializarBuscaFuncoes();
   const entradaCodigo = document.getElementById('entrada-codigo');
   entradaCodigo.value = codigoPadrao;
 
@@ -158,10 +163,12 @@ function aoClicarEmGerar(entradaCodigo) {
     const sala = focarSala(nome);
     if (sala) mostrarSala(sala);
   }
+  configurarBuscaFuncoes(grafo.nos.keys(), selecionarFuncao);
   iniciarJogo(masmorra, grafo.arestas, mostrarSala, atualizarEstadoControles);
 }
 
 function aoClicarEmVoltar() {
   pararJogo();
+  limparBuscaFuncoes();
   exibirTelaDeConfiguracao();
 }

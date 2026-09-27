@@ -113,3 +113,46 @@ test('navegação pelo inspector troca a função e retoma a sala física ao cli
   assert.deepEqual(canvas.translacoes.at(-1), cameraInicial);
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
+
+test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra dungeon', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?busca-funcoes');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const entrada = ambiente.elementos.get('entrada-codigo');
+  entrada.value = 'void isolada(){}\nvoid a(){b();}\nvoid b(){c();}\n'
+    + 'void c(){d();}\nvoid d(){e();}\nvoid e(){}\nint main(){a();}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+
+  const campo = ambiente.elementos.get('busca-funcao');
+  const resultados = ambiente.elementos.get('resultados-busca');
+  const painel = ambiente.elementos.get('info-sala');
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.equal(campo.value, '');
+  campo.value = 'ISOL';
+  campo.emitir('input');
+  assert.equal(resultados.filhos[0].filhos[0].filhos[0].textContent, 'isolada()');
+  resultados.filhos[0].filhos[0].filhos[0].emitir('click');
+  ambiente.avancar();
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'isolada()');
+  assert.ok(canvas.translacoes.at(-1).x < 0);
+  assert.equal(painel.filhos.find(filho => filho.className ===
+    'secao-inspector caminho-funcao').filhos[1].textContent,
+    'Não alcançável a partir da entrada');
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'main()');
+  assert.equal(canvas.translacoes.at(-1).x, 0);
+
+  ambiente.elementos.get('botao-voltar').emitir('click');
+  assert.equal(campo.value, '');
+  assert.equal(resultados.filhos.length, 0);
+  entrada.value = 'void nova(){}\nint main(){nova();}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  campo.value = 'isol';
+  campo.emitir('input');
+  assert.equal(resultados.filhos[0].textContent, 'Nenhuma função encontrada.');
+  ambiente.elementos.get('botao-voltar').emitir('click');
+});
