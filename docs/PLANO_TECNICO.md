@@ -44,13 +44,14 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Primeiro experimento de ordenação vertical determinística: reduziu as três métricas no diagnóstico denso de 24 funções, sem sobreposição de salas.
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
-- Barra de câmera com zoom manual em passos de 25%, retorno a 100% e visão geral que encaixa a dungeon inteira no viewport. A validação visual desse novo recurso ainda está pendente.
+- Barra de câmera com botões de zoom nos níveis de 50% a 200% em intervalos de 25 pontos percentuais, mais o valor mínimo próprio de Encaixar; retorno a 100% e visão geral que encaixa a dungeon inteira no viewport. Controles de zoom e visão geral validados visualmente pelo mantenedor.
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
 - Foco topológico da função selecionada, preservando todas as cadeias relevantes desde a entrada e atenuando salas e corredores fora do contexto sem ocultá-los.
 - Clique simples em sala pela mesma seleção da busca e do inspector; duplo clique inicia navegação contínua pelos corredores existentes quando há rota, cancelável pelo teclado de movimento.
-- Suíte automatizada Node.js passando nos 18 arquivos de teste.
+- Zoom semântico das salas em mapa, identificação e detalhes; hover informa o nome completo sem seleção, e a função selecionada mantém etiqueta legível na visão distante.
+- Suíte automatizada Node.js passando nos 19 arquivos de teste.
 
 ## Funcionalidades futuras
 
@@ -87,7 +88,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: testes de estresse com 5, 15, 30 e 60 funções, com zero sobreposições de salas nos cenários atuais.
 - Concluído: cenário e corredores consomem as arestas reais.
 - Concluído: câmera básica com viewport de 560x480 e validação manual pelo mantenedor.
-- Concluído: zoom manual, retorno a 100% e Encaixar para visão geral da dungeon; validação visual desse recurso pendente.
+- Concluído: zoom manual, retorno a 100% e Encaixar para visão geral da dungeon; validação visual concluída pelo mantenedor.
 - Concluído: linha de base determinística da legibilidade dos corredores, sem mudança de geometria ou desenho.
 - Concluído: primeiro experimento de ordem vertical por callers, mantendo colunas e dimensões; cenário denso passou de 59/15/6439,16 para 17/8/5307,77 em cruzamentos/travessias/comprimento.
 - Pendentes: minimapa e colisão/topologia.
@@ -99,6 +100,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: busca por função na dungeon atual, com foco pelo mesmo fluxo da navegação estrutural.
 - Concluído: foco contextual no Canvas baseado em todas as relações reais até a função selecionada, sem alterar grafo, layout ou roteamento.
 - Concluído: seleção direta por clique em sala e navegação por duplo clique sobre corredores existentes, mantendo a seleção mesmo sem rota e sem mudar o movimento manual.
+- Concluído: representação semântica por zoom com limiares centralizados, etiquetas de hover e da função selecionada, sem alterar grafo, layout ou controles.
 - Concluído: marcadores de presença nas salas para I/F/W/S e R/C, preservando a cor de complexidade, a geometria e os contornos de interação.
 - Concluído: modos visuais Complexidade e Estrutura, com alternância imediata sem mudar grafo, geometria, câmera, busca ou inspector.
 - Destaque de métricas e outras formas de explorar relações.

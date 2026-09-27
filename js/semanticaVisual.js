@@ -9,6 +9,15 @@ const ESTRUTURAS = [
   ['switch', 'S'],
 ];
 
+export const LIMIAR_IDENTIFICACAO = 0.75;
+export const LIMIAR_DETALHES = 1;
+
+export function obterNivelDetalhe(zoom) {
+  if (zoom >= LIMIAR_DETALHES) return 'proxima';
+  if (zoom >= LIMIAR_IDENTIFICACAO) return 'intermediaria';
+  return 'distante';
+}
+
 export function obterMarcadoresEstruturais(sala) {
   return {
     estruturas: ESTRUTURAS

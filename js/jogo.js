@@ -4,9 +4,12 @@
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { criarSegmentosDeCorredores } from './corredores.js';
 import { calcularRotaCaminhavel } from './navegacaoMasmorra.js';
-import { alterarZoom, atualizarCamera, criarCamera, definirZoom, encaixarCamera } from './camera.js';
+import { atualizarCamera, criarCamera, definirZoom, encaixarCamera,
+  zoomParaEncaixar } from './camera.js';
+import { proximoZoomDiscreto } from './zoomDiscreto.js';
 import { GLIFOS_MARCADORES, PALETA, desenharPixels } from './pixelArt.js';
-import { obterEstiloVisualDaSala, obterMarcadoresEstruturais } from './semanticaVisual.js';
+import { obterEstiloVisualDaSala, obterMarcadoresEstruturais,
+  obterNivelDetalhe } from './semanticaVisual.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
 import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem,
@@ -15,6 +18,10 @@ import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonage
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
 const CORES_MARCADORES = { 1: PALETA.pergaminho };
 const CORES_MARCADORES_DESTACADOS = { 1: PALETA.pedraEscura };
+const MARGEM_ETIQUETA = 8;
+const ESPACAMENTO_ETIQUETA = 6;
+const ALTURA_LINHA_ETIQUETA = 14;
+const LARGURA_MAXIMA_ETIQUETA = 240;
 
 let funcaoDeNotificacaoControles = null;
 let contexto = null;
@@ -39,6 +46,7 @@ let cenario = null;
 let segmentosDeCorredores = [];
 let rotaAutomatica = null;
 let ultimoCliqueEmSala = null;
+let posicaoPonteiro = null;
 let camera = null;
 let modoCamera = 'jogador';
 let modoVisual = 'complexidade';
@@ -84,6 +92,7 @@ export function iniciarJogo(
   contextoTopologico = null;
   rotaAutomatica = null;
   ultimoCliqueEmSala = null;
+  posicaoPonteiro = null;
   tempoCena = 0;
   particulas = [];
   primeiraDeteccao = true;
@@ -130,6 +139,7 @@ export function pararJogo() {
   segmentosDeCorredores = [];
   rotaAutomatica = null;
   ultimoCliqueEmSala = null;
+  posicaoPonteiro = null;
   camera = null;
   modoCamera = 'jogador';
   modoVisual = 'complexidade';
@@ -179,11 +189,13 @@ function mudarZoom(novaCamera) {
 }
 
 export function aproximarCamera() {
-  return mudarZoom(camera ? alterarZoom(camera, 0.25) : null);
+  return mudarZoom(camera ? definirZoom(camera,
+    proximoZoomDiscreto(camera.zoom, zoomParaEncaixar(camera), 1)) : null);
 }
 
 export function afastarCamera() {
-  return mudarZoom(camera ? alterarZoom(camera, -0.25) : null);
+  return mudarZoom(camera ? definirZoom(camera,
+    proximoZoomDiscreto(camera.zoom, zoomParaEncaixar(camera), -1)) : null);
 }
 
 export function restaurarZoomCamera() {
@@ -214,6 +226,8 @@ function registrarEventosDeTeclado() {
   document.addEventListener('visibilitychange', limparTeclas);
   canvas.addEventListener('click', selecionarSalaClicada);
   canvas.addEventListener('dblclick', navegarParaSalaClicada);
+  canvas.addEventListener('pointermove', atualizarPonteiroNoMapa);
+  canvas.addEventListener('pointerleave', limparPonteiroNoMapa);
 }
 
 function removerEventosDeTeclado() {
@@ -224,6 +238,8 @@ function removerEventosDeTeclado() {
   document.removeEventListener('pointerdown', atualizarFocoDoJogo, true);
   canvas?.removeEventListener('click', selecionarSalaClicada);
   canvas?.removeEventListener('dblclick', navegarParaSalaClicada);
+  canvas?.removeEventListener('pointermove', atualizarPonteiroNoMapa);
+  canvas?.removeEventListener('pointerleave', limparPonteiroNoMapa);
   controlesAtivos = false;
 }
 
@@ -273,7 +289,17 @@ function salaDoClique(evento) {
 }
 
 function detectarSalaClicada(evento) {
-  if (!camera || !Number.isFinite(evento.clientX) || !Number.isFinite(evento.clientY)) return null;
+  if (!camera) return null;
+  const ponto = pontoInternoDoCanvas(evento);
+  if (!ponto) return null;
+  const x = camera.x + ponto.x / camera.zoom;
+  const y = camera.y + ponto.y / camera.zoom;
+  return salas.find(sala => x >= sala.x && x <= sala.x + sala.largura &&
+    y >= sala.y && y <= sala.y + sala.altura) ?? null;
+}
+
+function pontoInternoDoCanvas(evento) {
+  if (!Number.isFinite(evento.clientX) || !Number.isFinite(evento.clientY)) return null;
   const retangulo = canvas.getBoundingClientRect();
   const bordaX = canvas.clientLeft ?? 0;
   const bordaY = canvas.clientTop ?? 0;
@@ -283,12 +309,16 @@ function detectarSalaClicada(evento) {
   const x = evento.clientX - retangulo.left - bordaX;
   const y = evento.clientY - retangulo.top - bordaY;
   if (x < 0 || y < 0 || x > largura || y > altura) return null;
-  const ponto = {
-    x: camera.x + x * canvas.width / largura / camera.zoom,
-    y: camera.y + y * canvas.height / altura / camera.zoom,
-  };
-  return salas.find(sala => ponto.x >= sala.x && ponto.x <= sala.x + sala.largura &&
-    ponto.y >= sala.y && ponto.y <= sala.y + sala.altura) ?? null;
+  return { x: x * canvas.width / largura, y: y * canvas.height / altura };
+}
+
+function atualizarPonteiroNoMapa(evento) {
+  if (evento.pointerType === 'touch') return;
+  posicaoPonteiro = { clientX: evento.clientX, clientY: evento.clientY };
+}
+
+function limparPonteiroNoMapa() {
+  posicaoPonteiro = null;
 }
 
 function selecionarSalaClicada(evento) {
@@ -417,6 +447,7 @@ function detectarSalaSobJogador() {
 }
 
 function desenharCena() {
+  const nivelDetalhe = obterNivelDetalhe(camera.zoom);
   contexto.clearRect(0, 0, canvas.width, canvas.height);
   contexto.fillStyle = '#181410';
   contexto.fillRect(0, 0, canvas.width, canvas.height);
@@ -428,11 +459,12 @@ function desenharCena() {
   desenharFundo(contexto, cenario, tempoAmbiente);
   desenharCorredores();
   desenharDecoracoes(contexto, cenario, tempoAmbiente);
-  salas.forEach(desenharSala);
+  salas.forEach(sala => desenharSala(sala, nivelDetalhe));
   desenharPassos(contexto, jogador);
   desenharParticulas(contexto, particulas);
   desenharPersonagem(contexto, jogador, preferenciaMovimento.matches);
   contexto.restore();
+  desenharEtiquetas(nivelDetalhe);
 }
 
 function desenharCorredores() {
@@ -452,7 +484,7 @@ function desenharCorredores() {
   contexto.restore();
 }
 
-function desenharSala(sala) {
+function desenharSala(sala, nivelDetalhe) {
   const ativa = sala === salaAtual;
   const atenuacao = contextoTopologico && !contextoTopologico.funcoes.has(sala.nome) ? 0.35 : 1;
   const estilo = obterEstiloVisualDaSala(sala, modoVisual);
@@ -462,10 +494,12 @@ function desenharSala(sala) {
   contexto.fillStyle = estilo.corBase;
   contexto.globalAlpha = (ativa ? 1 : 0.85) * atenuacao;
   contexto.fillRect(x, y, sala.largura, sala.altura);
-  contexto.globalAlpha = 0.13 * atenuacao;
-  contexto.fillStyle = PALETA.pedraEscura;
-  for (let linha = 4; linha < sala.altura - 4; linha += 12) {
-    contexto.fillRect(x + 4, y + linha, sala.largura - 8, 1);
+  if (nivelDetalhe === 'proxima') {
+    contexto.globalAlpha = 0.13 * atenuacao;
+    contexto.fillStyle = PALETA.pedraEscura;
+    for (let linha = 4; linha < sala.altura - 4; linha += 12) {
+      contexto.fillRect(x + 4, y + linha, sala.largura - 8, 1);
+    }
   }
   contexto.globalAlpha = atenuacao;
   contexto.strokeStyle = '#00000055';
@@ -483,24 +517,78 @@ function desenharSala(sala) {
     contexto.lineWidth = 2;
     contexto.strokeRect(x - 5, y - 5, sala.largura + 10, sala.altura + 10);
   }
-  // Faixa separada mantém o nome legível acima da criatura.
-  contexto.fillStyle = PALETA.pedraEscura;
-  contexto.globalAlpha = 0.85 * atenuacao;
-  contexto.fillRect(x + 4, y + 4, sala.largura - 8, 15);
-  contexto.globalAlpha = atenuacao;
-  contexto.fillStyle = PALETA.pergaminho;
-  contexto.font = '10px "JetBrains Mono", monospace';
-  contexto.textAlign = 'center';
-  let nome = `${sala.nome}()`;
-  while (nome.length > 1 && contexto.measureText(nome).width > sala.largura - 14) {
-    nome = nome.replace(/…$/, '').slice(0, -1) + '…';
+  if (nivelDetalhe !== 'distante') {
+    // Faixa separada mantém o nome legível acima da criatura.
+    contexto.fillStyle = PALETA.pedraEscura;
+    contexto.globalAlpha = 0.85 * atenuacao;
+    contexto.fillRect(x + 4, y + 4, sala.largura - 8, 15);
+    contexto.globalAlpha = atenuacao;
+    contexto.fillStyle = PALETA.pergaminho;
+    contexto.font = '10px "JetBrains Mono", monospace';
+    contexto.textAlign = 'center';
+    let nome = `${sala.nome}()`;
+    while (nome.length > 1 && contexto.measureText(nome).width > sala.largura - 14) {
+      nome = nome.replace(/…$/, '').slice(0, -1) + '…';
+    }
+    contexto.fillText(nome, x + sala.largura / 2, y + 15);
   }
-  contexto.fillText(nome, x + sala.largura / 2, y + 15);
-  if (estilo.exibirCriatura) {
+  if (nivelDetalhe === 'proxima' && estilo.exibirCriatura) {
     desenharCriatura(contexto, sala.complexidade, x + sala.largura / 2,
       y + sala.altura - 20, 2, preferenciaMovimento.matches ? 0 : tempoCena + sala.x / 100);
   }
-  desenharMarcadoresDaSala(sala, x, y, estilo.destacarMarcadores);
+  if (nivelDetalhe === 'proxima')
+    desenharMarcadoresDaSala(sala, x, y, estilo.destacarMarcadores);
+  contexto.restore();
+}
+
+function desenharEtiquetas(nivelDetalhe) {
+  const salaSobPonteiro = posicaoPonteiro ? detectarSalaClicada(posicaoPonteiro) : null;
+  if (nivelDetalhe === 'distante' && salaSelecionada && salaSelecionada !== salaSobPonteiro) {
+    const x = (salaSelecionada.x + salaSelecionada.largura / 2 - camera.x) * camera.zoom;
+    const y = (salaSelecionada.y - camera.y) * camera.zoom - MARGEM_ETIQUETA;
+    if (x >= 0 && x <= canvas.width && y >= -MARGEM_ETIQUETA && y <= canvas.height)
+      desenharEtiqueta(salaSelecionada, x, y, true);
+  }
+  if (salaSobPonteiro) {
+    const ponto = pontoInternoDoCanvas(posicaoPonteiro);
+    if (ponto) desenharEtiqueta(salaSobPonteiro, ponto.x + MARGEM_ETIQUETA,
+      ponto.y + MARGEM_ETIQUETA, salaSobPonteiro === salaSelecionada);
+  }
+}
+
+function desenharEtiqueta(sala, ancoraX, ancoraY, selecionada) {
+  contexto.save();
+  contexto.font = '11px "JetBrains Mono", monospace';
+  contexto.textAlign = 'left';
+  const larguraTexto = Math.min(LARGURA_MAXIMA_ETIQUETA,
+    canvas.width - MARGEM_ETIQUETA * 2 - ESPACAMENTO_ETIQUETA * 2);
+  const linhas = [];
+  let linha = '';
+  for (const caractere of `${sala.nome}()`) {
+    if (linha && contexto.measureText(linha + caractere).width > larguraTexto) {
+      linhas.push(linha);
+      linha = caractere;
+    } else {
+      linha += caractere;
+    }
+  }
+  if (linha) linhas.push(linha);
+  const largura = Math.max(...linhas.map(parte => contexto.measureText(parte).width)) +
+    ESPACAMENTO_ETIQUETA * 2;
+  const altura = linhas.length * ALTURA_LINHA_ETIQUETA + ESPACAMENTO_ETIQUETA * 2;
+  const x = Math.max(MARGEM_ETIQUETA,
+    Math.min(ancoraX, canvas.width - MARGEM_ETIQUETA - largura));
+  const y = Math.max(MARGEM_ETIQUETA,
+    Math.min(ancoraY - altura, canvas.height - MARGEM_ETIQUETA - altura));
+  contexto.fillStyle = PALETA.pedraEscura;
+  contexto.fillRect(x, y, largura, altura);
+  contexto.strokeStyle = selecionada ? PALETA.ouro : PALETA.pergaminho;
+  contexto.lineWidth = 1;
+  contexto.strokeRect(x, y, largura, altura);
+  contexto.fillStyle = PALETA.pergaminho;
+  linhas.forEach((parte, indice) => contexto.fillText(parte,
+    x + ESPACAMENTO_ETIQUETA, y + ESPACAMENTO_ETIQUETA + 10 +
+    indice * ALTURA_LINHA_ETIQUETA));
   contexto.restore();
 }
 

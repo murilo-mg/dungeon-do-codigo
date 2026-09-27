@@ -575,7 +575,7 @@ const mundoZoom = { salas: [
   { nome: 'distante', complexidade: 0, x: 1900, y: 700, largura: 60, altura: 60 },
 ], larguraMundo: 2400, alturaMundo: 1000 };
 
-test('zoom inicial, passos de 25%, limites e retorno a 100%', () => {
+test('zoom inicial, degraus canônicos, limites e retorno a 100%', () => {
   const ambiente = criarAmbiente();
   iniciarJogo(mundoZoom, [], () => {});
   const canvas = ambiente.elementos.get('canvas-jogo');
@@ -589,6 +589,28 @@ test('zoom inicial, passos de 25%, limites e retorno a 100%', () => {
   for (let indice = 0; indice < 12; indice++) afastarCamera();
   assert.equal(afastarCamera(), 560 / 2400);
   assert.equal(restaurarZoomCamera(), 1);
+  pararJogo();
+});
+
+test('botões saem de Encaixar por degraus sem alterar seleção, personagem ou salas', () => {
+  const ambiente = criarAmbiente();
+  const mundoAntes = structuredClone(mundoZoom);
+  iniciarJogo(mundoZoom, [], () => {});
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  const posicaoAntes = canvas.posicoesPersonagem.at(-1);
+  focarSala('distante');
+  const zoomEncaixe = encaixarMasmorra();
+  assert.equal(aproximarCamera(), 0.5);
+  assert.equal(aproximarCamera(), 0.75);
+  assert.equal(aproximarCamera(), 1);
+  assert.equal(afastarCamera(), 0.75);
+  assert.equal(afastarCamera(), 0.5);
+  assert.equal(afastarCamera(), zoomEncaixe);
+  ambiente.avancar();
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicaoAntes);
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 1895));
+  assert.deepEqual(mundoZoom, mundoAntes);
   pararJogo();
 });
 
@@ -787,7 +809,7 @@ test('sala física e sala selecionada mantêm contornos e marcadores próprios',
   pararJogo();
 });
 
-test('zoom e Encaixar mantêm os marcadores em coordenadas do mundo', () => {
+test('zoom próximo mantém marcadores e Encaixar os oculta até voltar a 100%', () => {
   const ambiente = criarAmbiente();
   const sala = { ...criarSalaVisual('main', 700, { for: 1 },
     { participaDeCiclo: true }), ehSalaInicial: true };
@@ -803,10 +825,185 @@ test('zoom e Encaixar mantêm os marcadores em coordenadas do mundo', () => {
   assert.deepEqual(canvas.posicoesCriaturas.at(-1), posicaoCriatura);
   encaixarMasmorra();
   canvas.marcadores = [];
+  canvas.posicoesCriaturas = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.marcadores, []);
+  assert.deepEqual(canvas.posicoesCriaturas, []);
+  assert.ok(canvas.escalas.at(-1).x < 1);
+  restaurarZoomCamera();
   ambiente.avancar();
   assert.deepEqual(canvas.marcadores, desenhoInicial);
   assert.deepEqual(canvas.posicoesCriaturas.at(-1), posicaoCriatura);
-  assert.ok(canvas.escalas.at(-1).x < 1);
+  pararJogo();
+});
+
+test('níveis semânticos preservam salas, personagem, foco e nome selecionado no mapa', () => {
+  const ambiente = criarAmbiente();
+  const nomeLongo = 'funcao_com_identificador_extenso';
+  const inicial = { ...criarSalaVisual('main', 700), ehSalaInicial: true };
+  const destino = criarSalaVisual(nomeLongo, 900, { if: 1 });
+  const extra = criarSalaVisual('extra', 1050, { for: 1 });
+  const mundo = { salas: [inicial, destino, extra], larguraMundo: 1200, alturaMundo: 480 };
+  const grafo = criarGrafo([
+    { nome: 'main', chamadas: [nomeLongo, 'extra'] },
+    { nome: nomeLongo, chamadas: [] }, { nome: 'extra', chamadas: [] },
+  ]);
+  const mundoAntes = structuredClone(mundo);
+  const grafoAntes = structuredClone(grafo);
+  const notificacoes = [];
+  iniciarJogo(mundo, grafo.arestas, sala => notificacoes.push(sala?.nome ?? null));
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  const jogadorAntes = canvas.posicoesPersonagem.at(-1);
+  assert.ok(canvas.textos.some(item => item.texto.endsWith('…')));
+
+  afastarCamera();
+  canvas.textos = [];
+  canvas.marcadores = [];
+  canvas.posicoesCriaturas = [];
+  ambiente.avancar();
+  assert.equal(canvas.escalas.at(-1).x, 0.75);
+  assert.equal(canvas.textos.length, 3);
+  assert.ok(canvas.textos.every(item => item.texto.length * 6 <= 46));
+  assert.deepEqual(canvas.marcadores, []);
+  assert.deepEqual(canvas.posicoesCriaturas, []);
+
+  afastarCamera();
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.equal(canvas.escalas.at(-1).x, 0.5);
+  assert.deepEqual(canvas.textos, []);
+  assert.deepEqual(canvas.tracos.slice(-2).map(traco => traco.opacidade), [1, 1]);
+
+  focarSala(nomeLongo, calcularContextoTopologico(grafo, nomeLongo));
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.textos.map(item => item.texto), [`${nomeLongo}()`]);
+  assert.deepEqual(canvas.tracos.slice(-2).map(traco => traco.opacidade), [1, 0.25]);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), jogadorAntes);
+  assert.deepEqual(notificacoes, ['main']);
+  assert.deepEqual(mundo, mundoAntes);
+  assert.deepEqual(grafo, grafoAntes);
+  pararJogo();
+});
+
+test('hover usa o hit testing do clique e mostra nome completo sem selecionar ou mover', () => {
+  const ambiente = criarAmbiente();
+  const inicial = { ...criarSalaVisual('main', 700), ehSalaInicial: true };
+  const nomeLongo = 'uma_funcao_com_nome_muito_extenso_mais_um_trecho_para_testar_quebra';
+  const destino = criarSalaVisual(nomeLongo, 900);
+  const mundo = { salas: [inicial, destino], larguraMundo: 1200, alturaMundo: 480 };
+  const selecoes = [];
+  iniciarJogo(mundo, [{ origem: 'main', destino: nomeLongo }], () => {},
+    undefined, undefined, nome => {
+      selecoes.push(nome);
+      return focarSala(nome);
+    });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  afastarCamera();
+  afastarCamera();
+  ambiente.avancar();
+  const jogadorAntes = canvas.posicoesPersonagem.at(-1);
+  canvas.retangulo = { left: 30, top: 40, width: 282, height: 242 };
+  canvas.clientLeft = 1;
+  canvas.clientTop = 1;
+  canvas.clientWidth = 280;
+  canvas.clientHeight = 240;
+  const deslocamento = canvas.translacoes.at(-1);
+  const escala = canvas.escalas.at(-1).x;
+  const x = 31 + (destino.x + destino.largura / 2 + deslocamento.x) * escala / 2;
+  const y = 41 + (destino.y + destino.altura / 2 + deslocamento.y) * escala / 2;
+  canvas.emitir('pointermove', { clientX: x, clientY: y, pointerType: 'mouse' });
+  canvas.textos = [];
+  ambiente.avancar(30);
+  const linhas = canvas.textos.slice(-2);
+  assert.equal(linhas.map(linha => linha.texto).join(''), `${nomeLongo}()`);
+  assert.ok(linhas.every(linha => linha.texto.length * 6 <= 240));
+  assert.deepEqual(selecoes, []);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), jogadorAntes);
+
+  canvas.emitir('pointerleave');
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.textos, []);
+  canvas.emitir('pointermove', { clientX: 30.5, clientY: 40.5, pointerType: 'mouse' });
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.textos, []);
+  canvas.emitir('pointerleave');
+  assert.equal(canvas.ouvintes.get('pointermove').size, 1);
+  pararJogo();
+  assert.equal(canvas.ouvintes.get('pointermove').size, 0);
+  assert.equal(canvas.ouvintes.get('pointerleave').size, 0);
+});
+
+test('clique e duplo clique continuam usando salas reais no zoom distante', () => {
+  const ambiente = criarAmbiente();
+  const inicial = { ...criarSalaVisual('main', 60), ehSalaInicial: true };
+  const destino = criarSalaVisual('destino', 400);
+  const grafo = criarGrafo([
+    { nome: 'main', chamadas: ['destino'] }, { nome: 'destino', chamadas: [] },
+  ]);
+  const selecoes = [];
+  iniciarJogo({ salas: [inicial, destino], larguraMundo: 1200, alturaMundo: 480 },
+    grafo.arestas, () => {}, undefined, undefined, nome => {
+      selecoes.push(nome);
+      return focarSala(nome, calcularContextoTopologico(grafo, nome));
+    });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  encaixarMasmorra();
+  ambiente.avancar();
+  const escala = canvas.escalas.at(-1).x;
+  const dados = { clientX: 430 * escala, clientY: 130 * escala, button: 0, detail: 1 };
+  ambiente.documento.emitir('pointerdown', { ...dados, composedPath: () => [canvas] });
+  canvas.emitir('click', dados);
+  assert.deepEqual(selecoes, ['destino']);
+  assert.ok(canvas.posicoesPersonagem.at(-1).x < destino.x);
+
+  // Focar a sala sai da visão geral; reduzir o zoom novamente mantém o alvo clicável.
+  afastarCamera();
+  afastarCamera();
+  ambiente.avancar();
+  const deslocamento = canvas.translacoes.at(-1);
+  const zoom = canvas.escalas.at(-1).x;
+  const x = (430 + deslocamento.x) * zoom;
+  const y = (130 + deslocamento.y) * zoom;
+  clicarNoMapa(ambiente, x, y, 1);
+  clicarNoMapa(ambiente, x, y, 2);
+  canvas.emitir('dblclick', { clientX: x, clientY: y, button: 0, detail: 2 });
+  ambiente.avancar(150);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), { x: 430, y: 130 });
+  assert.deepEqual(selecoes, ['destino', 'destino']);
+  pararJogo();
+});
+
+test('zoom durante navegação mantém destino, foco e caminhada por corredores', () => {
+  const ambiente = criarAmbiente();
+  const inicial = { ...criarSalaVisual('main', 60), ehSalaInicial: true };
+  const destino = criarSalaVisual('destino', 400);
+  const grafo = criarGrafo([
+    { nome: 'main', chamadas: ['destino'] }, { nome: 'destino', chamadas: [] },
+  ]);
+  iniciarJogo({ salas: [inicial, destino], larguraMundo: 900, alturaMundo: 480 },
+    grafo.arestas, () => {}, undefined, undefined, nome =>
+      focarSala(nome, calcularContextoTopologico(grafo, nome)));
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  clicarNoMapa(ambiente, 430, 130, 1);
+  clicarNoMapa(ambiente, 430, 130, 2);
+  canvas.emitir('dblclick', { clientX: 430, clientY: 130, button: 0, detail: 2 });
+  ambiente.avancar(10);
+  const antesDoZoom = canvas.posicoesPersonagem.at(-1).x;
+  afastarCamera();
+  encaixarMasmorra();
+  ambiente.avancar(40);
+  assert.ok(canvas.posicoesPersonagem.at(-1).x > antesDoZoom);
+  assert.ok(canvas.contornos.some(contorno => contorno.cor === PALETA.ouro &&
+    contorno.x === destino.x - 5));
+  ambiente.avancar(140);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), { x: 430, y: 130 });
   pararJogo();
 });
 

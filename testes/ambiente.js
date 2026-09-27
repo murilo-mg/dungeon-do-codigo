@@ -24,6 +24,7 @@ class Elemento extends Emissor {
   preenchimentosSalas = [];
   marcadoresDestacados = [];
   tracos = [];
+  textos = [];
   salvamentos = 0;
   restauracoes = 0;
   contornos = [];
@@ -79,7 +80,11 @@ class Elemento extends Emissor {
       lineTo(x, y) { fim = { x, y }; },
       stroke() { this.canvas.tracos.push({ inicio, fim, opacidade: this.globalAlpha }); },
       scale: (x, y) => this.escalas.push({ x, y }),
-      translate: (x, y) => this.translacoes.push({ x, y }), fillText() {},
+      translate: (x, y) => this.translacoes.push({ x, y }),
+      fillText: function(texto, x, y) {
+        this.canvas.textos.push({ texto, x, y, fonte: this.font,
+          alinhamento: this.textAlign, opacidade: this.globalAlpha });
+      },
       measureText(texto) { return { width: texto.length * 6 }; } };
   }
 }

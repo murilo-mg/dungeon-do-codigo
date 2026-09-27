@@ -80,7 +80,11 @@ Canvas é adequado para mapa, criaturas, cenário e animações. DOM é melhor p
 
 ### Zoom altera somente a projeção do mundo
 
-`camera.js` calcula área visível, limites e encaixe. `jogo.js` mantém os modos de seguimento, foco em sala e visão geral; apenas a transformação do Canvas recebe o zoom. Física, detecção de sala, personagem e geometria continuam em coordenadas do mundo. Selecionar uma função ou clicar no Canvas após Encaixar restaura 100% para tornar o foco visível. A barra de câmera fica no DOM e é conectada pelo orquestrador.
+`camera.js` calcula área visível, limites e encaixe. `zoomDiscreto.js` escolhe os níveis canônicos dos botões + e − e insere o valor de Encaixar como mínimo sem duplicá-lo quando coincide com um nível. `jogo.js` mantém os modos de seguimento, foco em sala e visão geral; apenas a transformação do Canvas recebe o zoom. Física, detecção de sala, personagem e geometria continuam em coordenadas do mundo. Selecionar uma função ou clicar no Canvas após Encaixar restaura 100% para tornar o foco visível. A barra de câmera fica no DOM e é conectada pelo orquestrador.
+
+### Escalonar o detalhe interno conforme o zoom
+
+`semanticaVisual.js` classifica o zoom: abaixo de 75% a sala mostra forma e cor; de 75% até antes de 100% mostra também o nome; a partir de 100% conserva textura, criatura e marcadores existentes. Contornos de seleção e foco topológico permanecem em todos os níveis. O hover usa o mesmo hit testing do clique e mostra o nome completo em uma etiqueta do Canvas sem afetar a seleção; na visão distante a sala selecionada também recebe essa identificação. Os limiares não modificam câmera, grafo nem geometria.
 
 ### Preservar HTML/CSS/JavaScript ES Modules + Canvas
 

@@ -46,6 +46,10 @@ Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as 
 
 Calcula, sem DOM, Canvas, eventos ou estado global, a posição e o zoom da câmera. Usa o zoom para calcular a área visível do mundo e os limites de deslocamento. Também calcula o zoom mínimo que encaixa o mundo inteiro no viewport; `jogo.js` escolhe como alvo o personagem ou o centro de uma sala em foco manual.
 
+### `js/zoomDiscreto.js`
+
+Escolhe o próximo degrau dos botões + e − entre 50%, 75%, 100%, 125%, 150%, 175% e 200%, incluindo o valor calculado por Encaixar como mínimo próprio da dungeon. Não altera o cálculo nem a posição da câmera.
+
 ### `js/grafoC.js`
 
 Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Detecta recursão direta por autoaresta e participação em ciclo quando há caminho de retorno ao próprio nó. Também fornece callers, callees, esses indicadores, um caminho mínimo para o inspector e o contexto topológico de todas as cadeias relevantes até a função selecionada. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e não depende de Canvas, DOM ou geometria.
@@ -68,7 +72,7 @@ Mantém a física e o desenho do personagem, incluindo movimento, limites, dire�
 
 ### `js/semanticaVisual.js`
 
-Seleciona, sem DOM ou Canvas, os marcadores de presença I/F/W/S e o indicador R ou C a partir dos metadados já calculados da sala. Também decide a cor base e a presença de criatura e destaque de marcadores conforme o modo visual. Não conta estruturas nem analisa chamadas.
+Seleciona, sem DOM ou Canvas, os marcadores de presença I/F/W/S e o indicador R ou C a partir dos metadados já calculados da sala. Também decide a cor base e a presença de criatura e destaque de marcadores conforme o modo visual. Classifica o zoom em distante, intermediário e próximo por limiares centralizados, sem alterar a câmera. Não conta estruturas nem analisa chamadas.
 
 ### `js/criaturas.js`
 
@@ -84,7 +88,7 @@ Fornece paleta, glifos de 5x5 pixels para os marcadores e dados/recursos de pixe
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Converte cliques do Canvas para coordenadas do mundo; um clique em sala solicita a seleção ao orquestrador, e um duplo clique percorre a rota calculada por `navegacaoMasmorra.js` usando a velocidade do personagem. Teclado de movimento interrompe a rota. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Durante a seleção, conserva visíveis as salas e os corredores fora do contexto topológico com opacidade menor, sem alterar suas coordenadas. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Converte cliques do Canvas para coordenadas do mundo; um clique em sala solicita a seleção ao orquestrador, e um duplo clique percorre a rota calculada por `navegacaoMasmorra.js` usando a velocidade do personagem. O hover reutiliza essa conversão apenas para mostrar o nome completo, sem selecionar. Teclado de movimento interrompe a rota. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Durante a seleção, conserva visíveis as salas e os corredores fora do contexto topológico com opacidade menor, sem alterar suas coordenadas. O nível semântico oculta nomes e detalhes internos na visão distante, mantém nomes na intermediária e preserva o desenho completo na próxima; etiquetas não escaladas identificam o hover e a seleção distante. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
@@ -121,7 +125,7 @@ O módulo já existe e concentra a geometria e o mundo lógico dinâmico. A prim
 
 ### `camera.js`
 
-O acompanhamento básico e o zoom manual em passos de 25%, limitado ao intervalo entre o encaixe do mundo e 200%, estão implementados. O botão Encaixar mostra o mundo inteiro sem ampliá-lo acima de 100% e mantém a visão geral até uma nova ação de navegação. O viewport permanece em 560x480, a câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. A validação manual anterior da câmera básica foi realizada pelo mantenedor; o zoom e a visão geral ainda precisam de validação visual. Minimap, pan manual, drag, easing e otimizações de culling continuam futuros.
+O acompanhamento básico e os botões de zoom por níveis canônicos entre 50% e 200%, mais o mínimo calculado por Encaixar, estão implementados. O botão Encaixar mostra o mundo inteiro sem ampliá-lo acima de 100% e mantém a visão geral até uma nova ação de navegação. O viewport permanece em 560x480, a câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. A câmera básica, o zoom semântico, os controles discretos e a visão geral foram validados visualmente pelo mantenedor. Minimap, pan manual, drag, easing e otimizações de culling continuam futuros.
 
 ### `exportacao.js`
 

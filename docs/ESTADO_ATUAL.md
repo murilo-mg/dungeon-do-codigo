@@ -19,12 +19,13 @@
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
 - Busca, botões de relações e clique simples na sala selecionam a mesma função no inspector e destacam suas cadeias de chamadas relevantes. Salas e corredores fora dessas cadeias continuam visíveis com opacidade menor. Sem seleção, a aparência normal é restaurada.
 - Duplo clique em sala inicia deslocamento contínuo por corredores existentes quando há rota desde o personagem; qualquer tecla de movimento cancela a navegação automática.
+- O detalhe interno das salas acompanha o zoom: mapa sem pequenos elementos abaixo de 75%, nomes de 75% até antes de 100% e desenho completo a partir de 100%. Hover mostra o nome completo sem selecionar; a função selecionada continua identificada no mapa distante.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
 - A preferência `prefers-reduced-motion` é respeitada em animações relevantes.
 
 ## Último marco
 
-O último marco é a interação direta com as salas: clique simples seleciona a função pelo mesmo fluxo da busca e das relações; duplo clique seleciona e navega pelos corredores existentes, sem teleporte. O foco topológico anterior foi validado visualmente pelo mantenedor e preservado. A validação manual da nova interação, da importação `.c`, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
+O último marco é o zoom semântico das salas com controles discretos de zoom: a vista distante privilegia o mapa, a intermediária identifica funções e a próxima preserva os detalhes atuais. Hover e seleção permitem ler nomes completos sem alterar inspeção ou navegação. O zoom semântico e os controles foram validados visualmente pelo mantenedor. A validação manual da interação por clique, da importação `.c`, dos marcadores e dos modos visuais ainda está pendente.
 
 ## Base estrutural atual
 
@@ -52,9 +53,11 @@ O último marco é a interação direta com as salas: clique simples seleciona a
 
 ## Câmera e viewport
 
-O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera segue o jogador, foca manualmente a sala selecionada ou mostra o mundo inteiro em visão geral. O zoom manual avança em passos de 25%, entre o encaixe do mundo e 200%; Encaixar escolhe o zoom necessário para mostrar toda a dungeon, sem ampliar mundos pequenos acima de 100%. Escala e deslocamento são aplicados somente durante o desenho. Selecionar uma função após Encaixar restaura 100% e foca a sala; um clique em área vazia do Canvas sai da visão geral para 100% e retoma o seguimento do jogador. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
+`semanticaVisual.js` define os limiares de 0,75 e 1,00 para a representação, separadamente do cálculo da câmera. Na visão distante, salas mantêm base, contornos e foco, mas omitem nome interno, textura, criatura e marcadores; a sala selecionada ganha etiqueta legível em coordenadas da tela. Na intermediária, nomes truncados permanecem dentro da sala, sem textura, criatura ou marcadores. Na próxima, o desenho anterior é mantido. Hover reutiliza a detecção dos cliques considerando câmera, zoom e tamanho interno do Canvas; a etiqueta mostra o nome completo, inclusive quando o nome interno foi truncado. A atualização ocorre no próximo quadro após qualquer comando de zoom existente.
 
-Minimapa, pan manual, drag, easing, culling e colisão com salas/corredores ainda não existem. A detecção da sala continua comparando coordenadas do mundo sem aplicar a câmera.
+O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera segue o jogador, foca manualmente a sala selecionada ou mostra o mundo inteiro em visão geral. Os botões + e − percorrem 50%, 75%, 100%, 125%, 150%, 175% e 200%, incluindo o valor de Encaixar como degrau mínimo quando necessário; Encaixar continua calculando o zoom para mostrar toda a dungeon, sem ampliar mundos pequenos acima de 100%. Escala e deslocamento são aplicados somente durante o desenho. Selecionar uma função após Encaixar restaura 100% e foca a sala; um clique em área vazia do Canvas sai da visão geral para 100% e retoma o seguimento do jogador. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
+
+Minimapa, pan manual, drag, easing, culling e colisão com salas/corredores ainda não existem. A detecção converte as coordenadas do Canvas para o mundo considerando a câmera antes de compará-las às salas.
 
 ## Resultados de estresse do layout
 
@@ -103,7 +106,7 @@ O bloco atual está implementado no inspector, com:
 
 A navegação pelos botões de callers, callees, resultados da busca e cliques nas salas seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. Somente o duplo clique também inicia a caminhada pelos corredores. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
 
-O perfil estrutural e os indicadores de ciclo também estão nas salas. O Canvas desenha pequenos glifos em pixels inteiros: I/F/W/S na lateral esquerda e R/C na direita. No modo Complexidade, a cor base indica complexidade; no modo Estrutura, a base neutra e o maior contraste dos glifos enfatizam a presença das estruturas. A legenda HTML fica próxima aos controles da câmera e dos modos. `case` não recebe marcador próprio nem cria S quando não há `switch`. Não existem filtro por estrutura nem contagem visual repetida.
+O perfil estrutural e os indicadores de ciclo também estão nas salas no zoom próximo. O Canvas desenha pequenos glifos em pixels inteiros: I/F/W/S na lateral esquerda e R/C na direita. No modo Complexidade, a cor base indica complexidade; no modo Estrutura, a base neutra e o maior contraste dos glifos enfatizam a presença das estruturas. A legenda HTML fica próxima aos controles da câmera e dos modos. `case` não recebe marcador próprio nem cria S quando não há `switch`. Não existem filtro por estrutura nem contagem visual repetida.
 
 ## Implementações concluídas e pendências
 

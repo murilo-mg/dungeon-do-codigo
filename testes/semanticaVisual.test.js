@@ -1,10 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { obterEstiloVisualDaSala, obterMarcadoresEstruturais } from '../js/semanticaVisual.js';
+import { LIMIAR_DETALHES, LIMIAR_IDENTIFICACAO, obterEstiloVisualDaSala,
+  obterMarcadoresEstruturais, obterNivelDetalhe } from '../js/semanticaVisual.js';
 import { GLIFOS_MARCADORES, PALETA } from '../js/pixelArt.js';
 import { corPorSala } from '../js/masmorra.js';
 
 const semEstruturas = { if: 0, for: 0, while: 0, switch: 0, case: 0 };
+
+test('zoom semântico classifica mapa, identificação e detalhes nos limiares exatos', () => {
+  assert.equal(obterNivelDetalhe(0.25), 'distante');
+  assert.equal(obterNivelDetalhe(LIMIAR_IDENTIFICACAO - 0.001), 'distante');
+  assert.equal(obterNivelDetalhe(LIMIAR_IDENTIFICACAO), 'intermediaria');
+  assert.equal(obterNivelDetalhe(LIMIAR_DETALHES - 0.001), 'intermediaria');
+  assert.equal(obterNivelDetalhe(LIMIAR_DETALHES), 'proxima');
+  assert.equal(obterNivelDetalhe(2), 'proxima');
+  assert.ok(LIMIAR_IDENTIFICACAO < LIMIAR_DETALHES);
+});
 
 for (const [tipo, marcador] of [
   ['if', 'I'], ['for', 'F'], ['while', 'W'], ['switch', 'S'],
