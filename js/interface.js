@@ -195,16 +195,17 @@ export function atualizarPainelDeSala(sala, estrutura = null, aoSelecionarFuncao
     painelInfo.append(criarEstatistica('Profundidade',
       estrutura.profundidade ?? 'Não alcançável a partir da entrada'));
   }
-  painelInfo.append(criarSecao('Estruturas', 'estruturas-funcao',
-    sala.estruturasControle == null ? 'Informação não disponível'
-      : sala.estruturasControle === 0 ? 'Nenhuma estrutura de controle'
-        : `${sala.estruturasControle} estrutura(s) de controle (total)`));
+  painelInfo.append(criarPerfilEstruturas(sala));
   if (estrutura) {
     painelInfo.append(
       criarListaDeFuncoes('Chamada por', 'callers-funcao', estrutura.callers,
         estrutura.ehEntrada ? 'Entrada do programa' : 'Nenhuma chamada conhecida', aoSelecionarFuncao),
       criarListaDeFuncoes('Chama', 'callees-funcao', estrutura.callees,
         'Nenhuma função conhecida', aoSelecionarFuncao),
+      criarSecao('Ciclos de chamadas', 'ciclo-funcao',
+        estrutura.recursivaDireta ? 'Recursão direta; participa de ciclo de chamadas'
+          : estrutura.participaDeCiclo ? 'Participa de ciclo de chamadas'
+            : 'Sem ciclo detectado'),
       criarSecao('Caminho desde a entrada', 'caminho-funcao',
         estrutura.caminho ? estrutura.caminho.map(nome => `${nome}()`).join(' → ')
           : 'Não alcançável a partir da entrada'));
@@ -213,6 +214,23 @@ export function atualizarPainelDeSala(sala, estrutura = null, aoSelecionarFuncao
   secaoCodigo.append(codigo);
   painelInfo.append(perigo, secaoCodigo);
   animarPainel(descricao, textoDescricao, preenchimento, criatura.preenchimento);
+}
+
+function criarPerfilEstruturas(sala) {
+  const secao = criarSecao('Estruturas', 'estruturas-funcao',
+    sala.estruturasControle == null ? 'Informação não disponível'
+      : sala.estruturasControle === 0 ? 'Nenhuma estrutura de controle'
+        : `${sala.estruturasControle} estrutura(s) de controle (total)`);
+  const presentes = Object.entries(sala.estruturasPorTipo ?? {})
+    .filter(([, quantidade]) => quantidade > 0);
+  if (presentes.length > 0) {
+    const lista = criarElemento('ul', 'perfil-estruturas');
+    for (const [tipo, quantidade] of presentes) {
+      lista.append(criarElemento('li', '', `${tipo}: ${quantidade}`));
+    }
+    secao.append(lista);
+  }
+  return secao;
 }
 
 function criarSecao(titulo, classe, texto) {

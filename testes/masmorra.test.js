@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { construirMasmorra } from '../js/masmorra.js';
+import { analisarFuncoes } from '../js/analisadorC.js';
+import { construirMasmorra, corPorSala, tamanhoPorComplexidade } from '../js/masmorra.js';
 
 function criarFuncao(nome, chamadas = []) {
   return {
@@ -131,4 +132,48 @@ test('organiza salas em colunas conforme a profundidade das chamadas', () => {
 
   assert.ok(isolada.x > validar.x);
   assert.equal(isolada.profundidade, null);
+});
+
+test('salas recebem perfil estrutural e indicadores de recursão/ciclo do grafo', () => {
+  const funcoes = analisarFuncoes(`void direta(){direta();}
+    void a(){for (;;) {} b();}
+    void b(){a();}
+    int main(){if (1) {} a(); direta();}`);
+  const masmorra = construirMasmorra(funcoes);
+  const salas = new Map(masmorra.salas.map(sala => [sala.nome, sala]));
+  assert.equal(masmorra.salas[0].nome, 'main');
+  assert.equal(salas.get('main').ehSalaInicial, true);
+  assert.deepEqual(salas.get('main').estruturasPorTipo,
+    { if: 1, for: 0, while: 0, switch: 0, case: 0 });
+  assert.deepEqual(salas.get('a').estruturasPorTipo,
+    { if: 0, for: 1, while: 0, switch: 0, case: 0 });
+  assert.deepEqual([salas.get('direta').recursivaDireta, salas.get('direta').participaDeCiclo],
+    [true, true]);
+  assert.deepEqual([salas.get('a').recursivaDireta, salas.get('a').participaDeCiclo],
+    [false, true]);
+  assert.deepEqual([salas.get('b').recursivaDireta, salas.get('b').participaDeCiclo],
+    [false, true]);
+  assert.deepEqual([salas.get('main').recursivaDireta, salas.get('main').participaDeCiclo],
+    [false, false]);
+});
+
+test('metadados estruturais não alteram posições, tamanhos ou cores por complexidade', () => {
+  const funcoes = analisarFuncoes(`void a(){if (1) {} for (;;) {}}
+    int main(){a();}`);
+  const comPerfil = construirMasmorra(funcoes);
+  const semPerfil = construirMasmorra(funcoes.map(({ estruturasPorTipo, ...funcao }) => funcao));
+  const geometria = masmorra => masmorra.salas.map(({ nome, x, y, largura, altura }) =>
+    ({ nome, x, y, largura, altura }));
+  assert.deepEqual(geometria(comPerfil), geometria(semPerfil));
+  assert.equal(comPerfil.larguraMundo, semPerfil.larguraMundo);
+  assert.equal(comPerfil.alturaMundo, semPerfil.alturaMundo);
+  for (const sala of comPerfil.salas) {
+    assert.equal(sala.largura, sala.ehSalaInicial ? 90 : tamanhoPorComplexidade(sala.complexidade));
+    assert.equal(corPorSala(sala), corPorSala(semPerfil.salas.find(outra => outra.nome === sala.nome)));
+  }
+  const salaA = comPerfil.salas.find(sala => sala.nome === 'a');
+  assert.equal(salaA.complexidade, 4);
+  assert.equal(salaA.largura, 80);
+  assert.equal(corPorSala(salaA), '#c2601a');
+  assert.equal(corPorSala(comPerfil.salas[0]), '#c9a227');
 });

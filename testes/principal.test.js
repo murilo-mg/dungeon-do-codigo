@@ -207,3 +207,33 @@ test('controles de câmera convivem com caller, callee, busca e nova dungeon', a
   assert.equal(ambiente.elementos.get('camera-encaixar').ouvintes.get('click').size, 1);
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
+
+test('perfil estrutural e ciclos chegam ao inspector por exploração, relações e busca', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?perfil-estrutural');
+  ambiente.documento.emitir('DOMContentLoaded');
+  ambiente.elementos.get('entrada-codigo').value =
+    'void a(){if (1) {} b();}\nvoid b(){a();}\nint main(){a();}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  const painel = ambiente.elementos.get('info-sala');
+  const conteudo = classe => painel.filhos.find(filho =>
+    filho.className === `secao-inspector ${classe}`).filhos[1];
+  assert.equal(conteudo('ciclo-funcao').textContent, 'Sem ciclo detectado');
+  conteudo('callees-funcao').filhos[0].filhos[0].emitir('click');
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'a()');
+  assert.equal(conteudo('ciclo-funcao').textContent, 'Participa de ciclo de chamadas');
+  assert.equal(conteudo('estruturas-funcao').textContent, '1 estrutura(s) de controle (total)');
+  assert.equal(painel.filhos.find(filho => filho.className ===
+    'secao-inspector estruturas-funcao').filhos[2].filhos[0].textContent, 'if: 1');
+  conteudo('callers-funcao').filhos.map(item => item.filhos[0])
+    .find(botao => botao.textContent === 'main()').emitir('click');
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'main()');
+  const busca = ambiente.elementos.get('busca-funcao');
+  busca.value = 'b';
+  busca.emitir('input');
+  ambiente.elementos.get('resultados-busca').filhos[0].filhos[0].filhos[0].emitir('click');
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'b()');
+  assert.equal(conteudo('ciclo-funcao').textContent, 'Participa de ciclo de chamadas');
+  ambiente.elementos.get('botao-voltar').emitir('click');
+});

@@ -73,7 +73,10 @@ function encontrarFechamentoDoCorpo(codigo, posicaoChaveAbertura) {
 }
 
 function construirDescritorDeFuncao(nome, corpo, textoCompleto, corpoEstrutural) {
-  const estruturasControle = (corpoEstrutural.match(EXPRESSAO_ESTRUTURAS_CONTROLE) || []).length;
+  const estruturasPorTipo = { if: 0, for: 0, while: 0, switch: 0, case: 0 };
+  const estruturasEncontradas = corpoEstrutural.match(EXPRESSAO_ESTRUTURAS_CONTROLE) || [];
+  for (const tipo of estruturasEncontradas) estruturasPorTipo[tipo]++;
+  const estruturasControle = estruturasEncontradas.length;
   const linhas = corpo.split('\n').filter(linha => linha.trim().length > 0).length;
   const complexidade = estruturasControle * 2 + Math.floor(linhas / 4);
 
@@ -83,6 +86,7 @@ function construirDescritorDeFuncao(nome, corpo, textoCompleto, corpoEstrutural)
   textoCompleto,
   linhas,
   estruturasControle,
+  estruturasPorTipo,
   complexidade,
   corpoEstrutural,
 };

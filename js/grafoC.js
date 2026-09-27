@@ -10,6 +10,8 @@ export function criarGrafo(funcoes) {
         chamadaPor: [],
         profundidade: null,
         alcancavel: false,
+        recursivaDireta: false,
+        participaDeCiclo: false,
       },
     ])
   );
@@ -32,9 +34,33 @@ export function criarGrafo(funcoes) {
     }
   }
 
+  marcarCiclos(nos, arestas);
   calcularAlcanceEDistancias(entrada, nos);
 
   return { entrada, nos, arestas };
+}
+
+function marcarCiclos(nos, arestas) {
+  const adjacencias = new Map([...nos.keys()].map(nome => [nome, []]));
+  for (const { origem, destino } of arestas) {
+    adjacencias.get(origem).push(destino);
+    if (origem === destino) nos.get(origem).recursivaDireta = true;
+  }
+
+  for (const [nome, no] of nos) {
+    const visitados = new Set();
+    const pendentes = [...adjacencias.get(nome)];
+    while (pendentes.length > 0) {
+      const atual = pendentes.pop();
+      if (atual === nome) {
+        no.participaDeCiclo = true;
+        break;
+      }
+      if (visitados.has(atual)) continue;
+      visitados.add(atual);
+      pendentes.push(...adjacencias.get(atual));
+    }
+  }
 }
 
 function encontrarEntrada(funcoes) {
@@ -103,6 +129,8 @@ export function obterEstruturaDaFuncao(grafo, nome) {
   return {
     profundidade: no.profundidade,
     ehEntrada: nome === grafo.entrada,
+    recursivaDireta: no.recursivaDireta,
+    participaDeCiclo: no.participaDeCiclo,
     callers: [...no.chamadaPor],
     callees: grafo.arestas.filter(aresta => aresta.origem === nome)
       .map(aresta => aresta.destino),

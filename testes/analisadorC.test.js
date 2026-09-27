@@ -137,3 +137,49 @@ test('entrada sem funções não cria descritores', () => {
     assert.deepEqual(analisarFuncoes(fonte), []);
   }
 });
+
+const tiposZerados = { if: 0, for: 0, while: 0, switch: 0, case: 0 };
+
+for (const [descricao, corpo, esperado] of [
+  ['sem estruturas', 'return;', {}],
+  ['um if', 'if (1) {}', { if: 1 }],
+  ['vários if', 'if (1) {} if (0) {} if (2) {}', { if: 3 }],
+  ['for e while separados', 'for (;;) {} while (0) {}', { for: 1, while: 1 }],
+  ['switch e vários case', 'switch (1) { case 1: break; case 2: break; }',
+    { switch: 1, case: 2 }],
+  ['todos os tipos', 'if (1) {} for (;;) {} while (0) {} switch (1) { case 1: break; }',
+    { if: 1, for: 1, while: 1, switch: 1, case: 1 }],
+  ['palavras em string e caractere', 'printf("if for while switch case"); char c = \'i\';', {}],
+  ['palavras em comentários', '/* if for while switch case */ // if for while switch case\nreturn;', {}],
+  ['palavras dentro de identificadores', 'gift(); before(); meanwhile(); switcher();', {}],
+]) {
+  test(`perfil estrutural: ${descricao}`, () => {
+    const [funcao] = analisarFuncoes(`void f() { ${corpo} }`);
+    assert.deepEqual(funcao.estruturasPorTipo, { ...tiposZerados, ...esperado });
+    assert.equal(funcao.estruturasControle,
+      Object.values(funcao.estruturasPorTipo).reduce((soma, quantidade) => soma + quantidade, 0));
+  });
+}
+
+test('contagens por tipo preservam a fórmula antiga de complexidade e as linhas', () => {
+  const [funcao] = analisarFuncoes(`void f() {
+    if (1) {}
+    for (;;) {}
+    while (0) {}
+    switch (1) { case 1: break; }
+    return;
+  }`);
+  assert.deepEqual(funcao.estruturasPorTipo,
+    { if: 1, for: 1, while: 1, switch: 1, case: 1 });
+  assert.equal(funcao.estruturasControle, 5);
+  assert.equal(funcao.linhas, 5);
+  assert.equal(funcao.complexidade, 11);
+});
+
+test('perfil estrutural preserva análise com CRLF e Unicode', () => {
+  const fonte = 'void f() {\r\n  printf("ação 🐉 if switch");\r\n  if (1) {}\r\n}';
+  const [funcao] = analisarFuncoes(fonte);
+  assert.equal(funcao.textoCompleto, fonte);
+  assert.deepEqual(funcao.estruturasPorTipo, { ...tiposZerados, if: 1 });
+  assert.equal(funcao.estruturasControle, 1);
+});

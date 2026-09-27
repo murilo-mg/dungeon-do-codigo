@@ -48,7 +48,11 @@ Não salvar automaticamente o código do usuário. Importação, salvamento de s
 
 ### Priorizar leitura estrutural do programa
 
-O inspector mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle disponível no analisador. Callers, callees e resultados da busca usam a mesma seleção: ela foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Navegação pelo caminho completo continua futura.
+O inspector mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e indicadores de recursão direta e ciclo. Callers, callees e resultados da busca usam a mesma seleção: ela foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Navegação pelo caminho completo continua futura.
+
+### Separar dados semânticos da representação visual
+
+O analisador expõe contagens por tipo mantendo o total e a fórmula de complexidade. O grafo determina recursão direta e participação em ciclo a partir de chamadas conhecidas; salas e inspector consomem esses dados. Novos desenhos, badges e cores estruturais ficam para outra etapa, sem alterar agora dimensões, cores ou layout das salas.
 
 ### Canvas para mapa; DOM para inspector e controles
 

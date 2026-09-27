@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 132 testes passando.
+- A suíte registrada no estado deste documento tem 155 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -14,18 +14,18 @@
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
 - O layout atual organiza salas em colunas conforme a profundidade e separa funções inalcançáveis em uma coluna de isoladas.
 - O Canvas renderiza cenário, salas, criaturas, personagem, passos e efeitos.
-- O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada e total de estruturas de controle. Callers e callees são botões que permitem focar a sala relacionada.
+- O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
 - A preferência `prefers-reduced-motion` é respeitada em animações relevantes.
 
 ## Último marco
 
-O último marco é o controle de zoom e a visão geral da dungeon. A barra próxima ao Canvas afasta, aproxima, restaura 100% e encaixa o mundo inteiro no viewport. O personagem e a geometria mantêm suas coordenadas lógicas. A busca e os botões de relações continuam focando salas sem teleportar o personagem. A validação manual anterior da câmera básica permanece concluída; zoom, visão geral e a experiência visual da busca ainda devem ser conferidos no navegador.
+O último marco é a fundação semântica das estruturas C: contagens separadas de `if`, `for`, `while`, `switch` e `case`, mais detecção de recursão direta e participação em ciclo de chamadas. Esses dados chegam às salas e aparecem no inspector. A fórmula de complexidade, o layout e o desenho das salas não mudaram. A representação visual das estruturas nas salas fica para a próxima etapa. A validação visual do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
-`grafoC.js` agora representa explicitamente a função de entrada, os nós por nome, as arestas direcionadas, as chamadas recebidas, a profundidade mínima e o alcance a partir da entrada. `masmorra.js` consome esse grafo para manter o layout atual, sem duplicar o cálculo das relações.
+`grafoC.js` representa explicitamente a função de entrada, os nós por nome, as arestas direcionadas, as chamadas recebidas, a profundidade mínima e o alcance a partir da entrada. Agora também marca autoarestas como recursão direta e detecta participação em ciclo apenas quando um caminho de chamadas conhecidas retorna ao próprio nó. `masmorra.js` consome esses dados sem duplicar o cálculo das relações.
 
 `layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
 
@@ -68,18 +68,22 @@ O layout próprio garante espaçamento nos cenários medidos, e a câmera básic
 
 ## Leitura estrutural do programa
 
-O primeiro bloco está implementado no inspector, com:
+O bloco atual está implementado no inspector, com:
 
 1. Callers: funções que chamam a função selecionada.
 2. Callees: funções chamadas pela função selecionada.
 3. Um caminho mínimo desde a entrada, que usa `main` quando ela existe.
-4. Total de estruturas de controle da função. O analisador ainda não fornece contagens separadas por tipo.
+4. Total de estruturas de controle e contagens separadas de `if`, `for`, `while`, `switch` e `case`.
+5. Recursão direta e participação em ciclo de chamadas, com texto que distingue os dois casos.
 
 A navegação pelos botões de callers, callees e resultados da busca seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
+
+O perfil estrutural e os indicadores de ciclo também estão nas salas como dados para a próxima etapa. Ainda não há novos desenhos, badges ou cores por tipo de estrutura no Canvas.
 
 ## Implementações concluídas e pendências
 
 - O plano define o grafo como fonte de verdade; `grafoC.js` já concentra nós, arestas, chamadas recebidas, alcance e profundidade.
+- `analisadorC.js` fornece `estruturasPorTipo` com zeros explícitos, e `grafoC.js` distingue recursão direta de participação em ciclo. A complexidade e o layout continuam com as regras anteriores.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
 - O layout separado já existe em `layoutMasmorra.js`; a câmera acompanha o personagem e oferece zoom manual e visão geral, mas ainda não há minimapa.
 - `camera.js` já existe e o foco a partir da busca usa a seleção manual. Importação `.c` e exportação continuam futuras; `arquivos.js` e `exportacao.js` ainda não existem.

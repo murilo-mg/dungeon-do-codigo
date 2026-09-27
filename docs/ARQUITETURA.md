@@ -28,11 +28,11 @@ Percorre o texto para distinguir código, comentários, strings e literais de ca
 
 ### `js/analisadorC.js`
 
-Extrai funções por uma expressão de assinatura simplificada, conta linhas e estruturas de controle, calcula complexidade e encontra chamadas entre funções conhecidas. Exclui o corpo estrutural temporário dos descritores ao finalizar.
+Extrai funções por uma expressão de assinatura simplificada, conta linhas e estruturas de controle por tipo (`if`, `for`, `while`, `switch`, `case`), calcula a complexidade pela fórmula existente e encontra chamadas entre funções conhecidas. Usa o corpo sanitizado pelo léxico para as contagens e exclui o corpo estrutural temporário dos descritores ao finalizar.
 
 ### `js/masmorra.js`
 
-Consome o grafo e o layout calculado para montar as salas, copiar metadados estruturais e definir a cor visual de cada sala. Não calcula mais colunas, posições ou dimensões.
+Consome o grafo e o layout calculado para montar as salas, incluindo o perfil de estruturas e os indicadores de recursão direta e ciclo vindos do grafo. As cores e dimensões continuam baseadas na complexidade existente. Não calcula colunas, posições ou dimensões.
 
 ### `js/layoutMasmorra.js`
 
@@ -44,7 +44,7 @@ Calcula, sem DOM, Canvas, eventos ou estado global, a posição e o zoom da câm
 
 ### `js/grafoC.js`
 
-Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Também fornece callers, callees e um caminho mínimo e determinístico desde a entrada para uma função alcançável. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e trata ciclos e recursão sem loop infinito. Não depende de Canvas, DOM ou geometria.
+Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Detecta recursão direta por autoaresta e participação em ciclo quando há caminho de retorno ao próprio nó. Também fornece callers, callees, esses indicadores e um caminho mínimo e determinístico desde a entrada para uma função alcançável. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e não depende de Canvas, DOM ou geometria.
 
 ### `js/cenario.js`
 
@@ -76,7 +76,7 @@ Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sa
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles e do percentual de zoom. Busca, callers, callees e barra de câmera comunicam ações por callbacks. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles e do percentual de zoom. Busca, callers, callees e barra de câmera comunicam ações por callbacks. O inspector mostra as relações e indicadores de ciclo recebidos do grafo e o total e detalhamento de estruturas fornecidos pelo analisador; não recalcula esses dados. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
@@ -87,8 +87,8 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 1. O usuário edita ou cola código C.
 2. `principal.js` chama `analisarFuncoes`.
 3. `lexicoC.js` protege strings, caracteres e comentários durante a análise.
-4. `analisadorC.js` devolve funções, métricas e nomes de chamadas conhecidas.
-5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade e alcance.
+4. `analisadorC.js` devolve funções, métricas, estruturas por tipo e nomes de chamadas conhecidas.
+5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade, alcance e indicadores de ciclo.
 6. `layoutMasmorra.js` calcula as posições, dimensões e tamanho do mundo a partir do grafo e das funções.
 7. `masmorra.js` monta as salas usando o grafo e o layout.
 8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
@@ -99,7 +99,7 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 
 ## Arquitetura futura desejada
 
-O inspector já mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle. Os botões de callers, callees e resultados da busca permitem selecionar uma função e focar sua sala sem mover o personagem. Navegação pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
+O inspector já mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e a presença de recursão direta ou ciclo de chamadas. Os botões de callers, callees e resultados da busca permitem selecionar uma função e focar sua sala sem mover o personagem. Representar visualmente essas estruturas nas salas, navegar pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
 
 O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
 

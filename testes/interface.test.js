@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { criarAmbiente, encontrar } from './ambiente.js';
 import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes, configurarControlesCamera, atualizarZoomCamera } from '../js/interface.js';
 import { criarGrafo, obterEstruturaDaFuncao } from '../js/grafoC.js';
+import { analisarFuncoes } from '../js/analisadorC.js';
 
 const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexidade: 11,
   textoCompleto: 'void investigar() { printf("<script> & texto"); }' };
@@ -356,4 +357,52 @@ test('configurar nova dungeon e sair limpam consulta, resultados e callback ante
   limparBuscaFuncoes();
   assert.equal(busca.campo.value, '');
   assert.equal(busca.painel.filhos.length, 0);
+});
+
+test('inspector mostra contagens reais e recursão direta sem interpretar código como HTML', () => {
+  const ambiente = criarAmbiente();
+  const funcoes = analisarFuncoes(`void f(){
+    printf("<img src=x onerror=alert(1)> if for while switch case");
+    if (1) {} if (0) {} for (;;) {} while (0) {}
+    switch (1) { case 1: break; case 2: break; }
+    f();
+  }
+  int main(){f();}`);
+  const grafo = criarGrafo(funcoes);
+  const funcao = funcoes.find(item => item.nome === 'f');
+  atualizarPainelDeSala(funcao, obterEstruturaDaFuncao(grafo, 'f'));
+  const painel = ambiente.elementos.get('info-sala');
+  assert.equal(conteudoDaSecao(painel, 'estruturas-funcao').textContent,
+    '7 estrutura(s) de controle (total)');
+  const secao = painel.filhos.find(filho => filho.className ===
+    'secao-inspector estruturas-funcao');
+  assert.deepEqual(secao.filhos[2].filhos.map(item => item.textContent),
+    ['if: 2', 'for: 1', 'while: 1', 'switch: 1', 'case: 2']);
+  assert.equal(conteudoDaSecao(painel, 'ciclo-funcao').textContent,
+    'Recursão direta; participa de ciclo de chamadas');
+  assert.match(encontrar(painel, 'codigo-funcao').textContent, /<img src=x onerror=alert\(1\)>/);
+  assert.equal(painel.filhos.some(filho => filho.tipo === 'img'), false);
+});
+
+test('inspector trata zeros de forma neutra e distingue ciclo indireto de ausência de ciclo', () => {
+  const ambiente = criarAmbiente();
+  const funcoes = analisarFuncoes(`void a(){b();}
+    void b(){a();}
+    void isolada(){}
+    int main(){a();}`);
+  const grafo = criarGrafo(funcoes);
+  const painel = ambiente.elementos.get('info-sala');
+  const a = funcoes.find(funcao => funcao.nome === 'a');
+  atualizarPainelDeSala(a, obterEstruturaDaFuncao(grafo, 'a'));
+  assert.equal(conteudoDaSecao(painel, 'ciclo-funcao').textContent,
+    'Participa de ciclo de chamadas');
+  assert.equal(conteudoDaSecao(painel, 'estruturas-funcao').textContent,
+    'Nenhuma estrutura de controle');
+  assert.equal(painel.filhos.find(filho => filho.className ===
+    'secao-inspector estruturas-funcao').filhos.length, 2);
+  const isolada = funcoes.find(funcao => funcao.nome === 'isolada');
+  atualizarPainelDeSala(isolada, obterEstruturaDaFuncao(grafo, 'isolada'));
+  assert.equal(conteudoDaSecao(painel, 'ciclo-funcao').textContent, 'Sem ciclo detectado');
+  assert.equal(conteudoDaSecao(painel, 'callers-funcao').textContent,
+    'Nenhuma chamada conhecida');
 });

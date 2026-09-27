@@ -22,10 +22,11 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 
 - Editor de código C no navegador.
 - Análise local sem executar o código fornecido.
-- Detecção de funções, corpo original, linhas e estruturas de controle.
+- Detecção de funções, corpo original, linhas, total e contagem por tipo de estruturas de controle (`if`, `for`, `while`, `switch`, `case`).
 - Ignorância de comentários e literais ao analisar estrutura, preservando o texto exibido.
 - Validação de corpos, strings, caracteres e comentários incompletos.
 - Detecção de chamadas entre funções conhecidas.
+- Detecção de recursão direta e participação em ciclos de chamadas conhecidas, com indicadores nos nós, salas e inspector.
 - Escolha de `main` como sala inicial, ou da primeira função quando não há `main`.
 - Cálculo de chamadas recebidas e profundidade alcançável a partir da função inicial.
 - Layout atual por colunas de profundidade e coluna separada para funções isoladas.
@@ -39,14 +40,14 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
 - Barra de câmera com zoom manual em passos de 25%, retorno a 100% e visão geral que encaixa a dungeon inteira no viewport. A validação visual desse novo recurso ainda está pendente.
-- Inspector estrutural com callers, callees, caminho mínimo desde a entrada e total de estruturas de controle.
+- Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 132 testes automatizados Node.js registrados como passando.
+- 155 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
-- Leitura estrutural avançada: navegação pelo caminho completo e contagens de estruturas por tipo, que ainda não são produzidas pelo analisador.
+- Leitura estrutural avançada: navegação pelo caminho completo e representação visual das estruturas nas salas.
 - Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
 - PWA.
@@ -69,6 +70,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: modelo explícito em `grafoC.js`, com nós por funções e arestas por chamadas reais.
 - Concluído: chamadas recebidas, profundidade mínima e alcançabilidade, com tratamento de ciclos e recursão sem loop infinito.
 - Concluído: um caminho mínimo e determinístico desde a entrada para cada função alcançável.
+- Concluído: recursão direta e participação em ciclos de chamadas conhecidas.
 - Pendente: enumeração de múltiplos caminhos e análises mais avançadas de ciclos.
 
 ### Fase 3: geometria e exploração
@@ -82,9 +84,10 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 
 ### Fase 4: leitura estrutural do programa
 
-- Concluído: inspector estrutural com callers, callees, um caminho mínimo desde a entrada e total de estruturas de controle.
+- Concluído: inspector estrutural com callers, callees, um caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Concluído: navegação por botões de callers e callees, com seleção independente da sala física e foco manual da câmera.
 - Concluído: busca por função na dungeon atual, com foco pelo mesmo fluxo da navegação estrutural.
+- Próxima etapa: representar visualmente as estruturas nas salas, usando os metadados já disponíveis, sem mudar a fórmula de complexidade por consequência.
 - Destaque de relações e métricas.
 - Inspector acessível, foco previsível e controles de toque.
 - Validar a experiência com usuários e programas curtos.
