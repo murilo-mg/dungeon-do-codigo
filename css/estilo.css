@@ -91,6 +91,29 @@ textarea {
   resize: vertical;
 }
 
+#entrada-codigo[data-arrastando="true"] {
+  border-color: var(--ouro);
+  box-shadow: inset 0 0 0 1px var(--ouro);
+  background: var(--pedra);
+}
+
+.importacao-codigo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.importacao-codigo button {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+#arquivo-atual:empty {
+  display: none;
+}
+
 .linha {
   display: flex;
   gap: 10px;

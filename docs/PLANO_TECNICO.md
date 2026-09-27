@@ -21,6 +21,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 ## Funcionalidades existentes
 
 - Editor de código C no navegador.
+- Importação local de um `.c` por vez pelo seletor ou drop no editor, com limite de 512 KiB e mensagens de erro sem apagar o código anterior; a geração continua explícita.
 - Análise local sem executar o código fornecido.
 - Detecção de funções, corpo original, linhas, total e contagem por tipo de estruturas de controle (`if`, `for`, `while`, `switch`, `case`).
 - Ignorância de comentários e literais ao analisar estrutura, preservando o texto exibido.
@@ -45,7 +46,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 177 testes automatizados Node.js registrados como passando.
+- 186 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
@@ -53,7 +54,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
 - PWA.
-- Importação de arquivos `.c` e exportação de resultados.
+- Exportação de resultados.
 - Comparação antes/depois de duas versões do código.
 - Destaque das estruturas que contribuíram para uma métrica.
 - Missões de leitura e exercícios guiados.
@@ -97,7 +98,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 
 ### Fase 5: arquivos e exportação
 
-- Importar `.c` por escolha explícita do usuário.
+- Concluído: importar um `.c` local por escolha explícita ou drop, sem upload, execução ou persistência.
 - Exportar uma imagem ou relatório do grafo/layout.
 - Evitar persistência automática até existir uma necessidade clara.
 

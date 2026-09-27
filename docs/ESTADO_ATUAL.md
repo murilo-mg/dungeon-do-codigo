@@ -4,12 +4,13 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 177 testes passando.
+- A suíte registrada no estado deste documento tem 186 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
 
 - A tela de entrada e a tela de exploração estão separadas.
+- A entrada aceita código digitado/colado ou um arquivo `.c` local por seletor ou drop no editor. Aceita um arquivo por vez, até 512 KiB; só substitui o texto após leitura válida, sem executar ou enviar o arquivo.
 - O parser detecta funções, ignora comentários/literais na análise estrutural e detecta chamadas entre funções conhecidas.
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
 - O layout atual organiza salas em colunas conforme a profundidade e separa funções inalcançáveis em uma coluna de isoladas.
@@ -21,7 +22,7 @@
 
 ## Último marco
 
-O último marco é a alternância imediata entre os modos visuais Complexidade e Estrutura. Complexidade mantém a leitura anterior por cores e criaturas, com marcadores discretos. Estrutura usa cores de pedra neutras, oculta criaturas e destaca os mesmos marcadores I/F/W/S e R/C. O modo pertence ao jogo atual e volta a Complexidade em uma nova dungeon ou ao retornar ao editor. A troca não modifica análise, geometria, personagem, câmera, busca, inspector nem seleções. A validação visual dos marcadores, dos dois modos, do zoom e da visão geral ainda está pendente.
+O último marco é a importação local de um arquivo `.c` pelo botão Abrir .c ou por drop na área de código. O arquivo é validado pelo nome e pelo limite de 512 KiB antes de ser lido; extensão inválida, tamanho excessivo, seleção múltipla, leitura falha ou conteúdo vazio preservam o texto anterior. A importação não gera a dungeon automaticamente. A validação manual desse fluxo no navegador, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
@@ -87,7 +88,7 @@ O perfil estrutural e os indicadores de ciclo também estão nas salas. O Canvas
 - `semanticaVisual.js` seleciona os marcadores a partir desses metadados; `jogo.js` apenas os desenha nas coordenadas do mundo, e o inspector mantém as quantidades detalhadas.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
 - O layout separado já existe em `layoutMasmorra.js`; a câmera acompanha o personagem e oferece zoom manual e visão geral, mas ainda não há minimapa.
-- `camera.js` já existe e o foco a partir da busca usa a seleção manual. Importação `.c` e exportação continuam futuras; `arquivos.js` e `exportacao.js` ainda não existem.
+- `camera.js` já existe e o foco a partir da busca usa a seleção manual. A importação local `.c` está implementada com validação em `entradaCodigo.js`; exportação continua futura e `exportacao.js` ainda não existe.
 - Os testes de estresse com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`, com zero sobreposições de salas nos cenários atuais.
 - Navegação pelo caminho completo, análise de todos os caminhos, colisão/topologia, PWA e comparação A/B não estão implementados; a comparação A/B continua prevista para depois da v1. A auditoria final de segurança permanece pendente.
 

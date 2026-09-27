@@ -42,7 +42,11 @@ Preserva privacidade, funciona como aplicação estática e simplifica publicaç
 
 ### Evitar persistência automática
 
-Não salvar automaticamente o código do usuário. Importação, salvamento de sessão e exportação devem ser ações explícitas e futuras.
+Não salvar automaticamente o código do usuário. A importação atual é explícita; salvamento de sessão e exportação continuam futuros e também devem exigir ação do usuário.
+
+### Importar apenas um arquivo `.c` local por vez
+
+O botão Abrir .c e o drop no editor passam pela mesma validação de extensão e limite de 512 KiB antes de usar `File.text()`. Erros mantêm o código anterior; a importação não dispara análise nem geração automática. O arquivo permanece no navegador, sem upload, execução ou persistência.
 
 ## Interface
 

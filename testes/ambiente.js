@@ -36,6 +36,7 @@ class Elemento extends Emissor {
   replaceChildren(...filhos) { this.filhos = filhos; }
   setAttribute(nome, valor) { this.atributos[nome] = valor; }
   closest() { return this.tipo === 'input' ? this : null; }
+  click() { this.cliques = (this.cliques ?? 0) + 1; this.emitir('click'); }
   focus() { this.focado = true; }
   blur() { this.focado = false; }
   getContext() {
@@ -72,10 +73,13 @@ export function criarAmbiente() {
   const documento = new Emissor();
   const preferencia = new Emissor();
   preferencia.matches = false;
-  const elementos = new Map([ 'status-indicador', 'status-controles-texto','canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar', 'busca-funcao', 'resultados-busca', 'camera-afastar', 'camera-zoom', 'camera-aproximar', 'camera-encaixar', 'modo-complexidade', 'modo-estrutura']
+  const elementos = new Map([ 'status-indicador', 'status-controles-texto','canvas-jogo','mensagem-erro', 'tela-entrada', 'info-sala', 'painel-configuracao', 'area-jogo', 'entrada-codigo', 'botao-gerar', 'botao-voltar', 'busca-funcao', 'resultados-busca', 'camera-afastar', 'camera-zoom', 'camera-aproximar', 'camera-encaixar', 'modo-complexidade', 'modo-estrutura', 'botao-abrir-c', 'arquivo-c', 'arquivo-atual']
     .map(id => [id, new Elemento(id === 'canvas-jogo' ? 'canvas'
-      : id === 'busca-funcao' ? 'input' : id.startsWith('camera-') || id.startsWith('modo-') ? 'button' : 'div')]));
+      : id === 'busca-funcao' || id === 'arquivo-c' ? 'input'
+        : id.startsWith('camera-') || id.startsWith('modo-') || id === 'botao-abrir-c' ? 'button' : 'div')]));
   elementos.get('busca-funcao').value = '';
+  elementos.get('arquivo-c').value = '';
+  elementos.get('arquivo-c').files = [];
   elementos.get('canvas-jogo').width = 560;
   elementos.get('canvas-jogo').height = 480;
   documento.getElementById = id => elementos.get(id);

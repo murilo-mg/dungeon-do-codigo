@@ -2,12 +2,82 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { criarAmbiente, encontrar } from './ambiente.js';
-import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes, configurarControlesCamera, atualizarZoomCamera, configurarModosVisuais, atualizarModoVisual } from '../js/interface.js';
+import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes, configurarControlesCamera, atualizarZoomCamera, configurarModosVisuais, atualizarModoVisual, configurarImportacaoCodigo, mostrarArquivoImportado, mostrarErroEntrada } from '../js/interface.js';
 import { criarGrafo, obterEstruturaDaFuncao } from '../js/grafoC.js';
 import { analisarFuncoes } from '../js/analisadorC.js';
 
 const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexidade: 11,
   textoCompleto: 'void investigar() { printf("<script> & texto"); }' };
+
+test('entrada de arquivo tem botão acessível e drop discreto perto do textarea', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /<button id="botao-abrir-c"[^>]*type="button">Abrir \.c<\/button>/);
+  assert.match(html, /<input id="arquivo-c" type="file"[^>]*accept="\.c,text\/plain,text\/x-c"[^>]*hidden>/);
+  assert.doesNotMatch(html, /id="arquivo-c"[^>]*multiple/);
+  assert.match(html, /id="arquivo-atual"[^>]*role="status"/);
+  const css = readFileSync(new URL('../css/estilo.css', import.meta.url), 'utf8');
+  assert.match(css, /#entrada-codigo\[data-arrastando="true"\]/);
+});
+
+test('seletor, drop e edição comunicam ações sem duplicar listeners', () => {
+  const ambiente = criarAmbiente();
+  const editor = ambiente.elementos.get('entrada-codigo');
+  const campo = ambiente.elementos.get('arquivo-c');
+  const escolhidos = [];
+  let edicoes = 0;
+  configurarImportacaoCodigo(arquivos => escolhidos.push(arquivos), () => { edicoes++; });
+  ambiente.elementos.get('botao-abrir-c').emitir('click');
+  assert.equal(campo.cliques, 1);
+  campo.files = [{ name: 'primeiro.c' }];
+  campo.emitir('change');
+  assert.deepEqual(escolhidos[0].map(arquivo => arquivo.name), ['primeiro.c']);
+  assert.equal(campo.value, '');
+  editor.emitir('input');
+  assert.equal(edicoes, 1);
+  assert.equal(editor.emitir('dragover', {
+    dataTransfer: { types: ['text/plain'] },
+  }).prevenido, undefined);
+  const transferencia = { types: ['Files'], files: [{ name: 'segundo.c' }] };
+  assert.equal(editor.emitir('dragenter', { dataTransfer: transferencia }).prevenido, true);
+  assert.equal(editor.atributos['data-arrastando'], 'true');
+  assert.equal(editor.emitir('dragover', { dataTransfer: transferencia }).prevenido, true);
+  editor.emitir('dragleave');
+  assert.equal(editor.atributos['data-arrastando'], 'false');
+  editor.emitir('dragover', { dataTransfer: transferencia });
+  assert.equal(editor.emitir('drop', { dataTransfer: transferencia }).prevenido, true);
+  assert.equal(editor.atributos['data-arrastando'], 'false');
+  assert.deepEqual(escolhidos[1].map(arquivo => arquivo.name), ['segundo.c']);
+  editor.emitir('dragover', { dataTransfer: transferencia });
+  assert.equal(ambiente.documento.emitir('dragover', {
+    target: {}, dataTransfer: transferencia,
+  }).prevenido, true);
+  assert.equal(editor.atributos['data-arrastando'], 'false');
+  editor.emitir('dragover', { dataTransfer: transferencia });
+  assert.equal(ambiente.documento.emitir('drop', {
+    target: {}, dataTransfer: transferencia,
+  }).prevenido, true);
+  assert.equal(ambiente.documento.emitir('drop', {
+    target: {}, dataTransfer: { files: [{ name: 'externo.c' }] },
+  }).prevenido, true);
+  assert.equal(editor.atributos['data-arrastando'], 'false');
+  assert.equal(escolhidos.length, 2);
+  for (const tipo of ['input', 'drop', 'dragover', 'dragleave']) {
+    assert.equal(editor.ouvintes.get(tipo).size, 1);
+  }
+});
+
+test('nome e conteúdo com aparência de HTML são inseridos como texto', () => {
+  const ambiente = criarAmbiente();
+  mostrarErroEntrada('erro anterior');
+  const conteudo = '<script>alert(1)</script>\nint main() { return 0; }';
+  mostrarArquivoImportado(conteudo, '<img src=x onerror=alert(1)>.c');
+  assert.equal(ambiente.elementos.get('entrada-codigo').value, conteudo);
+  assert.equal(ambiente.elementos.get('entrada-codigo').focado, true);
+  const nome = ambiente.elementos.get('arquivo-atual');
+  assert.equal(nome.textContent, 'Arquivo: <img src=x onerror=alert(1)>.c');
+  assert.equal(nome.filhos.length, 0);
+  assert.equal(ambiente.elementos.get('mensagem-erro').textContent, '');
+});
 
 test('barra de câmera conecta os quatro botões e atualiza percentual acessível', () => {
   const ambiente = criarAmbiente();

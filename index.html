@@ -12,16 +12,22 @@
 <main id="tela-entrada" class="tela-entrada">
 
 <h1>Dungeon do Código</h1>
-<p class="subtitulo">Cole um arquivo em C. Cada função vira uma sala: quanto mais complexa a função, maior e mais perigosa a sala. Ande com as setas ou WASD para explorar.</p>
+<p class="subtitulo">Cole código C ou abra um arquivo .c. Cada função vira uma sala: quanto mais complexa a função, maior e mais perigosa a sala. Ande com as setas ou WASD para explorar.</p>
 <p class="dica dica-privacidade">
   Processado localmente no seu navegador. Seu código não é enviado, armazenado nem executado.
 </p>
 <div class="painel configuracao" id="painel-configuracao">
   <label for="entrada-codigo">Código-fonte em C</label>
   <p class="dica dica-editor">
-    Experimente com o exemplo já carregado ou cole seu próprio código.
+    Experimente com o código já carregado, cole o seu ou abra um arquivo .c.
   </p>
-  <textarea id="entrada-codigo"></textarea>
+  <textarea id="entrada-codigo" aria-describedby="dica-importacao"></textarea>
+  <div class="importacao-codigo">
+    <button id="botao-abrir-c" class="fantasma" type="button">Abrir .c</button>
+    <input id="arquivo-c" type="file" accept=".c,text/plain,text/x-c" hidden>
+    <span id="dica-importacao" class="dica">Ou arraste um .c para a área de código (até 512 KiB).</span>
+    <span id="arquivo-atual" class="dica" role="status" aria-live="polite"></span>
+  </div>
   <div class="linha">
     <p id="mensagem-erro" class="mensagem-erro" role="alert"></p>
     <button id="botao-gerar">Gerar dungeon</button>

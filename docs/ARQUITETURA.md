@@ -16,7 +16,7 @@ verdade do código -> grafo -> layout -> experiência
 
 ### `index.html`
 
-Define as telas de entrada e exploração, editor, Canvas, barra de câmera, botões de modo visual, legenda estrutural, campo de busca, inspector, status dos controles e legenda de complexidade. É a estrutura estática da aplicação.
+Define as telas de entrada e exploração, editor, botão para abrir `.c`, área de drop no editor, Canvas, barra de câmera, botões de modo visual, legenda estrutural, campo de busca, inspector, status dos controles e legenda de complexidade. É a estrutura estática da aplicação.
 
 ### `css/estilo.css`
 
@@ -25,6 +25,10 @@ Define o visual das telas, editor, mapa, inspector, criaturas, status e indicado
 ### `js/lexicoC.js`
 
 Percorre o texto para distinguir código, comentários, strings e literais de caracteres. Produz representações mascaradas preservando índices e quebras de linha e lança erros de análise para entradas incompletas.
+
+### `js/entradaCodigo.js`
+
+Valida o nome `.c` e o limite de 512 KiB antes da leitura local. Não lê o conteúdo nem acessa DOM ou rede.
 
 ### `js/analisadorC.js`
 
@@ -80,15 +84,15 @@ Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sa
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles, do modo visual e do percentual de zoom. Busca, callers, callees, barra de câmera e botões de modo comunicam ações por callbacks. O inspector mostra as relações e indicadores de ciclo recebidos do grafo e o total e detalhamento de estruturas fornecidos pelo analisador; não recalcula esses dados. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, aceita escolha ou drop de arquivo no editor, apresenta mensagens de erro e nome do arquivo, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles, do modo visual e do percentual de zoom. Busca, importação, callers, callees, barra de câmera e botões de modo comunicam ações por callbacks. O inspector mostra as relações e indicadores de ciclo recebidos do grafo e o total e detalhamento de estruturas fornecidos pelo analisador; não recalcula esses dados. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
+Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` por vez e chama análise, construção da masmorra e jogo. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
 
 ## Fluxo atual
 
-1. O usuário edita ou cola código C.
+1. O usuário edita, cola ou abre/arrasta um arquivo `.c`, lido localmente no editor sem geração automática.
 2. `principal.js` chama `analisarFuncoes`.
 3. `lexicoC.js` protege strings, caracteres e comentários durante a análise.
 4. `analisadorC.js` devolve funções, métricas, estruturas por tipo e nomes de chamadas conhecidas.
@@ -114,10 +118,6 @@ O módulo já existe e concentra a geometria e o mundo lógico dinâmico. Os tes
 ### `camera.js`
 
 O acompanhamento básico e o zoom manual em passos de 25%, limitado ao intervalo entre o encaixe do mundo e 200%, estão implementados. O botão Encaixar mostra o mundo inteiro sem ampliá-lo acima de 100% e mantém a visão geral até uma nova ação de navegação. O viewport permanece em 560x480, a câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. A validação manual anterior da câmera básica foi realizada pelo mantenedor; o zoom e a visão geral ainda precisam de validação visual. Minimap, pan manual, drag, easing e otimizações de culling continuam futuros.
-
-### `arquivos.js`
-
-Deverá encapsular importação local de arquivos `.c`, validação do tipo de entrada e fluxo explícito de leitura, sem executar o conteúdo.
 
 ### `exportacao.js`
 

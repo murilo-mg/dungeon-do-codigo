@@ -5,6 +5,7 @@
 import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
+import { validarArquivoC } from './entradaCodigo.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
   iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from './jogo.js';
 import {
@@ -13,7 +14,11 @@ import {
   limparBuscaFuncoes,
   configurarControlesCamera, atualizarZoomCamera,
   configurarModosVisuais, atualizarModoVisual,
+  configurarImportacaoCodigo, limparErroEntrada, mostrarErroEntrada,
+  mostrarArquivoImportado,
 } from './interface.js';
+
+let sequenciaImportacao = 0;
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -106,6 +111,7 @@ document.addEventListener('DOMContentLoaded', inicializarAplicacao);
 
 function inicializarAplicacao() {
   inicializarBuscaFuncoes();
+  configurarImportacaoCodigo(aoSelecionarArquivos, () => { sequenciaImportacao++; });
   configurarControlesCamera({
     aoAfastar: afastarCamera,
     aoRestaurar: restaurarZoomCamera,
@@ -121,17 +127,39 @@ function inicializarAplicacao() {
   document.getElementById('botao-voltar').addEventListener('click', aoClicarEmVoltar);
 }
 
-function aoClicarEmGerar(entradaCodigo) {
-  const mensagemErro = document.getElementById('mensagem-erro');
+async function aoSelecionarArquivos(arquivos) {
+  const tentativa = ++sequenciaImportacao;
+  if (arquivos.length !== 1) {
+    mostrarErroEntrada('Selecione apenas um arquivo .c por vez.');
+    return;
+  }
+  const arquivo = arquivos[0];
+  const erro = validarArquivoC(arquivo);
+  if (erro) {
+    mostrarErroEntrada(erro);
+    return;
+  }
+  try {
+    const conteudo = await arquivo.text();
+    if (tentativa !== sequenciaImportacao) return;
+    if (!conteudo.trim()) {
+      mostrarErroEntrada('O arquivo está vazio.');
+      return;
+    }
+    mostrarArquivoImportado(conteudo, arquivo.name);
+  } catch {
+    if (tentativa === sequenciaImportacao) {
+      mostrarErroEntrada('Não foi possível ler o arquivo.');
+    }
+  }
+}
 
-  mensagemErro.textContent = '';
-  mensagemErro.classList.remove('ativa');
+function aoClicarEmGerar(entradaCodigo) {
+  sequenciaImportacao++;
+  limparErroEntrada();
 
   if (!entradaCodigo.value.trim()) {
-    mensagemErro.textContent =
-      'Cole um código em C antes de gerar a dungeon.';
-
-    mensagemErro.classList.add('ativa');
+    mostrarErroEntrada('Cole um código em C antes de gerar a dungeon.');
     entradaCodigo.focus({ preventScroll: true });
     return;
   }
@@ -143,20 +171,16 @@ function aoClicarEmGerar(entradaCodigo) {
   } catch (erro) {
     if (!(erro instanceof ErroAnaliseC)) throw erro;
 
-    mensagemErro.textContent =
-      `Não foi possível analisar o código. ${erro.message}`;
-
-    mensagemErro.classList.add('ativa');
+    mostrarErroEntrada(`Não foi possível analisar o código. ${erro.message}`);
 
     entradaCodigo.focus({ preventScroll: true });
     return;
   }
 
   if (funcoes.length === 0) {
-    mensagemErro.textContent =
-      'Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.';
-
-    mensagemErro.classList.add('ativa');
+    mostrarErroEntrada(
+      'Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.'
+    );
     return;
   }
 

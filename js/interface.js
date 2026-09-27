@@ -44,6 +44,67 @@ export function atualizarModoVisual(modo) {
   }
 }
 
+export function configurarImportacaoCodigo(aoSelecionar, aoEditar) {
+  const editor = document.getElementById('entrada-codigo');
+  const campoArquivo = document.getElementById('arquivo-c');
+  const ehArrasteDeArquivo = evento =>
+    Array.from(evento.dataTransfer?.types ?? []).includes('Files') ||
+    (evento.dataTransfer?.files?.length ?? 0) > 0;
+  const removerDestaque = () => editor.setAttribute('data-arrastando', 'false');
+
+  document.getElementById('botao-abrir-c').addEventListener('click', () => campoArquivo.click());
+  campoArquivo.addEventListener('change', () => {
+    const arquivos = Array.from(campoArquivo.files ?? []);
+    campoArquivo.value = '';
+    if (arquivos.length) aoSelecionar(arquivos);
+  });
+  editor.addEventListener('input', aoEditar);
+  for (const tipo of ['dragenter', 'dragover']) {
+    editor.addEventListener(tipo, evento => {
+      if (!ehArrasteDeArquivo(evento)) return;
+      evento.preventDefault();
+      editor.setAttribute('data-arrastando', 'true');
+    });
+  }
+  editor.addEventListener('dragleave', removerDestaque);
+  editor.addEventListener('drop', evento => {
+    if (!ehArrasteDeArquivo(evento)) return;
+    evento.preventDefault();
+    removerDestaque();
+    aoSelecionar(Array.from(evento.dataTransfer.files ?? []));
+  });
+  document.addEventListener('dragover', evento => {
+    if (!ehArrasteDeArquivo(evento)) return;
+    evento.preventDefault();
+    if (evento.target !== editor) removerDestaque();
+  });
+  document.addEventListener('drop', evento => {
+    if (!ehArrasteDeArquivo(evento)) return;
+    evento.preventDefault();
+    removerDestaque();
+  });
+}
+
+export function limparErroEntrada() {
+  const mensagem = document.getElementById('mensagem-erro');
+  mensagem.textContent = '';
+  mensagem.classList.remove('ativa');
+}
+
+export function mostrarErroEntrada(texto) {
+  const mensagem = document.getElementById('mensagem-erro');
+  mensagem.textContent = texto;
+  mensagem.classList.add('ativa');
+}
+
+export function mostrarArquivoImportado(conteudo, nome) {
+  const editor = document.getElementById('entrada-codigo');
+  editor.value = conteudo;
+  document.getElementById('arquivo-atual').textContent = `Arquivo: ${nome}`;
+  limparErroEntrada();
+  editor.focus({ preventScroll: true });
+}
+
 export function inicializarBuscaFuncoes() {
   const campo = document.getElementById('busca-funcao');
   campo.addEventListener('input', atualizarResultadosBusca);

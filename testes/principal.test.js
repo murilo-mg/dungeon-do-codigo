@@ -291,3 +291,100 @@ test('modo visual convive com busca, relações, câmera e reinício da dungeon'
   assert.equal(complexidade.ouvintes.get('click').size, 1);
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
+
+test('Abrir .c carrega texto local sem gerar dungeon e Gerar continua funcionando', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?importacao-seletor');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const editor = ambiente.elementos.get('entrada-codigo');
+  const campo = ambiente.elementos.get('arquivo-c');
+  const codigo = 'void saudacao() {}\nint main() { saudacao(); return 0; }';
+  ambiente.elementos.get('botao-abrir-c').emitir('click');
+  assert.equal(campo.cliques, 1);
+  campo.files = [{ name: 'teste.c', size: 80, text: async () => codigo }];
+  campo.emitir('change');
+  await Promise.resolve();
+  assert.equal(editor.value, codigo);
+  assert.equal(editor.focado, true);
+  assert.equal(ambiente.elementos.get('arquivo-atual').textContent, 'Arquivo: teste.c');
+  assert.equal(ambiente.pendentes.size, 0);
+  assert.notEqual(ambiente.elementos.get('area-jogo').style.display, 'flex');
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  assert.equal(ambiente.elementos.get('area-jogo').style.display, 'flex');
+  assert.equal(encontrar(ambiente.elementos.get('info-sala'), 'nome-funcao').textContent,
+    'main()');
+  ambiente.elementos.get('botao-voltar').emitir('click');
+  assert.equal(campo.ouvintes.get('change').size, 1);
+  assert.equal(editor.ouvintes.get('drop').size, 1);
+});
+
+test('drop e seletor rejeitam múltiplos, tipo, tamanho, vazio e falha sem apagar código', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?importacao-erros');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const editor = ambiente.elementos.get('entrada-codigo');
+  const campo = ambiente.elementos.get('arquivo-c');
+  const erro = ambiente.elementos.get('mensagem-erro');
+  editor.value = 'int main(){return 0;}';
+  let leiturasInvalidas = 0;
+  const invalido = nome => ({ name: nome, size: 20,
+    text: () => { leiturasInvalidas++; return Promise.resolve('outro'); } });
+  const transferencia = { types: ['Files'], files: [invalido('a.c'), invalido('b.c')] };
+  assert.equal(editor.emitir('drop', { dataTransfer: transferencia }).prevenido, true);
+  assert.match(erro.textContent, /apenas um arquivo/);
+  campo.files = [invalido('a.c'), invalido('b.c')];
+  campo.emitir('change');
+  assert.match(erro.textContent, /apenas um arquivo/);
+  for (const nome of ['teste.txt', 'teste.cpp', 'teste.h', 'semextensao']) {
+    campo.files = [invalido(nome)];
+    campo.emitir('change');
+    assert.match(erro.textContent, /extensão \.c/);
+  }
+  campo.files = [{ name: 'grande.c', size: 512 * 1024 + 1,
+    text: () => { leiturasInvalidas++; return Promise.resolve('outro'); } }];
+  campo.emitir('change');
+  assert.match(erro.textContent, /512 KiB/);
+  assert.equal(leiturasInvalidas, 0);
+  campo.files = [{ name: 'vazio.c', size: 0, text: async () => '   ' }];
+  campo.emitir('change');
+  await Promise.resolve();
+  assert.match(erro.textContent, /arquivo está vazio/);
+  campo.files = [{ name: 'falha.c', size: 10,
+    text: async () => { throw new Error('falha'); } }];
+  campo.emitir('change');
+  await Promise.resolve();
+  assert.match(erro.textContent, /Não foi possível ler/);
+  assert.equal(editor.value, 'int main(){return 0;}');
+  assert.equal(ambiente.elementos.get('arquivo-atual').textContent, '');
+  assert.equal(ambiente.pendentes.size, 0);
+});
+
+test('drop válido carrega uma vez e leitura antiga não sobrescreve edição ou importação nova', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?importacao-concorrente');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const editor = ambiente.elementos.get('entrada-codigo');
+  const campo = ambiente.elementos.get('arquivo-c');
+  let concluirAntiga;
+  campo.files = [{ name: 'antigo.c', size: 10,
+    text: () => new Promise(resolve => { concluirAntiga = resolve; }) }];
+  campo.emitir('change');
+  const novo = { name: 'novo.C', size: 10, text: async () => 'int main(){return 1;}' };
+  const evento = editor.emitir('drop', { dataTransfer: { types: ['Files'], files: [novo] } });
+  assert.equal(evento.prevenido, true);
+  await Promise.resolve();
+  assert.equal(editor.value, 'int main(){return 1;}');
+  concluirAntiga('int main(){return 0;}');
+  await Promise.resolve();
+  assert.equal(editor.value, 'int main(){return 1;}');
+  campo.files = [{ name: 'lento.c', size: 10,
+    text: () => new Promise(resolve => { concluirAntiga = resolve; }) }];
+  campo.emitir('change');
+  editor.value = 'int main(){return 2;}';
+  editor.emitir('input');
+  concluirAntiga('int main(){return 3;}');
+  await Promise.resolve();
+  assert.equal(editor.value, 'int main(){return 2;}');
+  assert.equal(ambiente.elementos.get('arquivo-atual').textContent, 'Arquivo: novo.C');
+});
