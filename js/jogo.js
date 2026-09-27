@@ -18,6 +18,7 @@ let canvas = null;
 let salas = [];
 let jogador = null;
 let salaAtual = null;
+let salaSelecionada = null;
 let teclasPressionadas = {};
 let idQuadroAnimacao = null;
 let funcaoDeNotificacao = null;
@@ -64,6 +65,7 @@ export function iniciarJogo(
   );
 
   salaAtual = null;
+  salaSelecionada = null;
   tempoCena = 0;
   particulas = [];
   primeiraDeteccao = true;
@@ -107,11 +109,26 @@ export function pararJogo() {
   particulas = [];
   segmentosDeCorredores = [];
   camera = null;
+  salaSelecionada = null;
+  salaAtual = null;
+  jogador = null;
   larguraMundo = 560;
   alturaMundo = 480;
   alterarEstadoControles(false);
   funcaoDeNotificacaoControles = null;
   funcaoDeNotificacao = null;
+}
+
+export function focarSala(nome) {
+  if (!camera) return null;
+  const sala = salas.find(candidata => candidata.nome === nome);
+  if (!sala) return null;
+  salaSelecionada = sala;
+  camera = atualizarCamera(camera, {
+    x: sala.x + sala.largura / 2,
+    y: sala.y + sala.altura / 2,
+  });
+  return sala;
 }
 
 function registrarEventosDeTeclado() {
@@ -148,6 +165,10 @@ function atualizarFocoDoJogo(evento) {
   alterarEstadoControles(clicouNoMapa);
 
   if (clicouNoMapa) {
+    if (salaSelecionada) {
+      salaSelecionada = null;
+      funcaoDeNotificacao?.(salaAtual);
+    }
     canvas.focus({ preventScroll: true });
   } else {
     canvas.blur();
@@ -187,7 +208,11 @@ function executarCicloDeJogo(instante) {
   particulas = preferenciaMovimento.matches ? [] : atualizarParticulas(particulas, segundos);
   atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
     { largura: larguraMundo, altura: alturaMundo }, preferenciaMovimento.matches);
-  camera = atualizarCamera(camera, jogador);
+  const alvoCamera = salaSelecionada
+    ? { x: salaSelecionada.x + salaSelecionada.largura / 2,
+      y: salaSelecionada.y + salaSelecionada.altura / 2 }
+    : jogador;
+  camera = atualizarCamera(camera, alvoCamera);
   atualizarSalaAtualSeNecessario();
   primeiraDeteccao = false;
   desenharCena();
@@ -212,7 +237,7 @@ function atualizarSalaAtualSeNecessario() {
   if (salaAtual && !primeiraDeteccao && !preferenciaMovimento.matches) {
     particulas = criarParticulasDeEntrada(particulas, jogador.x, jogador.y);
   }
-  if (funcaoDeNotificacao) funcaoDeNotificacao(salaAtual);
+  if (!salaSelecionada) funcaoDeNotificacao?.(salaAtual);
 }
 
 function detectarSalaSobJogador() {
@@ -273,6 +298,11 @@ function desenharSala(sala) {
     contexto.strokeStyle = PALETA.pergaminho;
     contexto.strokeRect(x - 2, y - 2, sala.largura + 4, sala.altura + 4);
     contexto.globalAlpha = 1;
+  }
+  if (sala === salaSelecionada) {
+    contexto.strokeStyle = PALETA.ouro;
+    contexto.lineWidth = 2;
+    contexto.strokeRect(x - 5, y - 5, sala.largura + 10, sala.altura + 10);
   }
   // Faixa separada mantém o nome legível acima da criatura.
   contexto.fillStyle = PALETA.pedraEscura;

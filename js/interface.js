@@ -72,7 +72,7 @@ export function descreverSala(sala) {
   return `${sala.nome}() tem ${sala.linhas} linha(s) de corpo e ${estruturas}. ${observacao}`;
 }
 
-export function atualizarPainelDeSala(sala, estrutura = null) {
+export function atualizarPainelDeSala(sala, estrutura = null, aoSelecionarFuncao = null) {
   cancelarAnimacaoPainel();
   const painelInfo = document.getElementById('info-sala');
   painelInfo.replaceChildren();
@@ -132,9 +132,9 @@ export function atualizarPainelDeSala(sala, estrutura = null) {
   if (estrutura) {
     painelInfo.append(
       criarListaDeFuncoes('Chamada por', 'callers-funcao', estrutura.callers,
-        estrutura.ehEntrada ? 'Entrada do programa' : 'Nenhuma chamada conhecida'),
+        estrutura.ehEntrada ? 'Entrada do programa' : 'Nenhuma chamada conhecida', aoSelecionarFuncao),
       criarListaDeFuncoes('Chama', 'callees-funcao', estrutura.callees,
-        'Nenhuma função conhecida'),
+        'Nenhuma função conhecida', aoSelecionarFuncao),
       criarSecao('Caminho desde a entrada', 'caminho-funcao',
         estrutura.caminho ? estrutura.caminho.map(nome => `${nome}()`).join(' → ')
           : 'Não alcançável a partir da entrada'));
@@ -152,13 +152,20 @@ function criarSecao(titulo, classe, texto) {
   return secao;
 }
 
-function criarListaDeFuncoes(titulo, classe, nomes, mensagemVazia) {
+function criarListaDeFuncoes(titulo, classe, nomes, mensagemVazia, aoSelecionarFuncao) {
   const secao = criarSecao(titulo, classe);
   if (nomes.length === 0) {
     secao.append(criarElemento('p', classe, mensagemVazia));
   } else {
     const lista = criarElemento('ul', classe);
-    for (const nome of nomes) lista.append(criarElemento('li', '', `${nome}()`));
+    for (const nome of nomes) {
+      const item = criarElemento('li');
+      const botao = criarElemento('button', 'relacao-funcao', `${nome}()`);
+      botao.setAttribute('type', 'button');
+      botao.addEventListener('click', () => aoSelecionarFuncao?.(nome));
+      item.append(botao);
+      lista.append(item);
+    }
     secao.append(lista);
   }
   return secao;

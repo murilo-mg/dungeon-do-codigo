@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente } from './ambiente.js';
-import { iniciarJogo, pararJogo } from '../js/jogo.js';
+import { focarSala, iniciarJogo, pararJogo } from '../js/jogo.js';
 
 const salas = [
   { nome: 'main', complexidade: 0, x: 235, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
@@ -187,5 +187,76 @@ test('reiniciar com mundo pequeno redefine a transformação da câmera', () => 
   iniciarJogo(mundoPequeno, [], () => {});
   ambiente.avancar();
   assert.deepEqual(ambiente.elementos.get('canvas-jogo').translacoes.at(-1), { x: 0, y: 0 });
+  pararJogo();
+});
+
+test('foco manual em sala distante preserva personagem, limites e destaque separado', () => {
+  const ambiente = criarAmbiente();
+  const distante = { nome: 'distante', complexidade: 0, x: 900, y: 200,
+    largura: 60, altura: 60 };
+  const mundo = { salas: [salas[0], distante], larguraMundo: 1200, alturaMundo: 480 };
+  const notificacoes = [];
+  iniciarJogo(mundo, [], sala => notificacoes.push(sala?.nome ?? null));
+  ambiente.avancar();
+  assert.deepEqual(notificacoes, ['main']);
+
+  assert.equal(focarSala('inexistente'), null);
+  assert.equal(focarSala('distante'), distante);
+  ambiente.avancar(5);
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.deepEqual(canvas.translacoes.at(-1), { x: -640, y: 0 });
+  assert.deepEqual(notificacoes, ['main']);
+  assert.ok(canvas.contornos.some(contorno => contorno.x === distante.x - 5
+    && contorno.y === distante.y - 5));
+  assert.ok(canvas.contornos.some(contorno => contorno.x === salas[0].x - 2
+    && contorno.y === salas[0].y - 2));
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.deepEqual(canvas.translacoes.at(-1), { x: 0, y: 0 });
+  assert.deepEqual(notificacoes, ['main', 'main']);
+  assert.equal(ambiente.janela.emitir('keydown', { key: 'ArrowRight' }).prevenido, true);
+  ambiente.janela.emitir('keydown', { key: 'Escape' });
+  assert.equal(ambiente.janela.emitir('keydown', { key: 'ArrowRight' }).prevenido,
+    undefined);
+  pararJogo();
+});
+
+test('função isolada pode receber foco e reinício limpa a seleção', () => {
+  const ambiente = criarAmbiente();
+  const isolada = { nome: 'isolada', complexidade: 0, x: 900, y: 200,
+    largura: 60, altura: 60 };
+  const mundo = { salas: [salas[0], isolada], larguraMundo: 1200, alturaMundo: 480 };
+  iniciarJogo(mundo, [], () => {});
+  ambiente.avancar();
+  assert.equal(focarSala('isolada'), isolada);
+  ambiente.avancar();
+  assert.deepEqual(ambiente.elementos.get('canvas-jogo').translacoes.at(-1),
+    { x: -640, y: 0 });
+
+  iniciarJogo(mundo, [], () => {});
+  ambiente.avancar();
+  assert.deepEqual(ambiente.elementos.get('canvas-jogo').translacoes.at(-1),
+    { x: 0, y: 0 });
+  assert.equal(focarSala('inexistente'), null);
+  pararJogo();
+  assert.equal(focarSala('isolada'), null);
+});
+
+test('detecção física continua durante foco manual e reaparece ao retomar exploração', () => {
+  const ambiente = criarAmbiente();
+  const notificacoes = [];
+  iniciarJogo(masmorra, arestas, sala => notificacoes.push(sala?.nome ?? null));
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  assert.equal(focarSala('outra')?.nome, 'outra');
+  ambiente.janela.emitir('keydown', { key: 'ArrowUp' });
+  ambiente.avancar(65);
+  ambiente.janela.emitir('keyup', { key: 'ArrowUp' });
+  assert.deepEqual(notificacoes, ['main']);
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  assert.deepEqual(notificacoes, ['main', 'outra']);
   pararJogo();
 });

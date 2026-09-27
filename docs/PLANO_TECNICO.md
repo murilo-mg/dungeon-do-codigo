@@ -39,12 +39,13 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada e total de estruturas de controle.
-- 99 testes automatizados Node.js registrados como passando.
+- Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
+- 104 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
-- Leitura estrutural avançada: navegação por clique nas relações e contagens de estruturas por tipo, que ainda não são produzidas pelo analisador.
-- Integração futura com busca por função e foco automático em função.
+- Leitura estrutural avançada: navegação pelo caminho completo e contagens de estruturas por tipo, que ainda não são produzidas pelo analisador.
+- Integração futura com busca por função e foco da câmera a partir da busca.
 - Zoom e minimapa.
 - Colisão/topologia.
 - PWA.
@@ -80,7 +81,8 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 ### Fase 4: leitura estrutural do programa
 
 - Concluído: inspector estrutural com callers, callees, um caminho mínimo desde a entrada e total de estruturas de controle.
-- Preparar a integração futura com busca e foco em função, ainda não implementados.
+- Concluído: navegação por botões de callers e callees, com seleção independente da sala física e foco manual da câmera.
+- Preparar a integração futura com busca e foco a partir da busca, ainda não implementados.
 - Destaque de relações e métricas.
 - Inspector acessível, foco previsível e controles de toque.
 - Validar a experiência com usuários e programas curtos.

@@ -754,3 +754,19 @@ textarea:focus-visible {
 .secao-inspector ul {
   padding-left: 18px;
 }
+
+.secao-inspector button.relacao-funcao {
+  max-width: 100%;
+  padding: 2px 4px;
+  background: transparent;
+  color: var(--pergaminho);
+  font-size: 11px;
+  font-weight: 400;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.secao-inspector button.relacao-funcao:hover {
+  background: var(--pedra-clara);
+  color: var(--brasa-clara);
+}

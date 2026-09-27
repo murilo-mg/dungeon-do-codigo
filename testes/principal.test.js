@@ -68,7 +68,7 @@ test('ao caminhar para outra sala, inspector recebe relações e caminho do graf
     filho.className === `secao-inspector ${classe}`).filhos[1];
   assert.equal(encontrar(painel, 'nome-funcao').textContent, 'main()');
   assert.equal(secao('caminho-funcao').textContent, 'main()');
-  assert.deepEqual(secao('callees-funcao').filhos.map(filho => filho.textContent), ['a()']);
+  assert.deepEqual(secao('callees-funcao').filhos.map(filho => filho.filhos[0].textContent), ['a()']);
 
   const canvas = ambiente.elementos.get('canvas-jogo');
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
@@ -77,8 +77,39 @@ test('ao caminhar para outra sala, inspector recebe relações e caminho do graf
   ambiente.janela.emitir('keyup', { key: 'ArrowRight' });
 
   assert.equal(encontrar(painel, 'nome-funcao').textContent, 'a()');
-  assert.deepEqual(secao('callers-funcao').filhos.map(filho => filho.textContent), ['main()']);
+  assert.deepEqual(secao('callers-funcao').filhos.map(filho => filho.filhos[0].textContent), ['main()']);
   assert.equal(secao('callees-funcao').textContent, 'Nenhuma função conhecida');
   assert.equal(secao('caminho-funcao').textContent, 'main() → a()');
+  ambiente.elementos.get('botao-voltar').emitir('click');
+});
+
+test('navegação pelo inspector troca a função e retoma a sala física ao clicar no mapa', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?navegacao-estrutural');
+  ambiente.documento.emitir('DOMContentLoaded');
+  ambiente.elementos.get('entrada-codigo').value =
+    'void a(){}\nvoid b(){}\nvoid c(){}\nvoid d(){}\n'
+    + 'void e(){}\nvoid f(){}\nvoid g(){}\nvoid h(){}\n'
+    + 'void distante(){}\nint main(){a();b();c();d();e();f();g();h();distante();}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+
+  const painel = ambiente.elementos.get('info-sala');
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const cameraInicial = canvas.translacoes.at(-1);
+  const lista = painel.filhos.find(filho => filho.className ===
+    'secao-inspector callees-funcao').filhos[1];
+  const botao = lista.filhos.map(item => item.filhos[0])
+    .find(candidato => candidato.textContent === 'distante()');
+  assert.equal(botao.textContent, 'distante()');
+  botao.emitir('click');
+  ambiente.avancar();
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'distante()');
+  assert.ok(canvas.translacoes.at(-1).y < cameraInicial.y);
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.equal(encontrar(painel, 'nome-funcao').textContent, 'main()');
+  assert.deepEqual(canvas.translacoes.at(-1), cameraInicial);
   ambiente.elementos.get('botao-voltar').emitir('click');
 });

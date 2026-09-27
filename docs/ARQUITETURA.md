@@ -40,7 +40,7 @@ Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as 
 
 ### `js/camera.js`
 
-Calcula, sem DOM, Canvas, eventos ou estado global, a posição da câmera a partir do tamanho do viewport, do tamanho do mundo e do alvo. Mantém a câmera dentro dos limites do mundo e acompanha o personagem sem suavização ou zoom.
+Calcula, sem DOM, Canvas, eventos ou estado global, a posição da câmera a partir do tamanho do viewport, do tamanho do mundo e do alvo. Mantém a câmera dentro dos limites do mundo; `jogo.js` escolhe como alvo o personagem ou o centro de uma sala em foco manual, sem suavização ou zoom.
 
 ### `js/grafoC.js`
 
@@ -72,15 +72,15 @@ Fornece paleta e dados/recursos de pixel art usados pela renderização.
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual, alterna a câmera entre seguir o jogador e focar a sala selecionada e desenha um contorno adicional nessa sala. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles. Callers e callees são botões semânticos que comunicam a função escolhida por callback. O inspector mostra as relações recebidas do grafo e o total de estruturas de controle fornecido pelo analisador; não calcula caminhos. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface.
+Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Orquestra a seleção de uma relação, localiza a sala no jogo e entrega seus dados estruturais ao inspector.
 
 ## Fluxo atual
 
@@ -99,7 +99,7 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 
 ## Arquitetura futura desejada
 
-O primeiro bloco de “Leitura estrutural do programa” está implementado no inspector: callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle da função. A integração com busca e foco continua futura. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
+O inspector já mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle. Os botões de callers e callees permitem selecionar uma função e focar sua sala sem mover o personagem. Busca por função e navegação por outros meios continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
 
 O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
 

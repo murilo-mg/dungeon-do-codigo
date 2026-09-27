@@ -5,7 +5,7 @@
 import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
-import { iniciarJogo, pararJogo } from './jogo.js';
+import { focarSala, iniciarJogo, pararJogo } from './jogo.js';
 import { atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
 
 const codigoPadrao = `#include <stdio.h>
@@ -149,9 +149,16 @@ function aoClicarEmGerar(entradaCodigo) {
 
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
-  iniciarJogo(masmorra, grafo.arestas, sala => {
-    atualizarPainelDeSala(sala, sala ? obterEstruturaDaFuncao(grafo, sala.nome) : null);
-  }, atualizarEstadoControles);
+  function mostrarSala(sala) {
+    atualizarPainelDeSala(sala, sala ? obterEstruturaDaFuncao(grafo, sala.nome) : null,
+      selecionarFuncao);
+  }
+  function selecionarFuncao(nome) {
+    if (!grafo.nos.has(nome)) return;
+    const sala = focarSala(nome);
+    if (sala) mostrarSala(sala);
+  }
+  iniciarJogo(masmorra, grafo.arestas, mostrarSala, atualizarEstadoControles);
 }
 
 function aoClicarEmVoltar() {

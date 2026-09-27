@@ -116,6 +116,10 @@ function conteudoDaSecao(painel, classe) {
   return secao.filhos[1];
 }
 
+function botoesDaLista(lista) {
+  return lista.filhos.map(item => item.filhos[0]);
+}
+
 test('inspector apresenta entrada, callees, profundidade, estruturas e código', () => {
   const ambiente = criarAmbiente();
   const painel = ambiente.elementos.get('info-sala');
@@ -129,7 +133,10 @@ test('inspector apresenta entrada, callees, profundidade, estruturas e código',
   assert.equal(conteudoDaSecao(painel, 'callers-funcao').textContent, 'Entrada do programa');
   const chamadas = conteudoDaSecao(painel, 'callees-funcao');
   assert.equal(chamadas.tipo, 'ul');
-  assert.deepEqual(chamadas.filhos.map(filho => filho.textContent), ['validar()', 'salvar()']);
+  assert.deepEqual(botoesDaLista(chamadas).map(botao => botao.textContent),
+    ['validar()', 'salvar()']);
+  assert.ok(botoesDaLista(chamadas).every(botao =>
+    botao.tipo === 'button' && botao.atributos.type === 'button'));
   assert.equal(conteudoDaSecao(painel, 'caminho-funcao').textContent, 'main()');
   assert.equal(conteudoDaSecao(painel, 'estruturas-funcao').textContent,
     '4 estrutura(s) de controle (total)');
@@ -150,14 +157,17 @@ test('inspector atualiza callers, callees e caminho ao trocar de função', () =
     { nome: 'comum', chamadas: [] },
   ]);
   atualizarPainelDeSala({ ...sala, nome: 'a' }, obterEstruturaDaFuncao(grafo, 'a'));
-  assert.deepEqual(conteudoDaSecao(painel, 'callers-funcao').filhos.map(filho => filho.textContent),
+  assert.deepEqual(botoesDaLista(conteudoDaSecao(painel, 'callers-funcao'))
+    .map(botao => botao.textContent),
     ['main()']);
-  assert.deepEqual(conteudoDaSecao(painel, 'callees-funcao').filhos.map(filho => filho.textContent),
+  assert.deepEqual(botoesDaLista(conteudoDaSecao(painel, 'callees-funcao'))
+    .map(botao => botao.textContent),
     ['comum()']);
   assert.equal(conteudoDaSecao(painel, 'caminho-funcao').textContent, 'main() → a()');
 
   atualizarPainelDeSala({ ...sala, nome: 'comum' }, obterEstruturaDaFuncao(grafo, 'comum'));
-  assert.deepEqual(conteudoDaSecao(painel, 'callers-funcao').filhos.map(filho => filho.textContent),
+  assert.deepEqual(botoesDaLista(conteudoDaSecao(painel, 'callers-funcao'))
+    .map(botao => botao.textContent),
     ['a()', 'b()']);
   assert.equal(conteudoDaSecao(painel, 'callees-funcao').textContent, 'Nenhuma função conhecida');
   assert.equal(conteudoDaSecao(painel, 'caminho-funcao').textContent,
@@ -198,11 +208,34 @@ test('nomes e código com aparência de HTML permanecem como texto no DOM', () =
   atualizarPainelDeSala({ ...sala, nome, textoCompleto: 'void f(){ /* <script> */ }' },
     obterEstruturaDaFuncao(grafo, nome));
   assert.equal(encontrar(painel, 'nome-funcao').textContent, `${nome}()`);
-  assert.equal(conteudoDaSecao(painel, 'callers-funcao').filhos[0].textContent, 'main()');
+  assert.equal(botoesDaLista(conteudoDaSecao(painel, 'callers-funcao'))[0].textContent,
+    'main()');
   assert.equal(conteudoDaSecao(painel, 'caminho-funcao').textContent,
     `main() → ${nome}()`);
   assert.equal(encontrar(painel, 'codigo-funcao').textContent, 'void f(){ /* <script> */ }');
   assert.equal(painel.filhos.some(filho => filho.tipo === 'img'), false);
+});
+
+test('botões de callers e callees notificam o nome correto sem interpretar HTML', () => {
+  const ambiente = criarAmbiente();
+  const painel = ambiente.elementos.get('info-sala');
+  const selecionados = [];
+  const grafo = criarGrafo([
+    { nome: 'main', chamadas: ['alvo'] },
+    { nome: 'alvo', chamadas: ['<seguro>'] },
+    { nome: '<seguro>', chamadas: [] },
+  ]);
+  atualizarPainelDeSala({ ...sala, nome: 'alvo' },
+    obterEstruturaDaFuncao(grafo, 'alvo'), nome => selecionados.push(nome));
+  const caller = botoesDaLista(conteudoDaSecao(painel, 'callers-funcao'))[0];
+  const callee = botoesDaLista(conteudoDaSecao(painel, 'callees-funcao'))[0];
+  assert.equal(caller.tipo, 'button');
+  assert.equal(callee.tipo, 'button');
+  assert.equal(callee.textContent, '<seguro>()');
+  caller.emitir('click');
+  callee.emitir('click');
+  assert.deepEqual(selecionados, ['main', '<seguro>']);
+  assert.equal(callee.filhos.length, 0);
 });
 
 test('sem main, caminho mostra o nome real da entrada', () => {

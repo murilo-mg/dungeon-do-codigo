@@ -16,6 +16,7 @@ export class Emissor {
 class Elemento extends Emissor {
   filhos = [];
   translacoes = [];
+  contornos = [];
   style = {};
   atributos = {};
   className = '';
@@ -28,7 +29,8 @@ class Elemento extends Emissor {
   focus() { this.focado = true; }
   blur() { this.focado = false; }
   getContext() {
-    return { save() {}, restore() {}, fillRect() {}, clearRect() {}, strokeRect() {},
+    return { save() {}, restore() {}, fillRect() {}, clearRect() {},
+      strokeRect: (x, y, largura, altura) => this.contornos.push({ x, y, largura, altura }),
       beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
       translate: (x, y) => this.translacoes.push({ x, y }), fillText() {},
       measureText(texto) { return { width: texto.length * 6 }; } };

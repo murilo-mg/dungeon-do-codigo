@@ -48,7 +48,7 @@ Não salvar automaticamente o código do usuário. Importação, salvamento de s
 
 ### Priorizar leitura estrutural do programa
 
-Após a conclusão e validação manual da câmera básica, o primeiro bloco de leitura estrutural foi implementado no inspector: callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle disponível no analisador. Busca, foco automático e navegação por clique nas relações continuam futuros.
+O inspector mostra callers, callees, um caminho mínimo desde a entrada e o total de estruturas de controle disponível no analisador. Callers e callees são botões: a seleção foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Busca por função e navegação pelo caminho completo continuam futuras.
 
 ### Canvas para mapa; DOM para inspector e controles
 
