@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente, encontrar } from './ambiente.js';
+import { PALETA } from '../js/pixelArt.js';
 
 test('gerar avisa sobre código inválido, mantém o editor e permite corrigir a entrada', async () => {
   const ambiente = criarAmbiente();
@@ -182,6 +183,55 @@ test('busca aplica foco às duas cadeias até a função e clique restaura os co
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
   ambiente.avancar();
   assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade), [1, 1, 1, 1, 1]);
+  ambiente.elementos.get('botao-voltar').emitir('click');
+});
+
+test('busca e clique na sala compartilham painel, seleção e foco topológico', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?clique-selecao-compartilhada');
+  ambiente.documento.emitir('DOMContentLoaded');
+  ambiente.elementos.get('entrada-codigo').value =
+    'void B(){}\nvoid A(){B();}\nvoid extra(){}\nint main(){A();extra();}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const painel = ambiente.elementos.get('info-sala');
+  const busca = ambiente.elementos.get('busca-funcao');
+  const salas = canvas.preenchimentosSalas.slice(-4);
+  const clique = sala => {
+    const dados = { clientX: sala.x + sala.largura / 2,
+      clientY: sala.y + sala.altura / 2, button: 0, detail: 1 };
+    ambiente.documento.emitir('pointerdown', {
+      ...dados, target: canvas, composedPath: () => [canvas],
+    });
+    canvas.emitir('click', dados);
+    ambiente.avancar();
+  };
+  const pesquisar = nome => {
+    busca.value = nome;
+    busca.emitir('input');
+    ambiente.elementos.get('resultados-busca').filhos[0].filhos[0].filhos[0].emitir('click');
+    ambiente.avancar();
+  };
+  const estado = () => ({
+    nome: encontrar(painel, 'nome-funcao').textContent,
+    corredores: canvas.tracos.slice(-3).map(traco => traco.opacidade),
+    contorno: canvas.contornos.filter(contorno => contorno.cor === PALETA.ouro).at(-1)?.x,
+  });
+
+  pesquisar('B');
+  const estadoB = estado();
+  assert.equal(estadoB.nome, 'B()');
+  assert.deepEqual(estadoB.corredores, [1, 1, 0.25]);
+  clique(salas[1]);
+  assert.deepEqual(estado(), estadoB);
+
+  clique(salas[2]);
+  const estadoA = estado();
+  assert.equal(estadoA.nome, 'A()');
+  assert.deepEqual(estadoA.corredores, [0.25, 1, 0.25]);
+  pesquisar('A');
+  assert.deepEqual(estado(), estadoA);
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
 

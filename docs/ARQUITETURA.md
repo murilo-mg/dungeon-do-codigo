@@ -58,6 +58,10 @@ Cria e desenha o cenário de fundo e suas decorações, evitando áreas ocupadas
 
 Converte `salas + arestas` em segmentos com origem, destino, início e fim. Ignora salas ausentes, autoarestas e duplicatas. É uma função pura, sem Canvas ou DOM, usada para manter a geometria dos corredores igual no jogo e no cenário.
 
+### `js/navegacaoMasmorra.js`
+
+Calcula uma rota geométrica entre a posição atual e uma sala usando apenas os centros das salas e os segmentos de corredores existentes. Aceita partida dentro de uma sala ou na faixa desenhada de um corredor; trata corredores como transitáveis nos dois sentidos, sem alterar o grafo de chamadas. Devolve pontos de passagem ou ausência de rota, sem DOM, Canvas ou estado global.
+
 ### `js/personagem.js`
 
 Mantém a física e o desenho do personagem, incluindo movimento, limites, direção e passos.
@@ -80,7 +84,7 @@ Fornece paleta, glifos de 5x5 pixels para os marcadores e dados/recursos de pixe
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Durante a seleção, conserva visíveis as salas e os corredores fora do contexto topológico com opacidade menor, sem alterar suas coordenadas. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Converte cliques do Canvas para coordenadas do mundo; um clique em sala solicita a seleção ao orquestrador, e um duplo clique percorre a rota calculada por `navegacaoMasmorra.js` usando a velocidade do personagem. Teclado de movimento interrompe a rota. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Durante a seleção, conserva visíveis as salas e os corredores fora do contexto topológico com opacidade menor, sem alterar suas coordenadas. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
@@ -88,7 +92,7 @@ Manipula DOM, troca telas, aceita escolha ou drop de arquivo no editor, apresent
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` por vez e chama análise, construção da masmorra e jogo. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo, passa o contexto topológico calculado a partir do grafo para a renderização e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
+Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` por vez e chama análise, construção da masmorra e jogo. Fornece à busca os nomes de `grafo.nos`; resultados da busca, relações e cliques em salas usam a mesma seleção, que foca a sala no jogo, passa o contexto topológico calculado a partir do grafo para a renderização e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
 
 ## Fluxo atual
 
@@ -107,7 +111,7 @@ Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` 
 
 ## Arquitetura futura desejada
 
-O inspector já mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e a presença de recursão direta ou ciclo de chamadas. As salas mostram apenas presença por marcadores: I, F, W, S, R e C; quantidades e `case` ficam no inspector. Os botões de callers, callees e resultados da busca permitem selecionar uma função e focar sua sala sem mover o personagem. Navegar pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
+O inspector já mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e a presença de recursão direta ou ciclo de chamadas. As salas mostram apenas presença por marcadores: I, F, W, S, R e C; quantidades e `case` ficam no inspector. Os botões de callers, callees, resultados da busca e cliques em salas selecionam a mesma função; o duplo clique também inicia o deslocamento por corredores existentes. Navegar pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
 
 O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
 

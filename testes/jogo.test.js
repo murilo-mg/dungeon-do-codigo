@@ -14,6 +14,228 @@ const salas = [
 const arestas = [{ origem: 'main', destino: 'outra' }];
 const masmorra = { salas, larguraMundo: 560, alturaMundo: 480 };
 
+function clicarNoMapa(ambiente, x, y, detalhe = 1) {
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const dados = { clientX: x, clientY: y, button: 0, detail: detalhe };
+  ambiente.documento.emitir('pointerdown', {
+    ...dados, target: canvas, composedPath: () => [canvas],
+  });
+  canvas.emitir('click', dados);
+  return canvas;
+}
+
+test('clique seleciona a sala, troca o foco topológico e ignora área vazia', () => {
+  const ambiente = criarAmbiente();
+  const grafo = criarGrafo([
+    { nome: 'main', chamadas: ['A', 'extra'] },
+    { nome: 'A', chamadas: ['B'] },
+    { nome: 'B', chamadas: [] }, { nome: 'extra', chamadas: [] },
+  ]);
+  const salasDoClique = [
+    { nome: 'main', x: 55, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
+    { nome: 'A', x: 170, y: 210, largura: 60, altura: 60 },
+    { nome: 'B', x: 300, y: 210, largura: 60, altura: 60 },
+    { nome: 'extra', x: 170, y: 320, largura: 60, altura: 60 },
+  ].map(sala => ({ complexidade: 0, ...sala }));
+  const selecoes = [];
+  iniciarJogo({ salas: salasDoClique, larguraMundo: 560, alturaMundo: 480 },
+    grafo.arestas, () => {}, undefined, undefined, nome => {
+      selecoes.push(nome);
+      return focarSala(nome, calcularContextoTopologico(grafo, nome));
+    });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+
+  clicarNoMapa(ambiente, 330, 240);
+  ambiente.avancar();
+  assert.deepEqual(selecoes, ['B']);
+  assert.deepEqual(canvas.tracos.slice(-3).map(traco => traco.opacidade), [1, 0.25, 1]);
+  assert.deepEqual(canvas.contornos.filter(contorno => contorno.cor === PALETA.ouro)
+    .slice(-1).map(contorno => [contorno.x, contorno.y]), [[295, 205]]);
+
+  clicarNoMapa(ambiente, 200, 240);
+  ambiente.avancar();
+  assert.deepEqual(selecoes, ['B', 'A']);
+  assert.deepEqual(canvas.tracos.slice(-3).map(traco => traco.opacidade), [1, 0.25, 0.25]);
+  assert.deepEqual(canvas.contornos.filter(contorno => contorno.cor === PALETA.ouro)
+    .slice(-1).map(contorno => [contorno.x, contorno.y]), [[165, 205]]);
+
+  clicarNoMapa(ambiente, 5, 5);
+  ambiente.avancar();
+  assert.deepEqual(selecoes, ['B', 'A']);
+  assert.deepEqual(canvas.tracos.slice(-3).map(traco => traco.opacidade), [1, 1, 1]);
+  pararJogo();
+});
+
+test('clique converte borda, escala CSS, zoom e câmera em coordenadas da sala', () => {
+  const ambiente = criarAmbiente();
+  const salaDistante = { nome: 'distante', complexidade: 0, x: 900, y: 200,
+    largura: 60, altura: 60 };
+  const mundo = { salas: [{ ...salas[0], x: 700 }, salaDistante],
+    larguraMundo: 1200, alturaMundo: 480 };
+  const selecoes = [];
+  iniciarJogo(mundo, [], () => {}, undefined, undefined, nome => {
+    selecoes.push(nome);
+    return focarSala(nome);
+  });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  aproximarCamera();
+  ambiente.avancar();
+  canvas.retangulo = { left: 30, top: 40, width: 282, height: 242 };
+  canvas.clientLeft = 1;
+  canvas.clientTop = 1;
+  canvas.clientWidth = 280;
+  canvas.clientHeight = 240;
+  const deslocamento = canvas.translacoes.at(-1);
+  const escala = canvas.escalas.at(-1).x;
+  const x = 31 + (930 + deslocamento.x) * escala / 2;
+  const y = 41 + (230 + deslocamento.y) * escala / 2;
+  clicarNoMapa(ambiente, x, y);
+  assert.deepEqual(selecoes, ['distante']);
+  clicarNoMapa(ambiente, 30.5, 40.5);
+  assert.deepEqual(selecoes, ['distante']);
+  pararJogo();
+});
+
+test('duplo clique percorre somente salas e corredores existentes com velocidade contínua', () => {
+  const ambiente = criarAmbiente();
+  const salasDaRota = [
+    { nome: 'main', x: 60, y: 60, largura: 80, altura: 80, complexidade: 0,
+      ehSalaInicial: true },
+    { nome: 'A', x: 170, y: 70, largura: 60, altura: 60, complexidade: 0 },
+    { nome: 'B', x: 170, y: 170, largura: 60, altura: 60, complexidade: 0 },
+    { nome: 'isolada', x: 370, y: 70, largura: 60, altura: 60, complexidade: 0 },
+  ];
+  const mundo = { salas: salasDaRota, larguraMundo: 560, alturaMundo: 480 };
+  const arestasDaRota = [{ origem: 'main', destino: 'A' }, { origem: 'A', destino: 'B' }];
+  const antes = structuredClone({ mundo, arestasDaRota });
+  const selecoes = [];
+  iniciarJogo(mundo, arestasDaRota, () => {}, undefined, undefined, nome => {
+    selecoes.push(nome);
+    return focarSala(nome);
+  });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  clicarNoMapa(ambiente, 200, 200, 1);
+  clicarNoMapa(ambiente, 200, 200, 2);
+  canvas.emitir('dblclick', { clientX: 200, clientY: 200, button: 0, detail: 2 });
+  const inicio = canvas.posicoesPersonagem.length;
+  ambiente.avancar(90);
+  const posicoes = canvas.posicoesPersonagem.slice(inicio);
+  assert.deepEqual(selecoes, ['B']);
+  assert.ok(posicoes.some(ponto => ponto.x > 120 && ponto.x < 180));
+  assert.ok(posicoes.some(ponto => ponto.y > 120 && ponto.y < 180));
+  assert.ok(posicoes.every(ponto => Math.abs(ponto.y - 100) <= 1 ||
+    Math.abs(ponto.x - 200) <= 1));
+  assert.ok(posicoes.every((ponto, indice) => indice === 0 ||
+    Math.hypot(ponto.x - posicoes[indice - 1].x,
+      ponto.y - posicoes[indice - 1].y) <= 4));
+  assert.deepEqual(posicoes.at(-1), { x: 200, y: 200 });
+  assert.deepEqual({ mundo, arestasDaRota }, antes);
+  pararJogo();
+});
+
+test('duplo clique conserva o alvo quando o primeiro clique desloca a câmera', () => {
+  const ambiente = criarAmbiente();
+  const mundo = { salas: [
+    { nome: 'main', x: 60, y: 60, largura: 80, altura: 80, complexidade: 0,
+      ehSalaInicial: true },
+    { nome: 'longe', x: 400, y: 70, largura: 60, altura: 60, complexidade: 0 },
+  ], larguraMundo: 900, alturaMundo: 480 };
+  const selecoes = [];
+  iniciarJogo(mundo, [{ origem: 'main', destino: 'longe' }], () => {},
+    undefined, undefined, nome => {
+      selecoes.push(nome);
+      return focarSala(nome);
+    });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  clicarNoMapa(ambiente, 430, 100, 1);
+  ambiente.avancar();
+  assert.ok(canvas.translacoes.at(-1).x < 0);
+  clicarNoMapa(ambiente, 430, 100, 2);
+  canvas.emitir('dblclick', { clientX: 430, clientY: 100, button: 0, detail: 2 });
+  assert.deepEqual(selecoes, ['longe']);
+  ambiente.avancar(140);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), { x: 430, y: 100 });
+  pararJogo();
+});
+
+test('movimento manual já pressionado impede iniciar a rota automática', () => {
+  const ambiente = criarAmbiente();
+  const mundo = { salas: [
+    { nome: 'main', x: 60, y: 60, largura: 80, altura: 80, complexidade: 0,
+      ehSalaInicial: true },
+    { nome: 'A', x: 170, y: 70, largura: 60, altura: 60, complexidade: 0 },
+  ], larguraMundo: 560, alturaMundo: 480 };
+  iniciarJogo(mundo, [{ origem: 'main', destino: 'A' }], () => {},
+    undefined, undefined, nome => focarSala(nome));
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.janela.emitir('keydown', { key: 'ArrowLeft' });
+  clicarNoMapa(ambiente, 200, 100, 1);
+  clicarNoMapa(ambiente, 200, 100, 2);
+  canvas.emitir('dblclick', { clientX: 200, clientY: 100, button: 0, detail: 2 });
+  ambiente.avancar(2);
+  assert.ok(canvas.posicoesPersonagem.at(-1).x < 100);
+  ambiente.janela.emitir('keyup', { key: 'ArrowLeft' });
+  const posicaoParada = canvas.posicoesPersonagem.at(-1);
+  ambiente.avancar(20);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicaoParada);
+  pararJogo();
+});
+
+test('teclado cancela navegação e sala desconectada só é selecionada', () => {
+  const ambiente = criarAmbiente();
+  const mundo = { salas: [
+    { nome: 'main', x: 60, y: 60, largura: 80, altura: 80, complexidade: 0,
+      ehSalaInicial: true },
+    { nome: 'A', x: 170, y: 70, largura: 60, altura: 60, complexidade: 0 },
+    { nome: 'isolada', x: 370, y: 70, largura: 60, altura: 60, complexidade: 0 },
+  ], larguraMundo: 560, alturaMundo: 480 };
+  const selecoes = [];
+  iniciarJogo(mundo, [{ origem: 'main', destino: 'A' }], () => {},
+    undefined, undefined, nome => {
+      selecoes.push(nome);
+      return focarSala(nome);
+    });
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  clicarNoMapa(ambiente, 200, 100, 1);
+  clicarNoMapa(ambiente, 200, 100, 2);
+  canvas.emitir('dblclick', { clientX: 200, clientY: 100, button: 0, detail: 2 });
+  ambiente.avancar(10);
+  const antesDoTeclado = canvas.posicoesPersonagem.at(-1).x;
+  ambiente.janela.emitir('keydown', { key: 'ArrowLeft' });
+  ambiente.avancar();
+  assert.ok(canvas.posicoesPersonagem.at(-1).x < antesDoTeclado);
+  ambiente.janela.emitir('keyup', { key: 'ArrowLeft' });
+  const posicaoParada = canvas.posicoesPersonagem.at(-1);
+  ambiente.avancar(30);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), posicaoParada);
+
+  clicarNoMapa(ambiente, 400, 100, 1);
+  clicarNoMapa(ambiente, 400, 100, 2);
+  canvas.emitir('dblclick', { clientX: 400, clientY: 100, button: 0, detail: 2 });
+  const antesDaIsolada = canvas.posicoesPersonagem.at(-1);
+  ambiente.avancar(30);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), antesDaIsolada);
+  assert.equal(selecoes.at(-1), 'isolada');
+
+  ambiente.janela.emitir('keydown', { key: 'ArrowDown' });
+  ambiente.avancar(50);
+  ambiente.janela.emitir('keyup', { key: 'ArrowDown' });
+  clicarNoMapa(ambiente, 200, 100, 1);
+  clicarNoMapa(ambiente, 200, 100, 2);
+  canvas.emitir('dblclick', { clientX: 200, clientY: 100, button: 0, detail: 2 });
+  const foraDaRede = canvas.posicoesPersonagem.at(-1);
+  ambiente.avancar(30);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), foraDaRede);
+  assert.equal(selecoes.at(-1), 'A');
+  pararJogo();
+});
+
 test('foco contextual atenua apenas salas e corredores fora das rotas e restaura ao sair', () => {
   const ambiente = criarAmbiente();
   const funcoes = [
@@ -169,12 +391,16 @@ test('reiniciar mantém apenas um ciclo e parar remove todos os eventos', () => 
   for (let indice = 0; indice < 5; indice++) iniciarJogo(masmorra, arestas, () => {});
   assert.equal(ambiente.pendentes.size, 1);
   assert.equal(ambiente.janela.ouvintes.get('keydown').size, 1);
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.equal(canvas.ouvintes.get('click').size, 1);
+  assert.equal(canvas.ouvintes.get('dblclick').size, 1);
   const atalho = ambiente.janela.emitir('keydown', { key: 'd', ctrlKey: true });
   assert.equal(atalho.prevenido, undefined);
   pararJogo();
   assert.equal(ambiente.pendentes.size, 0);
   for (const ouvintes of ambiente.janela.ouvintes.values()) assert.equal(ouvintes.size, 0);
   for (const ouvintes of ambiente.documento.ouvintes.values()) assert.equal(ouvintes.size, 0);
+  for (const ouvintes of canvas.ouvintes.values()) assert.equal(ouvintes.size, 0);
 });
 
 test('ignora digitação em campos e libera movimento quando a aba fica oculta', () => {

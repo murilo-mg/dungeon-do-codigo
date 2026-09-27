@@ -49,7 +49,8 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
 - Foco topológico da função selecionada, preservando todas as cadeias relevantes desde a entrada e atenuando salas e corredores fora do contexto sem ocultá-los.
-- 207 testes automatizados Node.js registrados como passando.
+- Clique simples em sala pela mesma seleção da busca e do inspector; duplo clique inicia navegação contínua pelos corredores existentes quando há rota, cancelável pelo teclado de movimento.
+- Suíte automatizada Node.js passando nos 18 arquivos de teste.
 
 ## Funcionalidades futuras
 
@@ -97,6 +98,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: navegação por botões de callers e callees, com seleção independente da sala física e foco manual da câmera.
 - Concluído: busca por função na dungeon atual, com foco pelo mesmo fluxo da navegação estrutural.
 - Concluído: foco contextual no Canvas baseado em todas as relações reais até a função selecionada, sem alterar grafo, layout ou roteamento.
+- Concluído: seleção direta por clique em sala e navegação por duplo clique sobre corredores existentes, mantendo a seleção mesmo sem rota e sem mudar o movimento manual.
 - Concluído: marcadores de presença nas salas para I/F/W/S e R/C, preservando a cor de complexidade, a geometria e os contornos de interação.
 - Concluído: modos visuais Complexidade e Estrutura, com alternância imediata sem mudar grafo, geometria, câmera, busca ou inspector.
 - Destaque de métricas e outras formas de explorar relações.

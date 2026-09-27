@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 207 testes passando.
+- A execução atual de `npm test` passou nos 18 arquivos de teste da suíte.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -17,13 +17,14 @@
 - O Canvas renderiza cenário, salas, personagem, passos, efeitos e marcadores estruturais. No modo Complexidade, preserva cores por complexidade e criaturas; no modo Estrutura, usa base de pedra neutra, oculta criaturas e realça os marcadores.
 - O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
-- Selecionar uma função destaca as cadeias de chamadas relevantes até ela; salas e corredores fora dessas cadeias continuam visíveis com opacidade menor. Sem seleção, a aparência normal é restaurada.
+- Busca, botões de relações e clique simples na sala selecionam a mesma função no inspector e destacam suas cadeias de chamadas relevantes. Salas e corredores fora dessas cadeias continuam visíveis com opacidade menor. Sem seleção, a aparência normal é restaurada.
+- Duplo clique em sala inicia deslocamento contínuo por corredores existentes quando há rota desde o personagem; qualquer tecla de movimento cancela a navegação automática.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
 - A preferência `prefers-reduced-motion` é respeitada em animações relevantes.
 
 ## Último marco
 
-O último marco é o foco topológico/contextual da função selecionada. Ele mantém todas as cadeias relevantes desde a entrada, atenua os demais elementos e restaura a aparência normal ao desfazer a seleção. O cálculo não altera grafo, layout, corredores ou câmera. A ordenação vertical anterior foi validada visualmente pelo mantenedor e preservada. O foco topológico também foi validado visualmente pelo mantenedor. A validação manual da importação `.c`, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
+O último marco é a interação direta com as salas: clique simples seleciona a função pelo mesmo fluxo da busca e das relações; duplo clique seleciona e navega pelos corredores existentes, sem teleporte. O foco topológico anterior foi validado visualmente pelo mantenedor e preservado. A validação manual da nova interação, da importação `.c`, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
@@ -41,11 +42,17 @@ O último marco é o foco topológico/contextual da função selecionada. Ele ma
 
 `grafoC.js` calcula o contexto sem usar geometria: cruza as funções alcançáveis da entrada sem passar antes pelo alvo com as funções que podem chegar ao alvo pelas arestas reversas. As arestas reais entre essas funções formam o destaque, inclusive quando existem várias cadeias de chamadas. Os percursos usam conjuntos de visitados para terminar em ciclos. Se a função selecionada não é alcançável, só ela pertence ao contexto; o inspector continua mostrando seu caminho mínimo ou a ausência dele.
 
-`principal.js` entrega esse contexto ao foco já existente em `jogo.js`. A sala selecionada conserva o contorno dourado; funções do contexto mantêm o desenho normal; demais salas ficam com 35% da opacidade normal e corredores fora do contexto com 25%. Todos continuam no Canvas. Clicar no mapa, parar o jogo ou gerar outra dungeon limpa o contexto; sem seleção, a aparência anterior é preservada. Os modos Complexidade e Estrutura aplicam o mesmo tratamento de opacidade.
+`principal.js` entrega esse contexto ao foco já existente em `jogo.js`. A sala selecionada conserva o contorno dourado; funções do contexto mantêm o desenho normal; demais salas ficam com 35% da opacidade normal e corredores fora do contexto com 25%. Todos continuam no Canvas. Clicar em área vazia do mapa, parar o jogo ou gerar outra dungeon limpa o contexto; clicar em sala troca a seleção pelo mesmo fluxo da busca. Sem seleção, a aparência anterior é preservada. Os modos Complexidade e Estrutura aplicam o mesmo tratamento de opacidade.
+
+## Interação direta e navegação
+
+`jogo.js` converte o ponto clicado das coordenadas de tela para as do mundo considerando borda, escala CSS, tamanho interno do Canvas, câmera e zoom. Só seleciona quando esse ponto está no retângulo real de uma sala. O callback de `principal.js` atende busca, relações e clique; não existe estado separado por origem da seleção. O primeiro clique do duplo clique fixa a sala de destino, mesmo se a câmera se mover antes do segundo.
+
+`navegacaoMasmorra.js` calcula uma rota sobre os segmentos existentes de `corredores.js`, ligando centros das salas. Pode partir de dentro de uma sala ou da faixa visual de um corredor; se a posição estiver fora dessa rede ou o destino estiver desconectado, não inicia movimento. O ciclo do jogo avança pelos pontos da rota com a velocidade normal do personagem, mantendo a câmera acompanhando. Uma tecla de movimento, perda de foco ou nova seleção cancela a rota. A navegação automática usa a geometria desenhada; o movimento manual continua limitado apenas pelo mundo, sem colisão com paredes.
 
 ## Câmera e viewport
 
-O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera segue o jogador, foca manualmente a sala selecionada ou mostra o mundo inteiro em visão geral. O zoom manual avança em passos de 25%, entre o encaixe do mundo e 200%; Encaixar escolhe o zoom necessário para mostrar toda a dungeon, sem ampliar mundos pequenos acima de 100%. Escala e deslocamento são aplicados somente durante o desenho. Selecionar uma função após Encaixar restaura 100% e foca a sala; um clique no Canvas restaura 100% e o seguimento do jogador. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
+O mundo lógico cresce horizontalmente para cadeias profundas e verticalmente para níveis com muitas salas, mantendo gaps mínimos e sem sobreposição nos cenários testados. O Canvas continua sendo um viewport de 560x480. A câmera segue o jogador, foca manualmente a sala selecionada ou mostra o mundo inteiro em visão geral. O zoom manual avança em passos de 25%, entre o encaixe do mundo e 200%; Encaixar escolhe o zoom necessário para mostrar toda a dungeon, sem ampliar mundos pequenos acima de 100%. Escala e deslocamento são aplicados somente durante o desenho. Selecionar uma função após Encaixar restaura 100% e foca a sala; um clique em área vazia do Canvas sai da visão geral para 100% e retoma o seguimento do jogador. O jogador usa `larguraMundo` e `alturaMundo` como limites físicos.
 
 Minimapa, pan manual, drag, easing, culling e colisão com salas/corredores ainda não existem. A detecção da sala continua comparando coordenadas do mundo sem aplicar a câmera.
 
@@ -94,7 +101,7 @@ O bloco atual está implementado no inspector, com:
 4. Total de estruturas de controle e contagens separadas de `if`, `for`, `while`, `switch` e `case`.
 5. Recursão direta e participação em ciclo de chamadas, com texto que distingue os dois casos.
 
-A navegação pelos botões de callers, callees e resultados da busca seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
+A navegação pelos botões de callers, callees, resultados da busca e cliques nas salas seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. Somente o duplo clique também inicia a caminhada pelos corredores. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
 
 O perfil estrutural e os indicadores de ciclo também estão nas salas. O Canvas desenha pequenos glifos em pixels inteiros: I/F/W/S na lateral esquerda e R/C na direita. No modo Complexidade, a cor base indica complexidade; no modo Estrutura, a base neutra e o maior contraste dos glifos enfatizam a presença das estruturas. A legenda HTML fica próxima aos controles da câmera e dos modos. `case` não recebe marcador próprio nem cria S quando não há `switch`. Não existem filtro por estrutura nem contagem visual repetida.
 

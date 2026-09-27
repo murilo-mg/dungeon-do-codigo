@@ -3,12 +3,14 @@
 
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { criarSegmentosDeCorredores } from './corredores.js';
+import { calcularRotaCaminhavel } from './navegacaoMasmorra.js';
 import { alterarZoom, atualizarCamera, criarCamera, definirZoom, encaixarCamera } from './camera.js';
 import { GLIFOS_MARCADORES, PALETA, desenharPixels } from './pixelArt.js';
 import { obterEstiloVisualDaSala, obterMarcadoresEstruturais } from './semanticaVisual.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
-import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem } from './personagem.js';
+import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem,
+  VELOCIDADE_PERSONAGEM } from './personagem.js';
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
 const CORES_MARCADORES = { 1: PALETA.pergaminho };
@@ -26,6 +28,7 @@ let teclasPressionadas = {};
 let idQuadroAnimacao = null;
 let funcaoDeNotificacao = null;
 let funcaoDeNotificacaoZoom = null;
+let funcaoDeSelecao = null;
 let instanteAnterior = null;
 let preferenciaMovimento = null;
 let tempoCena = 0;
@@ -34,6 +37,8 @@ let primeiraDeteccao = true;
 let controlesAtivos = false;
 let cenario = null;
 let segmentosDeCorredores = [];
+let rotaAutomatica = null;
+let ultimoCliqueEmSala = null;
 let camera = null;
 let modoCamera = 'jogador';
 let modoVisual = 'complexidade';
@@ -46,7 +51,8 @@ export function iniciarJogo(
   novasArestas,
   aoMudarDeSala,
   aoMudarControles,
-  aoMudarZoom
+  aoMudarZoom,
+  aoSelecionarSala
 ) {
   pararJogo();
 
@@ -58,6 +64,7 @@ export function iniciarJogo(
   funcaoDeNotificacao = aoMudarDeSala;
   funcaoDeNotificacaoControles = aoMudarControles;
   funcaoDeNotificacaoZoom = aoMudarZoom;
+  funcaoDeSelecao = aoSelecionarSala;
 
   const salaInicial = salas.find(
     sala => sala.ehSalaInicial
@@ -75,6 +82,8 @@ export function iniciarJogo(
   salaAtual = null;
   salaSelecionada = null;
   contextoTopologico = null;
+  rotaAutomatica = null;
+  ultimoCliqueEmSala = null;
   tempoCena = 0;
   particulas = [];
   primeiraDeteccao = true;
@@ -119,6 +128,8 @@ export function pararJogo() {
   limparTeclas();
   particulas = [];
   segmentosDeCorredores = [];
+  rotaAutomatica = null;
+  ultimoCliqueEmSala = null;
   camera = null;
   modoCamera = 'jogador';
   modoVisual = 'complexidade';
@@ -132,6 +143,7 @@ export function pararJogo() {
   funcaoDeNotificacaoControles = null;
   funcaoDeNotificacao = null;
   funcaoDeNotificacaoZoom = null;
+  funcaoDeSelecao = null;
 }
 
 export function focarSala(nome, contexto = null) {
@@ -144,6 +156,7 @@ export function focarSala(nome, contexto = null) {
   }
   salaSelecionada = sala;
   contextoTopologico = contexto;
+  rotaAutomatica = null;
   modoCamera = 'sala';
   camera = atualizarCamera(camera, {
     x: sala.x + sala.largura / 2,
@@ -160,7 +173,7 @@ export function selecionarModoVisual(modo) {
 function mudarZoom(novaCamera) {
   if (!camera) return 1;
   camera = novaCamera;
-  modoCamera = salaSelecionada ? 'sala' : 'jogador';
+  modoCamera = rotaAutomatica ? 'jogador' : salaSelecionada ? 'sala' : 'jogador';
   atualizarAlvoCamera();
   return camera.zoom;
 }
@@ -199,6 +212,8 @@ function registrarEventosDeTeclado() {
   window.addEventListener('blur', limparTeclas);
   document.addEventListener('pointerdown', atualizarFocoDoJogo, true);
   document.addEventListener('visibilitychange', limparTeclas);
+  canvas.addEventListener('click', selecionarSalaClicada);
+  canvas.addEventListener('dblclick', navegarParaSalaClicada);
 }
 
 function removerEventosDeTeclado() {
@@ -207,6 +222,8 @@ function removerEventosDeTeclado() {
   window.removeEventListener('blur', limparTeclas);
   document.removeEventListener('visibilitychange', limparTeclas);
   document.removeEventListener('pointerdown', atualizarFocoDoJogo, true);
+  canvas?.removeEventListener('click', selecionarSalaClicada);
+  canvas?.removeEventListener('dblclick', navegarParaSalaClicada);
   controlesAtivos = false;
 }
 
@@ -223,19 +240,24 @@ function alterarEstadoControles(ativos) {
 
 function atualizarFocoDoJogo(evento) {
   const clicouNoMapa = evento.composedPath().includes(canvas);
+  const salaClicada = clicouNoMapa ? salaDoClique(evento) : null;
+  if (!salaClicada) ultimoCliqueEmSala = null;
 
   alterarEstadoControles(clicouNoMapa);
 
   if (clicouNoMapa) {
-    if (modoCamera === 'visao-geral') {
-      camera = definirZoom(camera, 1);
-      funcaoDeNotificacaoZoom?.(camera.zoom);
-    }
-    modoCamera = 'jogador';
-    if (salaSelecionada) {
-      salaSelecionada = null;
-      contextoTopologico = null;
-      funcaoDeNotificacao?.(salaAtual);
+    if (!salaClicada) {
+      if (modoCamera === 'visao-geral') {
+        camera = definirZoom(camera, 1);
+        funcaoDeNotificacaoZoom?.(camera.zoom);
+      }
+      modoCamera = 'jogador';
+      rotaAutomatica = null;
+      if (salaSelecionada) {
+        salaSelecionada = null;
+        contextoTopologico = null;
+        funcaoDeNotificacao?.(salaAtual);
+      }
     }
     canvas.focus({ preventScroll: true });
   } else {
@@ -243,9 +265,61 @@ function atualizarFocoDoJogo(evento) {
   }
 }
 
+function salaDoClique(evento) {
+  if (evento.detail >= 2 && ultimoCliqueEmSala &&
+    Math.hypot(evento.clientX - ultimoCliqueEmSala.x,
+      evento.clientY - ultimoCliqueEmSala.y) <= 5) return ultimoCliqueEmSala.sala;
+  return detectarSalaClicada(evento);
+}
+
+function detectarSalaClicada(evento) {
+  if (!camera || !Number.isFinite(evento.clientX) || !Number.isFinite(evento.clientY)) return null;
+  const retangulo = canvas.getBoundingClientRect();
+  const bordaX = canvas.clientLeft ?? 0;
+  const bordaY = canvas.clientTop ?? 0;
+  const largura = canvas.clientWidth || retangulo.width - bordaX * 2;
+  const altura = canvas.clientHeight || retangulo.height - bordaY * 2;
+  if (largura <= 0 || altura <= 0) return null;
+  const x = evento.clientX - retangulo.left - bordaX;
+  const y = evento.clientY - retangulo.top - bordaY;
+  if (x < 0 || y < 0 || x > largura || y > altura) return null;
+  const ponto = {
+    x: camera.x + x * canvas.width / largura / camera.zoom,
+    y: camera.y + y * canvas.height / altura / camera.zoom,
+  };
+  return salas.find(sala => ponto.x >= sala.x && ponto.x <= sala.x + sala.largura &&
+    ponto.y >= sala.y && ponto.y <= sala.y + sala.altura) ?? null;
+}
+
+function selecionarSalaClicada(evento) {
+  if (evento.button !== undefined && evento.button !== 0) return;
+  const sala = salaDoClique(evento);
+  if (evento.detail !== 2) ultimoCliqueEmSala = sala
+    ? { sala, x: evento.clientX, y: evento.clientY } : null;
+  if (sala && (evento.detail !== 2 || sala !== salaSelecionada))
+    funcaoDeSelecao?.(sala.nome);
+}
+
+function navegarParaSalaClicada(evento) {
+  if (evento.button !== undefined && evento.button !== 0) return;
+  const sala = salaDoClique(evento);
+  ultimoCliqueEmSala = null;
+  if (!sala || (sala !== salaSelecionada && !funcaoDeSelecao?.(sala.nome))) return;
+  rotaAutomatica = calcularRotaCaminhavel(salas, segmentosDeCorredores, jogador, sala.nome);
+  if (!rotaAutomatica) return;
+  const direcaoManual = calcularDirecaoDoMovimento();
+  if (direcaoManual.x || direcaoManual.y) {
+    rotaAutomatica = null;
+    return;
+  }
+  modoCamera = 'jogador';
+  atualizarAlvoCamera();
+}
+
 function limparTeclas() {
   teclasPressionadas = {};
   instanteAnterior = null;
+  rotaAutomatica = null;
 }
 
 function marcarTeclaPressionada(evento) {
@@ -262,6 +336,7 @@ function marcarTeclaPressionada(evento) {
   if (!controlesAtivos) return;
 
   evento.preventDefault();
+  rotaAutomatica = null;
   teclasPressionadas[tecla] = true;
 }
 
@@ -275,13 +350,42 @@ function executarCicloDeJogo(instante) {
   instanteAnterior = instante;
   tempoCena += segundos;
   particulas = preferenciaMovimento.matches ? [] : atualizarParticulas(particulas, segundos);
-  atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
+  if (rotaAutomatica) atualizarNavegacaoAutomatica(segundos);
+  else atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
     { largura: larguraMundo, altura: alturaMundo }, preferenciaMovimento.matches);
   atualizarAlvoCamera();
   atualizarSalaAtualSeNecessario();
   primeiraDeteccao = false;
   desenharCena();
   idQuadroAnimacao = requestAnimationFrame(executarCicloDeJogo);
+}
+
+function atualizarNavegacaoAutomatica(segundos) {
+  let restante = segundos;
+  const limites = { largura: larguraMundo, altura: alturaMundo };
+  while (rotaAutomatica?.length && restante > 0) {
+    const alvo = rotaAutomatica[0];
+    const direcao = { x: alvo.x - jogador.x, y: alvo.y - jogador.y };
+    const distancia = Math.hypot(direcao.x, direcao.y);
+    if (distancia < 1e-6) {
+      rotaAutomatica.shift();
+      continue;
+    }
+    const duracao = Math.min(restante, distancia / VELOCIDADE_PERSONAGEM);
+    const anterior = { x: jogador.x, y: jogador.y };
+    atualizarPersonagem(jogador, direcao, duracao, limites, preferenciaMovimento.matches);
+    if (Math.hypot(alvo.x - jogador.x, alvo.y - jogador.y) < 1e-6) rotaAutomatica.shift();
+    if (jogador.x === anterior.x && jogador.y === anterior.y) {
+      rotaAutomatica = null;
+      break;
+    }
+    restante -= duracao;
+  }
+  if (!rotaAutomatica?.length) {
+    rotaAutomatica = null;
+    if (restante > 0) atualizarPersonagem(jogador, { x: 0, y: 0 }, restante,
+      limites, preferenciaMovimento.matches);
+  }
 }
 
 function calcularDirecaoDoMovimento() {

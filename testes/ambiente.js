@@ -40,6 +40,9 @@ class Elemento extends Emissor {
   click() { this.cliques = (this.cliques ?? 0) + 1; this.emitir('click'); }
   focus() { this.focado = true; }
   blur() { this.focado = false; }
+  getBoundingClientRect() {
+    return this.retangulo ?? { left: 0, top: 0, width: this.width, height: this.height };
+  }
   getContext() {
     const opacidades = [];
     let inicio = null;
@@ -95,6 +98,10 @@ export function criarAmbiente() {
   elementos.get('arquivo-c').files = [];
   elementos.get('canvas-jogo').width = 560;
   elementos.get('canvas-jogo').height = 480;
+  elementos.get('canvas-jogo').clientWidth = 560;
+  elementos.get('canvas-jogo').clientHeight = 480;
+  elementos.get('canvas-jogo').clientLeft = 0;
+  elementos.get('canvas-jogo').clientTop = 0;
   documento.getElementById = id => elementos.get(id);
   documento.createElement = tipo => new Elemento(tipo);
   janela.matchMedia = () => preferencia;

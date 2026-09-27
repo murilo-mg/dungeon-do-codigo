@@ -197,10 +197,11 @@ function aoClicarEmGerar(entradaCodigo) {
     if (!grafo.nos.has(nome)) return;
     const sala = focarSala(nome, calcularContextoTopologico(grafo, nome));
     if (sala) mostrarSala(sala);
+    return sala;
   }
   configurarBuscaFuncoes(grafo.nos.keys(), selecionarFuncao);
   iniciarJogo(masmorra, grafo.arestas, mostrarSala, atualizarEstadoControles,
-    atualizarZoomCamera);
+    atualizarZoomCamera, selecionarFuncao);
   atualizarZoomCamera(1);
   atualizarModoVisual('complexidade');
 }

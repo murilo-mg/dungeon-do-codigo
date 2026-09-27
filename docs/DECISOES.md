@@ -60,7 +60,11 @@ O botão Abrir .c e o drop no editor passam pela mesma validação de extensão 
 
 ### Priorizar leitura estrutural do programa
 
-O inspector mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e indicadores de recursão direta e ciclo. Callers, callees e resultados da busca usam a mesma seleção: ela foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Navegação pelo caminho completo continua futura.
+O inspector mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e indicadores de recursão direta e ciclo. Callers, callees, resultados da busca e cliques em salas usam a mesma seleção: ela foca a sala na câmera e atualiza o inspector sem mover o personagem. Um clique em área vazia do Canvas devolve a câmera ao personagem; duplo clique em sala seleciona e inicia a navegação automática. Navegação pelo caminho completo continua futura.
+
+### Navegar somente pela geometria existente
+
+O duplo clique usa os segmentos já desenhados entre centros de salas para calcular uma rota transitável, sem modificar as chamadas direcionadas do programa. O personagem percorre esses segmentos à velocidade normal, com câmera acompanhando; movimento manual cancela a rota. Sem conexão entre a posição atual e a sala escolhida, só a seleção é aplicada. Essa navegação não substitui a futura colisão/topologia para movimento manual.
 
 ### Destacar todas as cadeias relevantes na seleção
 

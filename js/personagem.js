@@ -1,7 +1,7 @@
 // Estado, movimento e animação do aventureiro, sem eventos ou acesso ao DOM.
 import { PALETA, desenharPixels } from './pixelArt.js';
 
-const VELOCIDADE = 156; // Pixels por segundo (equivalente a 2,6 por quadro a 60 Hz).
+export const VELOCIDADE_PERSONAGEM = 156; // Pixels por segundo (2,6 por quadro a 60 Hz).
 const DURACAO_PASSO = 0.8;
 const INTERVALO_PASSO = 0.14;
 const QUADROS_CAMINHADA = [0, 1, 0, 2];
@@ -36,9 +36,9 @@ export function atualizarPersonagem(jogador, direcao, segundos, limites, reduzir
     jogador.direcao = direcao.x ? (direcao.x > 0 ? 'direita' : 'esquerda')
       : (direcao.y > 0 ? 'baixo' : 'cima');
     jogador.x = Math.max(12, Math.min(limites.largura - 12,
-      jogador.x + direcao.x / comprimento * VELOCIDADE * segundos));
+      jogador.x + direcao.x / comprimento * VELOCIDADE_PERSONAGEM * segundos));
     jogador.y = Math.max(14, Math.min(limites.altura - 14,
-      jogador.y + direcao.y / comprimento * VELOCIDADE * segundos));
+      jogador.y + direcao.y / comprimento * VELOCIDADE_PERSONAGEM * segundos));
   }
   jogador.andando = jogador.x !== anterior.x || jogador.y !== anterior.y;
   jogador.tempoAndando = jogador.andando ? jogador.tempoAndando + segundos : 0;
