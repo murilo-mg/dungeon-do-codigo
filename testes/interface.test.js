@@ -41,6 +41,22 @@ test('controles de câmera no HTML são botões nativos acessíveis', () => {
   assert.match(html, /role="group" aria-label="Controles da câmera"/);
 });
 
+test('legenda estática explica os seis marcadores sem conteúdo do código do usuário', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const legenda = html.match(/<section class="legenda-estrutural"[^>]*>([\s\S]*?)<\/section>/)?.[0];
+  assert.ok(legenda);
+  assert.match(legenda, /aria-label="Legenda dos marcadores das salas"/);
+  for (const [letra, significado] of [
+    ['I', 'if'], ['F', 'for'], ['W', 'while'], ['S', 'switch'],
+    ['R', 'recursão direta'], ['C', 'ciclo indireto'],
+  ]) {
+    assert.match(legenda, new RegExp(`<li><strong>${letra}</strong> ${significado}</li>`));
+  }
+  assert.doesNotMatch(legenda, /id="|<script|entrada-codigo|info-sala/);
+  const css = readFileSync(new URL('../css/estilo.css', import.meta.url), 'utf8');
+  assert.match(css, /\.legenda-estrutural ul\s*\{[^}]*flex-wrap: wrap/s);
+});
+
 test('mostra quando os controles da exploração estão ativos', () => {
   const ambiente = criarAmbiente();
 

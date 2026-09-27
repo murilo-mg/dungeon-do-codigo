@@ -441,3 +441,81 @@ test('mesmo movimento percorre a mesma distância lógica em 100% e 200%', () =>
   }
   assert.deepEqual(finais[0], finais[1]);
 });
+
+function criarSalaVisual(nome, x, estruturasPorTipo = {}, ciclo = {}) {
+  return { nome, complexidade: 0, x, y: 100, largura: 60, altura: 60,
+    estruturasPorTipo, recursivaDireta: false, participaDeCiclo: false, ...ciclo };
+}
+
+test('marcadores de todos os tipos e R cabem nas laterais da sala 60x60', () => {
+  const ambiente = criarAmbiente();
+  const sala = { ...criarSalaVisual('main', 100,
+    { if: 2, for: 1, while: 1, switch: 1, case: 3 },
+    { recursivaDireta: true, participaDeCiclo: true }), ehSalaInicial: true };
+  iniciarJogo({ salas: [sala], larguraMundo: 560, alturaMundo: 480 }, [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.deepEqual(canvas.marcadores, [
+    { x: 104, y: 121 }, { x: 104, y: 130 }, { x: 104, y: 139 },
+    { x: 104, y: 148 }, { x: 147, y: 121 },
+  ]);
+  assert.ok(canvas.marcadores.every(({ x, y }) =>
+    x >= sala.x && x + 9 <= sala.x + sala.largura &&
+    y >= sala.y + 20 && y + 8 <= sala.y + sala.altura));
+  assert.deepEqual(canvas.posicoesCriaturas.at(-1), { x: 130, y: 140 });
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 98 && contorno.y === 98));
+  pararJogo();
+});
+
+test('sala sem perfil e case isolado não desenham marcadores', () => {
+  const ambiente = criarAmbiente();
+  const simples = { ...criarSalaVisual('main', 100), ehSalaInicial: true };
+  const somenteCase = criarSalaVisual('caseIsolado', 300, { case: 2 });
+  iniciarJogo({ salas: [simples, somenteCase], larguraMundo: 560, alturaMundo: 480 },
+    [], () => {});
+  ambiente.avancar();
+  assert.deepEqual(ambiente.elementos.get('canvas-jogo').marcadores, []);
+  pararJogo();
+});
+
+test('sala física e sala selecionada mantêm contornos e marcadores próprios', () => {
+  const ambiente = criarAmbiente();
+  const inicial = { ...criarSalaVisual('main', 100, { if: 1 }), ehSalaInicial: true };
+  const distante = criarSalaVisual('distante', 300, { switch: 1 },
+    { participaDeCiclo: true });
+  iniciarJogo({ salas: [inicial, distante], larguraMundo: 560, alturaMundo: 480 },
+    [], () => {});
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.equal(focarSala('distante'), distante);
+  canvas.marcadores = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.marcadores,
+    [{ x: 104, y: 121 }, { x: 304, y: 121 }, { x: 347, y: 121 }]);
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 98 && contorno.y === 98));
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 295 && contorno.y === 95));
+  pararJogo();
+});
+
+test('zoom e Encaixar mantêm os marcadores em coordenadas do mundo', () => {
+  const ambiente = criarAmbiente();
+  const sala = { ...criarSalaVisual('main', 700, { for: 1 },
+    { participaDeCiclo: true }), ehSalaInicial: true };
+  iniciarJogo({ salas: [sala], larguraMundo: 1200, alturaMundo: 480 }, [], () => {});
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  const desenhoInicial = [...canvas.marcadores];
+  const posicaoCriatura = canvas.posicoesCriaturas.at(-1);
+  aproximarCamera();
+  canvas.marcadores = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.marcadores, desenhoInicial);
+  assert.deepEqual(canvas.posicoesCriaturas.at(-1), posicaoCriatura);
+  encaixarMasmorra();
+  canvas.marcadores = [];
+  ambiente.avancar();
+  assert.deepEqual(canvas.marcadores, desenhoInicial);
+  assert.deepEqual(canvas.posicoesCriaturas.at(-1), posicaoCriatura);
+  assert.ok(canvas.escalas.at(-1).x < 1);
+  pararJogo();
+});

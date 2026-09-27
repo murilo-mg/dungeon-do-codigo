@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 155 testes passando.
+- A suíte registrada no estado deste documento tem 171 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -13,7 +13,7 @@
 - O parser detecta funções, ignora comentários/literais na análise estrutural e detecta chamadas entre funções conhecidas.
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
 - O layout atual organiza salas em colunas conforme a profundidade e separa funções inalcançáveis em uma coluna de isoladas.
-- O Canvas renderiza cenário, salas, criaturas, personagem, passos e efeitos.
+- O Canvas renderiza cenário, salas, criaturas, personagem, passos, efeitos e marcadores estruturais discretos nas salas.
 - O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
@@ -21,7 +21,7 @@
 
 ## Último marco
 
-O último marco é a fundação semântica das estruturas C: contagens separadas de `if`, `for`, `while`, `switch` e `case`, mais detecção de recursão direta e participação em ciclo de chamadas. Esses dados chegam às salas e aparecem no inspector. A fórmula de complexidade, o layout e o desenho das salas não mudaram. A representação visual das estruturas nas salas fica para a próxima etapa. A validação visual do zoom e da visão geral ainda está pendente.
+O último marco é a representação visual discreta do perfil estrutural nas salas. Uma trilha à esquerda mostra I/F/W/S quando a função contém `if`/`for`/`while`/`switch`; à direita, R indica recursão direta e C indica ciclo indireto de chamadas. Os marcadores mostram presença, enquanto as quantidades, inclusive `case`, permanecem no inspector. Cor base, complexidade, geometria, criatura e contornos da sala física ou selecionada não mudaram. A validação visual dos novos marcadores, do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
@@ -78,12 +78,13 @@ O bloco atual está implementado no inspector, com:
 
 A navegação pelos botões de callers, callees e resultados da busca seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
 
-O perfil estrutural e os indicadores de ciclo também estão nas salas como dados para a próxima etapa. Ainda não há novos desenhos, badges ou cores por tipo de estrutura no Canvas.
+O perfil estrutural e os indicadores de ciclo também estão nas salas. O Canvas agora desenha pequenos glifos em pixels inteiros: I/F/W/S na lateral esquerda e R/C na direita. A cor base da sala continua indicando complexidade; os glifos indicam presença e são explicados em uma legenda HTML próxima aos controles da câmera. `case` não recebe marcador próprio nem cria S quando não há `switch`. Não existe modo Estrutura/Complexidade, filtro por estrutura ou contagem visual repetida.
 
 ## Implementações concluídas e pendências
 
 - O plano define o grafo como fonte de verdade; `grafoC.js` já concentra nós, arestas, chamadas recebidas, alcance e profundidade.
 - `analisadorC.js` fornece `estruturasPorTipo` com zeros explícitos, e `grafoC.js` distingue recursão direta de participação em ciclo. A complexidade e o layout continuam com as regras anteriores.
+- `semanticaVisual.js` seleciona os marcadores a partir desses metadados; `jogo.js` apenas os desenha nas coordenadas do mundo, e o inspector mantém as quantidades detalhadas.
 - O plano define corredores como chamadas reais; isso já está implementado por `corredores.js`, `jogo.js` e `cenario.js`.
 - O layout separado já existe em `layoutMasmorra.js`; a câmera acompanha o personagem e oferece zoom manual e visão geral, mas ainda não há minimapa.
 - `camera.js` já existe e o foco a partir da busca usa a seleção manual. Importação `.c` e exportação continuam futuras; `arquivos.js` e `exportacao.js` ainda não existem.

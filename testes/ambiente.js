@@ -19,6 +19,8 @@ class Elemento extends Emissor {
   escalas = [];
   limpezas = [];
   posicoesPersonagem = [];
+  posicoesCriaturas = [];
+  marcadores = [];
   salvamentos = 0;
   restauracoes = 0;
   contornos = [];
@@ -39,6 +41,12 @@ class Elemento extends Emissor {
       fillRect: function(x, y, largura, altura) {
         if (largura === 20 && altura === 5 && this.fillStyle === '#00000055') {
           this.canvas.posicoesPersonagem.push({ x: x + 10, y: y - 10 });
+        }
+        if (largura === 20 && altura === 4 && this.fillStyle === '#00000044') {
+          this.canvas.posicoesCriaturas.push({ x: x + 10, y: y - 10 });
+        }
+        if (largura === 9 && altura === 8 && this.fillStyle === '#181410') {
+          this.canvas.marcadores.push({ x, y });
         }
       },
       canvas: this,

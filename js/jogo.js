@@ -5,12 +5,14 @@ import { corPorSala } from './masmorra.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { criarSegmentosDeCorredores } from './corredores.js';
 import { alterarZoom, atualizarCamera, criarCamera, definirZoom, encaixarCamera } from './camera.js';
-import { PALETA } from './pixelArt.js';
+import { GLIFOS_MARCADORES, PALETA, desenharPixels } from './pixelArt.js';
+import { obterMarcadoresEstruturais } from './semanticaVisual.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
 import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem } from './personagem.js';
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
+const CORES_MARCADORES = { 1: PALETA.pergaminho };
 
 let funcaoDeNotificacaoControles = null;
 let contexto = null;
@@ -370,5 +372,21 @@ function desenharSala(sala) {
   contexto.fillText(nome, x + sala.largura / 2, y + 15);
   desenharCriatura(contexto, sala.complexidade, x + sala.largura / 2,
     y + sala.altura - 20, 2, preferenciaMovimento.matches ? 0 : tempoCena + sala.x / 100);
+  desenharMarcadoresDaSala(sala, x, y);
   contexto.restore();
+}
+
+function desenharMarcadoresDaSala(sala, x, y) {
+  const { estruturas, chamada } = obterMarcadoresEstruturais(sala);
+  estruturas.forEach((marcador, indice) => {
+    desenharMarcador(marcador, x + 4, y + 21 + indice * 9);
+  });
+  if (chamada) desenharMarcador(chamada, x + sala.largura - 13, y + 21);
+}
+
+function desenharMarcador(marcador, x, y) {
+  contexto.fillStyle = PALETA.pedraEscura;
+  contexto.fillRect(x, y, 9, 8);
+  desenharPixels(contexto, GLIFOS_MARCADORES[marcador],
+    CORES_MARCADORES, x + 2, y + 1, 1);
 }

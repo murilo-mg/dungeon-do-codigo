@@ -16,7 +16,7 @@ verdade do código -> grafo -> layout -> experiência
 
 ### `index.html`
 
-Define as telas de entrada e exploração, editor, Canvas, barra de câmera, campo de busca, inspector, status dos controles e legenda. É a estrutura estática da aplicação.
+Define as telas de entrada e exploração, editor, Canvas, barra de câmera, legenda estrutural, campo de busca, inspector, status dos controles e legenda de complexidade. É a estrutura estática da aplicação.
 
 ### `css/estilo.css`
 
@@ -58,6 +58,10 @@ Converte `salas + arestas` em segmentos com origem, destino, início e fim. Igno
 
 Mantém a física e o desenho do personagem, incluindo movimento, limites, direção e passos.
 
+### `js/semanticaVisual.js`
+
+Seleciona, sem DOM ou Canvas, os marcadores de presença I/F/W/S e o indicador R ou C a partir dos metadados já calculados da sala. Não conta estruturas nem analisa chamadas.
+
 ### `js/criaturas.js`
 
 Define criaturas associadas à complexidade e desenha seus retratos e representações nas salas.
@@ -68,11 +72,11 @@ Cria, atualiza e desenha partículas de entrada, com limites de quantidade e dur
 
 ### `js/pixelArt.js`
 
-Fornece paleta e dados/recursos de pixel art usados pela renderização.
+Fornece paleta, glifos de 5x5 pixels para os marcadores e dados/recursos de pixel art usados pela renderização.
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Desenha glifos discretos nas laterais da sala para presença de estruturas e recursão/ciclo, preservando a cor de complexidade e os contornos de interação. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
@@ -99,7 +103,7 @@ Inicializa a aplicação, recebe o código, chama análise, construção da masm
 
 ## Arquitetura futura desejada
 
-O inspector já mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e a presença de recursão direta ou ciclo de chamadas. Os botões de callers, callees e resultados da busca permitem selecionar uma função e focar sua sala sem mover o personagem. Representar visualmente essas estruturas nas salas, navegar pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
+O inspector já mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e a presença de recursão direta ou ciclo de chamadas. As salas mostram apenas presença por marcadores: I, F, W, S, R e C; quantidades e `case` ficam no inspector. Os botões de callers, callees e resultados da busca permitem selecionar uma função e focar sua sala sem mover o personagem. Navegar pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
 
 O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
 

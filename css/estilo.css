@@ -650,6 +650,34 @@ textarea:focus-visible {
   font-size: 11px;
 }
 
+.legenda-estrutural,
+.legenda-estrutural ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+}
+
+.legenda-estrutural {
+  width: min(100%, 560px);
+  color: var(--pergaminho-fraco);
+  font-size: 10px;
+}
+
+.legenda-estrutural ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.legenda-estrutural li {
+  white-space: nowrap;
+}
+
+.legenda-estrutural strong {
+  color: var(--pergaminho);
+}
+
 .workspace-inspetor {
   min-width: 0;
   max-height: 480px;
