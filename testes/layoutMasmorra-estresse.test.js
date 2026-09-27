@@ -2,8 +2,24 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarGrafo } from '../js/grafoC.js';
 import { calcularLayoutMasmorra } from '../js/layoutMasmorra.js';
+import { criarSegmentosDeCorredores } from '../js/corredores.js';
+import { medirCorredores } from './metricasCorredores.js';
 
 const TAMANHOS = [5, 15, 30, 60];
+const BASE_CORREDORES = {
+  '5-cadeia': [0, 0, 400],
+  '5-mesmoNivel': [0, 2, 645.82],
+  '5-combinacao': [0, 0, 421.16],
+  '15-cadeia': [0, 0, 1405],
+  '15-mesmoNivel': [0, 10, 5375.69],
+  '15-combinacao': [0, 0, 958.06],
+  '30-cadeia': [0, 0, 2930],
+  '30-mesmoNivel': [0, 25, 21870.19],
+  '30-combinacao': [0, 0, 1648.06],
+  '60-cadeia': [0, 0, 5980],
+  '60-mesmoNivel': [0, 55, 89066.53],
+  '60-combinacao': [0, 0, 3173.06],
+};
 
 function criarFuncao(nome, chamadas = [], complexidade = 0) {
   return { nome, chamadas, complexidade };
@@ -87,6 +103,9 @@ function medirCenario(funcoes, inicio) {
   const depoisDoGrafo = performance.now();
   const layout = calcularLayoutMasmorra(grafo, funcoes);
   const fim = performance.now();
+  const salas = [...layout.salas].map(([nome, dimensoes]) => ({ nome, ...dimensoes }));
+  const corredores = criarSegmentosDeCorredores(salas, grafo.arestas);
+  const metricasCorredores = medirCorredores(salas, corredores);
   const foraDosLimites = [...layout.salas.values()].filter(dimensoes =>
     dimensoes.x < 0 || dimensoes.y < 0 ||
     dimensoes.x + dimensoes.largura > layout.larguraMundo ||
@@ -102,6 +121,7 @@ function medirCenario(funcoes, inicio) {
     foraDosLimites,
     larguraMundo: layout.larguraMundo,
     alturaMundo: layout.alturaMundo,
+    metricasCorredores,
     tempoGrafoMs: depoisDoGrafo - inicio,
     tempoLayoutMs: fim - depoisDoGrafo,
     grafo,
@@ -133,7 +153,12 @@ test('mede o layout em cadeias, níveis amplos e combinações maiores', () => {
       const relatorio = medirCenario(funcoes, inicio);
       validarIntegridade(relatorio, funcoes);
       assert.equal(relatorio.sobreposicoes, 0);
-        assert.deepEqual(relatorio.layout, calcularLayoutMasmorra(relatorio.grafo, funcoes));
+      assert.deepEqual(relatorio.layout, calcularLayoutMasmorra(relatorio.grafo, funcoes));
+      const { cruzamentos, corredoresAtravessandoSalas, comprimentoTotal } =
+        relatorio.metricasCorredores;
+      const comprimentoArredondado = Number(comprimentoTotal.toFixed(2));
+      assert.deepEqual([cruzamentos, corredoresAtravessandoSalas, comprimentoArredondado],
+        BASE_CORREDORES[`${quantidade}-${tipo}`]);
 
       if (tipo === 'combinacao') {
         assert.ok([...relatorio.grafo.nos.values()].some(no => !no.alcancavel));
@@ -148,6 +173,9 @@ test('mede o layout em cadeias, níveis amplos e combinações maiores', () => {
         foraDosLimites: relatorio.foraDosLimites,
         larguraMundo: relatorio.larguraMundo,
         alturaMundo: relatorio.alturaMundo,
+        cruzamentos,
+        corredoresAtravessandoSalas,
+        comprimentoTotal: comprimentoArredondado,
         tempoGrafoMs: Number(relatorio.tempoGrafoMs.toFixed(3)),
         tempoLayoutMs: Number(relatorio.tempoLayoutMs.toFixed(3)),
       });

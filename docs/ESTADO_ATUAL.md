@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 186 testes passando.
+- A suíte registrada no estado deste documento tem 191 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -62,6 +62,8 @@ Os testes determinísticos cobrem cadeia profunda, muitas funções no mesmo ní
 | 60 | combinação | 3108x3078 | 0 | 90 | 33 |
 
 Antes do mundo dinâmico, as sobreposições começavam em 15 funções: 31 na cadeia, 32 no mesmo nível e 13 na combinação; em 60 funções chegavam a 606, 688 e 373, respectivamente. Depois da mudança, os 12 cenários apresentam zero sobreposições e nenhuma sala ultrapassa os limites do mundo calculado.
+
+A linha de base de legibilidade dos corredores mede cruzamentos transversais entre segmentos sem sala compartilhada, corredores cujo eixo atravessa o interior aberto de uma terceira sala e soma dos comprimentos retos entre centros. Contatos apenas com a borda, trechos colineares e largura visual do traço não entram nessas contagens. Nos cenários de mesmo nível com 5, 15, 30 e 60 funções, respectivamente 2, 10, 25 e 55 corredores atravessam outras salas, embora não haja sobreposição de salas nem cruzamentos transversais. Um caso propositalmente cruzado pelo layout atual apresenta 1 cruzamento. Os valores detalhados de comprimento e dos demais cenários estão fixados em `testes/metricasCorredores.test.js` e `testes/layoutMasmorra-estresse.test.js`; nenhuma geometria foi alterada nesta etapa.
 
 Nesta execução local, a criação do grafo e o cálculo do layout ficaram na ordem de milissegundos ou menos. Esses tempos são apenas observações da máquina usada, não garantias de performance; o custo computacional continua secundário diante da área visual necessária.
 

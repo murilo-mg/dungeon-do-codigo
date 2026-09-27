@@ -40,19 +40,21 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Grafo explícito em `grafoC.js` e corredores baseados em chamadas reais.
 - Layout separado em `layoutMasmorra.js`, com mundo lógico dinâmico.
 - Testes de estresse com 5, 15, 30 e 60 funções, sem sobreposição de salas nos cenários atuais.
+- Linha de base de legibilidade dos corredores: cruzamentos transversais, corredores que atravessam o interior de outra sala e comprimento total dos segmentos retos atuais.
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
 - Barra de câmera com zoom manual em passos de 25%, retorno a 100% e visão geral que encaixa a dungeon inteira no viewport. A validação visual desse novo recurso ainda está pendente.
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 186 testes automatizados Node.js registrados como passando.
+- 191 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
 - Leitura estrutural avançada: navegação pelo caminho completo e filtros estruturais.
 - Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
+- Melhoria do layout e dos corredores para reduzir cruzamentos, travessias de salas e comprimento quando os casos medidos justificarem.
 - PWA.
 - Exportação de resultados.
 - Comparação antes/depois de duas versões do código.
@@ -83,6 +85,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: cenário e corredores consomem as arestas reais.
 - Concluído: câmera básica com viewport de 560x480 e validação manual pelo mantenedor.
 - Concluído: zoom manual, retorno a 100% e Encaixar para visão geral da dungeon; validação visual desse recurso pendente.
+- Concluído: linha de base determinística da legibilidade dos corredores, sem mudança de geometria ou desenho.
 - Pendentes: minimapa e colisão/topologia.
 
 ### Fase 4: leitura estrutural do programa
@@ -180,7 +183,7 @@ Gerar uma sequência de funções `f01` a `f30`, com `main` chamando algumas fun
 
 ## Testes de estresse
 
-Os cenários determinísticos com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`. Cadeias, funções no mesmo nível e combinações com funções isoladas apresentam zero sobreposições de salas nos cenários atuais; os resultados estão em `ESTADO_ATUAL.md`. A navegação com câmera também foi validada manualmente pelo mantenedor. Novas medições de análise, grafo, layout, primeiro desenho e interação, além de casos adicionais, devem orientar qualquer adoção futura de uma biblioteca de layout.
+Os cenários determinísticos com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`. Cadeias, funções no mesmo nível e combinações com funções isoladas apresentam zero sobreposições de salas nos cenários atuais; os resultados estão em `ESTADO_ATUAL.md`. Os mesmos cenários agora registram cruzamentos, travessias do interior de salas e comprimento dos corredores retos para comparação com futuras melhorias. A navegação com câmera também foi validada manualmente pelo mantenedor. Novas medições de análise, grafo, layout, primeiro desenho e interação, além de casos adicionais, devem orientar qualquer adoção futura de uma biblioteca de layout.
 
 ## Segurança
 

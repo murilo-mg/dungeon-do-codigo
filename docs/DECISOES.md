@@ -14,6 +14,10 @@ Salas representam funções e posições devem comunicar profundidade, alcance e
 
 O mesmo código deve produzir uma dungeon estável. Determinismo facilita aprendizagem, testes, comparação e depuração.
 
+### Medir legibilidade dos corredores antes de alterar o layout
+
+Além de tamanho do mundo e sobreposição de salas, comparar cruzamentos transversais, passagens pelo interior de terceiras salas e comprimento total dos corredores. A linha de base usa os segmentos retos atuais e casos determinísticos; roteamento e mudanças de layout ficam para uma etapa posterior.
+
 ## Tecnologia
 
 ### Não usar React agora
