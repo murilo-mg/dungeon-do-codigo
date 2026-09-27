@@ -123,6 +123,51 @@ export function encontrarCaminhoDaEntrada(grafo, nomeDestino) {
   return null;
 }
 
+// Considera todas as cadeias de chamadas até a primeira chegada à função alvo.
+export function calcularContextoTopologico(grafo, nomeSelecionado) {
+  if (!grafo.nos.has(nomeSelecionado)) return null;
+
+  const funcoes = new Set([nomeSelecionado]);
+  const arestas = new Map();
+  if (nomeSelecionado === grafo.entrada) return { funcoes, arestas };
+
+  const saidas = new Map();
+  const entradas = new Map();
+  for (const { origem, destino } of grafo.arestas) {
+    if (!saidas.has(origem)) saidas.set(origem, []);
+    if (!entradas.has(destino)) entradas.set(destino, []);
+    saidas.get(origem).push(destino);
+    entradas.get(destino).push(origem);
+  }
+
+  // Não passa pelo alvo ao avançar: descendentes que só podem ser alcançados
+  // depois da seleção não viram ancestrais por causa de um ciclo de retorno.
+  const antesDoAlvo = visitarRelacoes(grafo.entrada, saidas, nomeSelecionado);
+  const ateOAlvo = visitarRelacoes(nomeSelecionado, entradas);
+  for (const nome of antesDoAlvo) {
+    if (ateOAlvo.has(nome)) funcoes.add(nome);
+  }
+  for (const { origem, destino } of grafo.arestas) {
+    if (origem === nomeSelecionado || !funcoes.has(origem) || !funcoes.has(destino)) continue;
+    if (!arestas.has(origem)) arestas.set(origem, new Set());
+    arestas.get(origem).add(destino);
+  }
+  return { funcoes, arestas };
+}
+
+function visitarRelacoes(inicio, adjacencias, ignorado = null) {
+  const visitados = new Set([inicio]);
+  const fila = [inicio];
+  for (let indice = 0; indice < fila.length; indice++) {
+    for (const vizinho of adjacencias.get(fila[indice]) ?? []) {
+      if (vizinho === ignorado || visitados.has(vizinho)) continue;
+      visitados.add(vizinho);
+      fila.push(vizinho);
+    }
+  }
+  return visitados;
+}
+
 export function obterEstruturaDaFuncao(grafo, nome) {
   const no = grafo.nos.get(nome);
   if (!no) return null;

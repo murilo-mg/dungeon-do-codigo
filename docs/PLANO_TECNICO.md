@@ -48,7 +48,8 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 197 testes automatizados Node.js registrados como passando.
+- Foco topológico da função selecionada, preservando todas as cadeias relevantes desde a entrada e atenuando salas e corredores fora do contexto sem ocultá-los.
+- 207 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
@@ -95,9 +96,10 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: inspector estrutural com callers, callees, um caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Concluído: navegação por botões de callers e callees, com seleção independente da sala física e foco manual da câmera.
 - Concluído: busca por função na dungeon atual, com foco pelo mesmo fluxo da navegação estrutural.
+- Concluído: foco contextual no Canvas baseado em todas as relações reais até a função selecionada, sem alterar grafo, layout ou roteamento.
 - Concluído: marcadores de presença nas salas para I/F/W/S e R/C, preservando a cor de complexidade, a geometria e os contornos de interação.
 - Concluído: modos visuais Complexidade e Estrutura, com alternância imediata sem mudar grafo, geometria, câmera, busca ou inspector.
-- Destaque de relações e métricas.
+- Destaque de métricas e outras formas de explorar relações.
 - Inspector acessível, foco previsível e controles de toque.
 - Validar a experiência com usuários e programas curtos.
 

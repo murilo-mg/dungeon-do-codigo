@@ -48,7 +48,7 @@ Calcula, sem DOM, Canvas, eventos ou estado global, a posição e o zoom da câm
 
 ### `js/grafoC.js`
 
-Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Detecta recursão direta por autoaresta e participação em ciclo quando há caminho de retorno ao próprio nó. Também fornece callers, callees, esses indicadores e um caminho mínimo e determinístico desde a entrada para uma função alcançável. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e não depende de Canvas, DOM ou geometria.
+Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Detecta recursão direta por autoaresta e participação em ciclo quando há caminho de retorno ao próprio nó. Também fornece callers, callees, esses indicadores, um caminho mínimo para o inspector e o contexto topológico de todas as cadeias relevantes até a função selecionada. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e não depende de Canvas, DOM ou geometria.
 
 ### `js/cenario.js`
 
@@ -80,7 +80,7 @@ Fornece paleta, glifos de 5x5 pixels para os marcadores e dados/recursos de pixe
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Durante a seleção, conserva visíveis as salas e os corredores fora do contexto topológico com opacidade menor, sem alterar suas coordenadas. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
@@ -88,7 +88,7 @@ Manipula DOM, troca telas, aceita escolha ou drop de arquivo no editor, apresent
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` por vez e chama análise, construção da masmorra e jogo. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
+Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` por vez e chama análise, construção da masmorra e jogo. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo, passa o contexto topológico calculado a partir do grafo para a renderização e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
 
 ## Fluxo atual
 

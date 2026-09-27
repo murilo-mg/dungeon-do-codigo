@@ -62,6 +62,10 @@ O botão Abrir .c e o drop no editor passam pela mesma validação de extensão 
 
 O inspector mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e indicadores de recursão direta e ciclo. Callers, callees e resultados da busca usam a mesma seleção: ela foca a sala na câmera e atualiza o inspector sem mover o personagem. Ao clicar no Canvas, a câmera volta a seguir o personagem. Navegação pelo caminho completo continua futura.
 
+### Destacar todas as cadeias relevantes na seleção
+
+O foco contextual usa as arestas reais do grafo e considera todas as funções que podem ser alcançadas da entrada antes do alvo e também podem chegar a ele. Assim, rotas alternativas permanecem visíveis sem escolher um único caminho; conjuntos de visitados limitam a busca em ciclos. O inspector mantém seu caminho mínimo textual. `principal.js` passa o contexto calculado em `grafoC.js` ao jogo, que apenas reduz a opacidade das salas e dos corredores fora do contexto. Uma função inalcançável destaca só a própria sala; desfazer a seleção restaura o desenho normal.
+
 ### Separar dados semânticos da representação visual
 
 O analisador expõe contagens por tipo mantendo o total e a fórmula de complexidade. O grafo determina recursão direta e participação em ciclo a partir de chamadas conhecidas; salas e inspector consomem esses dados. As salas recebem glifos pequenos para presença de I/F/W/S e R/C, enquanto `case` e quantidades permanecem no inspector. Complexidade conserva a cor base e as criaturas anteriores; Estrutura usa base de pedra neutra, oculta as criaturas e aumenta o contraste dos mesmos glifos. A alternância afeta apenas o desenho, sem mudar dimensões, layout ou seleção. Filtros continuam futuros.

@@ -3,7 +3,7 @@
 // masmorra, renderização do jogo e atualização da interface.
 
 import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
-import { criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
+import { calcularContextoTopologico, criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
 import { validarArquivoC } from './entradaCodigo.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
@@ -195,7 +195,7 @@ function aoClicarEmGerar(entradaCodigo) {
   }
   function selecionarFuncao(nome) {
     if (!grafo.nos.has(nome)) return;
-    const sala = focarSala(nome);
+    const sala = focarSala(nome, calcularContextoTopologico(grafo, nome));
     if (sala) mostrarSala(sala);
   }
   configurarBuscaFuncoes(grafo.nos.keys(), selecionarFuncao);

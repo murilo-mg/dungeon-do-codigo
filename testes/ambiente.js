@@ -23,6 +23,7 @@ class Elemento extends Emissor {
   marcadores = [];
   preenchimentosSalas = [];
   marcadoresDestacados = [];
+  tracos = [];
   salvamentos = 0;
   restauracoes = 0;
   contornos = [];
@@ -40,10 +41,16 @@ class Elemento extends Emissor {
   focus() { this.focado = true; }
   blur() { this.focado = false; }
   getContext() {
-    return { save: () => { this.salvamentos++; }, restore: () => { this.restauracoes++; },
+    const opacidades = [];
+    let inicio = null;
+    let fim = null;
+    return { globalAlpha: 1,
+      save() { this.canvas.salvamentos++; opacidades.push(this.globalAlpha); },
+      restore() { this.canvas.restauracoes++; this.globalAlpha = opacidades.pop(); },
       fillRect: function(x, y, largura, altura) {
         if (largura >= 60 && altura >= 60 && largura !== 560) {
-          this.canvas.preenchimentosSalas.push({ x, y, largura, altura, cor: this.fillStyle });
+          this.canvas.preenchimentosSalas.push({ x, y, largura, altura,
+            cor: this.fillStyle, opacidade: this.globalAlpha });
         }
         if (largura === 20 && altura === 5 && this.fillStyle === '#00000055') {
           this.canvas.posicoesPersonagem.push({ x: x + 10, y: y - 10 });
@@ -60,8 +67,14 @@ class Elemento extends Emissor {
       },
       canvas: this,
       clearRect: (x, y, largura, altura) => this.limpezas.push({ x, y, largura, altura }),
-      strokeRect: (x, y, largura, altura) => this.contornos.push({ x, y, largura, altura }),
-      beginPath() {}, moveTo() {}, lineTo() {}, stroke() {},
+      strokeRect: function(x, y, largura, altura) {
+        this.canvas.contornos.push({ x, y, largura, altura,
+          cor: this.strokeStyle, opacidade: this.globalAlpha });
+      },
+      beginPath() { inicio = null; fim = null; },
+      moveTo(x, y) { inicio = { x, y }; },
+      lineTo(x, y) { fim = { x, y }; },
+      stroke() { this.canvas.tracos.push({ inicio, fim, opacidade: this.globalAlpha }); },
       scale: (x, y) => this.escalas.push({ x, y }),
       translate: (x, y) => this.translacoes.push({ x, y }), fillText() {},
       measureText(texto) { return { width: texto.length * 6 }; } };

@@ -5,6 +5,7 @@ import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
   iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from '../js/jogo.js';
 import { PALETA } from '../js/pixelArt.js';
 import { corPorSala } from '../js/masmorra.js';
+import { calcularContextoTopologico, criarGrafo } from '../js/grafoC.js';
 
 const salas = [
   { nome: 'main', complexidade: 0, x: 235, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
@@ -12,6 +13,67 @@ const salas = [
 ];
 const arestas = [{ origem: 'main', destino: 'outra' }];
 const masmorra = { salas, larguraMundo: 560, alturaMundo: 480 };
+
+test('foco contextual atenua apenas salas e corredores fora das rotas e restaura ao sair', () => {
+  const ambiente = criarAmbiente();
+  const funcoes = [
+    { nome: 'main', chamadas: ['A', 'B', 'extra'] },
+    { nome: 'A', chamadas: ['C'] }, { nome: 'B', chamadas: ['C'] },
+    { nome: 'C', chamadas: [] }, { nome: 'extra', chamadas: [] },
+    { nome: 'isolada', chamadas: [] },
+  ];
+  const grafo = criarGrafo(funcoes);
+  const salasDoFoco = [
+    { nome: 'main', x: 20, y: 100, largura: 90, altura: 80, ehSalaInicial: true },
+    { nome: 'A', x: 150, y: 40, largura: 60, altura: 60 },
+    { nome: 'B', x: 150, y: 160, largura: 60, altura: 60 },
+    { nome: 'C', x: 300, y: 100, largura: 60, altura: 60 },
+    { nome: 'extra', x: 300, y: 220, largura: 60, altura: 60 },
+    { nome: 'isolada', x: 420, y: 220, largura: 60, altura: 60 },
+  ].map(sala => ({ complexidade: 0, ...sala }));
+  const mundo = { salas: salasDoFoco, larguraMundo: 560, alturaMundo: 480 };
+  iniciarJogo(mundo, grafo.arestas, () => {});
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const opacidadesSalas = () => canvas.preenchimentosSalas.slice(-6)
+    .map(sala => sala.opacidade);
+  const opacidadesCorredores = () => canvas.tracos.slice(-5)
+    .map(traco => traco.opacidade);
+
+  ambiente.avancar();
+  const salasSemFoco = opacidadesSalas();
+  assert.deepEqual(salasSemFoco, [1, 0.85, 0.85, 0.85, 0.85, 0.85]);
+  assert.deepEqual(opacidadesCorredores(), [1, 1, 1, 1, 1]);
+
+  focarSala('C', calcularContextoTopologico(grafo, 'C'));
+  const contornosAntes = canvas.contornos.length;
+  ambiente.avancar();
+  assert.deepEqual(opacidadesSalas(), [1, 0.85, 0.85, 0.85, 0.2975, 0.2975]);
+  assert.deepEqual(opacidadesCorredores(), [1, 1, 0.25, 1, 1]);
+  assert.deepEqual(canvas.contornos.slice(contornosAntes)
+    .filter(contorno => contorno.cor === PALETA.ouro)
+    .map(({ x, y, opacidade }) => ({ x, y, opacidade })),
+    [{ x: salasDoFoco[3].x - 5, y: salasDoFoco[3].y - 5, opacidade: 1 }]);
+
+  selecionarModoVisual('estrutura');
+  ambiente.avancar();
+  assert.deepEqual(opacidadesSalas(), [1, 0.85, 0.85, 0.85, 0.2975, 0.2975]);
+  focarSala('isolada', calcularContextoTopologico(grafo, 'isolada'));
+  ambiente.avancar();
+  assert.deepEqual(opacidadesSalas(), [0.35, 0.2975, 0.2975, 0.2975, 0.2975, 0.85]);
+  assert.deepEqual(opacidadesCorredores(), [0.25, 0.25, 0.25, 0.25, 0.25]);
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.deepEqual(opacidadesSalas(), salasSemFoco);
+  assert.deepEqual(opacidadesCorredores(), [1, 1, 1, 1, 1]);
+
+  focarSala('C', calcularContextoTopologico(grafo, 'C'));
+  iniciarJogo(mundo, grafo.arestas, () => {});
+  ambiente.avancar();
+  assert.deepEqual(opacidadesSalas(), salasSemFoco);
+  assert.deepEqual(opacidadesCorredores(), [1, 1, 1, 1, 1]);
+  pararJogo();
+});
 
 test('só captura movimento depois de clicar no mapa e libera ao clicar fora', () => {
   const ambiente = criarAmbiente();

@@ -21,6 +21,7 @@ let salas = [];
 let jogador = null;
 let salaAtual = null;
 let salaSelecionada = null;
+let contextoTopologico = null;
 let teclasPressionadas = {};
 let idQuadroAnimacao = null;
 let funcaoDeNotificacao = null;
@@ -73,6 +74,7 @@ export function iniciarJogo(
 
   salaAtual = null;
   salaSelecionada = null;
+  contextoTopologico = null;
   tempoCena = 0;
   particulas = [];
   primeiraDeteccao = true;
@@ -121,6 +123,7 @@ export function pararJogo() {
   modoCamera = 'jogador';
   modoVisual = 'complexidade';
   salaSelecionada = null;
+  contextoTopologico = null;
   salaAtual = null;
   jogador = null;
   larguraMundo = 560;
@@ -131,7 +134,7 @@ export function pararJogo() {
   funcaoDeNotificacaoZoom = null;
 }
 
-export function focarSala(nome) {
+export function focarSala(nome, contexto = null) {
   if (!camera) return null;
   const sala = salas.find(candidata => candidata.nome === nome);
   if (!sala) return null;
@@ -140,6 +143,7 @@ export function focarSala(nome) {
     funcaoDeNotificacaoZoom?.(camera.zoom);
   }
   salaSelecionada = sala;
+  contextoTopologico = contexto;
   modoCamera = 'sala';
   camera = atualizarCamera(camera, {
     x: sala.x + sala.largura / 2,
@@ -230,6 +234,7 @@ function atualizarFocoDoJogo(evento) {
     modoCamera = 'jogador';
     if (salaSelecionada) {
       salaSelecionada = null;
+      contextoTopologico = null;
       funcaoDeNotificacao?.(salaAtual);
     }
     canvas.focus({ preventScroll: true });
@@ -327,39 +332,47 @@ function desenharCena() {
 }
 
 function desenharCorredores() {
+  contexto.save();
   contexto.strokeStyle = '#332a1f';
   contexto.lineWidth = 10;
   segmentosDeCorredores.forEach(segmento => {
+    if (contextoTopologico) {
+      contexto.globalAlpha = contextoTopologico.arestas.get(segmento.origem)?.has(segmento.destino)
+        ? 1 : 0.25;
+    }
     contexto.beginPath();
     contexto.moveTo(segmento.inicio.x, segmento.inicio.y);
     contexto.lineTo(segmento.fim.x, segmento.fim.y);
     contexto.stroke();
   });
+  contexto.restore();
 }
 
 function desenharSala(sala) {
   const ativa = sala === salaAtual;
+  const atenuacao = contextoTopologico && !contextoTopologico.funcoes.has(sala.nome) ? 0.35 : 1;
   const estilo = obterEstiloVisualDaSala(sala, modoVisual);
   const x = Math.round(sala.x);
   const y = Math.round(sala.y);
   contexto.save();
   contexto.fillStyle = estilo.corBase;
-  contexto.globalAlpha = ativa ? 1 : 0.85;
+  contexto.globalAlpha = (ativa ? 1 : 0.85) * atenuacao;
   contexto.fillRect(x, y, sala.largura, sala.altura);
-  contexto.globalAlpha = 0.13;
+  contexto.globalAlpha = 0.13 * atenuacao;
   contexto.fillStyle = PALETA.pedraEscura;
   for (let linha = 4; linha < sala.altura - 4; linha += 12) {
     contexto.fillRect(x + 4, y + linha, sala.largura - 8, 1);
   }
-  contexto.globalAlpha = 1;
+  contexto.globalAlpha = atenuacao;
   contexto.strokeStyle = '#00000055';
   contexto.lineWidth = 2;
   contexto.strokeRect(x + 1, y + 1, sala.largura - 2, sala.altura - 2);
   if (ativa) {
-    contexto.globalAlpha = preferenciaMovimento.matches ? 0.9 : 0.7 + Math.sin(tempoCena * 3) * 0.2;
+    contexto.globalAlpha = (preferenciaMovimento.matches ? 0.9
+      : 0.7 + Math.sin(tempoCena * 3) * 0.2) * atenuacao;
     contexto.strokeStyle = PALETA.pergaminho;
     contexto.strokeRect(x - 2, y - 2, sala.largura + 4, sala.altura + 4);
-    contexto.globalAlpha = 1;
+    contexto.globalAlpha = atenuacao;
   }
   if (sala === salaSelecionada) {
     contexto.strokeStyle = PALETA.ouro;
@@ -368,9 +381,9 @@ function desenharSala(sala) {
   }
   // Faixa separada mantém o nome legível acima da criatura.
   contexto.fillStyle = PALETA.pedraEscura;
-  contexto.globalAlpha = 0.85;
+  contexto.globalAlpha = 0.85 * atenuacao;
   contexto.fillRect(x + 4, y + 4, sala.largura - 8, 15);
-  contexto.globalAlpha = 1;
+  contexto.globalAlpha = atenuacao;
   contexto.fillStyle = PALETA.pergaminho;
   contexto.font = '10px "JetBrains Mono", monospace';
   contexto.textAlign = 'center';

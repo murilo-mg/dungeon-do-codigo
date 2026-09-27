@@ -157,6 +157,34 @@ test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra 
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
 
+test('busca aplica foco às duas cadeias até a função e clique restaura os corredores', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?foco-topologico');
+  ambiente.documento.emitir('DOMContentLoaded');
+  ambiente.elementos.get('entrada-codigo').value =
+    'void C(){}\nvoid A(){C();}\nvoid B(){C();}\nvoid extra(){}\n'
+    + 'int main(){A();B();extra();return 0;}';
+  ambiente.elementos.get('botao-gerar').emitir('click');
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade), [1, 1, 1, 1, 1]);
+
+  const busca = ambiente.elementos.get('busca-funcao');
+  busca.value = 'C';
+  busca.emitir('input');
+  ambiente.elementos.get('resultados-busca').filhos[0].filhos[0].filhos[0].emitir('click');
+  ambiente.avancar();
+  assert.equal(encontrar(ambiente.elementos.get('info-sala'), 'nome-funcao').textContent,
+    'C()');
+  assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade),
+    [1, 1, 1, 1, 0.25]);
+
+  ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
+  ambiente.avancar();
+  assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade), [1, 1, 1, 1, 1]);
+  ambiente.elementos.get('botao-voltar').emitir('click');
+});
+
 test('controles de câmera convivem com caller, callee, busca e nova dungeon', async () => {
   const ambiente = criarAmbiente();
   await import('../js/principal.js?zoom-integracao');

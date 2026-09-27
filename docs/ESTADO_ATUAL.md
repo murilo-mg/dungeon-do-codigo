@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 197 testes passando.
+- A suíte registrada no estado deste documento tem 207 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -17,12 +17,13 @@
 - O Canvas renderiza cenário, salas, personagem, passos, efeitos e marcadores estruturais. No modo Complexidade, preserva cores por complexidade e criaturas; no modo Estrutura, usa base de pedra neutra, oculta criaturas e realça os marcadores.
 - O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
+- Selecionar uma função destaca as cadeias de chamadas relevantes até ela; salas e corredores fora dessas cadeias continuam visíveis com opacidade menor. Sem seleção, a aparência normal é restaurada.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
 - A preferência `prefers-reduced-motion` é respeitada em animações relevantes.
 
 ## Último marco
 
-O último marco é o primeiro experimento de legibilidade do layout: ordenação vertical determinística por callers na coluna anterior, sem alterar colunas, dimensões, grafo ou segmentos de corredores. O caso cruzado da linha de base passou de 1 para 0 cruzamentos; o cenário denso também melhorou nas três métricas. O mantenedor validou visualmente a ordenação no navegador e decidiu mantê-la. A validação manual da importação `.c`, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
+O último marco é o foco topológico/contextual da função selecionada. Ele mantém todas as cadeias relevantes desde a entrada, atenua os demais elementos e restaura a aparência normal ao desfazer a seleção. O cálculo não altera grafo, layout, corredores ou câmera. A ordenação vertical anterior foi validada visualmente pelo mantenedor e preservada. O foco topológico também foi validado visualmente pelo mantenedor. A validação manual da importação `.c`, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
@@ -35,6 +36,12 @@ O último marco é o primeiro experimento de legibilidade do layout: ordenação
 ## Corredores reais
 
 `principal.js` cria o grafo uma única vez, passa o grafo para `masmorra.js` e passa `grafo.arestas` para `jogo.js`. `corredores.js` converte as arestas e as salas em segmentos geométricos válidos. `jogo.js` desenha esses segmentos, enquanto `cenario.js` usa os mesmos segmentos para evitar decorações. Arestas com origem ou destino ausente, duplicatas e autoarestas são ignoradas para a renderização.
+
+## Foco topológico/contextual
+
+`grafoC.js` calcula o contexto sem usar geometria: cruza as funções alcançáveis da entrada sem passar antes pelo alvo com as funções que podem chegar ao alvo pelas arestas reversas. As arestas reais entre essas funções formam o destaque, inclusive quando existem várias cadeias de chamadas. Os percursos usam conjuntos de visitados para terminar em ciclos. Se a função selecionada não é alcançável, só ela pertence ao contexto; o inspector continua mostrando seu caminho mínimo ou a ausência dele.
+
+`principal.js` entrega esse contexto ao foco já existente em `jogo.js`. A sala selecionada conserva o contorno dourado; funções do contexto mantêm o desenho normal; demais salas ficam com 35% da opacidade normal e corredores fora do contexto com 25%. Todos continuam no Canvas. Clicar no mapa, parar o jogo ou gerar outra dungeon limpa o contexto; sem seleção, a aparência anterior é preservada. Os modos Complexidade e Estrutura aplicam o mesmo tratamento de opacidade.
 
 ## Câmera e viewport
 
