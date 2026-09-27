@@ -40,7 +40,7 @@ Consome o grafo e o layout calculado para montar as salas, incluindo o perfil de
 
 ### `js/layoutMasmorra.js`
 
-Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões das salas e o tamanho do mundo lógico. A API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua sendo 560x480, mas o mundo cresce quando as dimensões reais das salas e os gaps mínimos exigem mais espaço. Funções não alcançáveis ficam na coluna final.
+Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões das salas e o tamanho do mundo lógico. A API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua sendo 560x480, mas o mundo cresce quando as dimensões reais das salas e os gaps mínimos exigem mais espaço. Dentro de cada profundidade alcançável, ordena as funções pela média vertical dos callers na coluna anterior, com empate pela ordem estrutural original. Funções não alcançáveis ficam na coluna final, em sua ordem original.
 
 ### `js/camera.js`
 
@@ -113,7 +113,7 @@ O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada f
 
 ### `layoutMasmorra.js`
 
-O módulo já existe e concentra a geometria e o mundo lógico dinâmico. Os testes de estresse com 5, 15, 30 e 60 funções apresentam zero sobreposições de salas nos cenários atuais. Novos aprimoramentos devem partir de problemas medidos. O layout não deve decidir o significado das chamadas nem desenhar.
+O módulo já existe e concentra a geometria e o mundo lógico dinâmico. A primeira ordenação vertical por relações do grafo reduziu cruzamentos no caso cruzado e no cenário denso de diagnóstico, preservando colunas, dimensões e ausência de sobreposições. Os testes de estresse com 5, 15, 30 e 60 funções continuam sem sobreposições de salas. Novos aprimoramentos devem partir de problemas medidos. O layout não deve decidir o significado das chamadas nem desenhar.
 
 ### `camera.js`
 

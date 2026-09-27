@@ -16,7 +16,11 @@ O mesmo código deve produzir uma dungeon estável. Determinismo facilita aprend
 
 ### Medir legibilidade dos corredores antes de alterar o layout
 
-Além de tamanho do mundo e sobreposição de salas, comparar cruzamentos transversais, passagens pelo interior de terceiras salas e comprimento total dos corredores. A linha de base usa os segmentos retos atuais e casos determinísticos; roteamento e mudanças de layout ficam para uma etapa posterior.
+Além de tamanho do mundo e sobreposição de salas, comparar cruzamentos transversais, passagens pelo interior de terceiras salas e comprimento total dos corredores. A linha de base usa os segmentos retos atuais e casos determinísticos; o roteamento fica para uma etapa posterior.
+
+### Ordenar verticalmente por callers da coluna anterior
+
+O primeiro experimento de legibilidade usa a média da posição vertical dos callers já posicionados na profundidade anterior e a ordem estrutural original como desempate. Mantém profundidades, dimensões e a coluna final de funções inalcançáveis. No diagnóstico denso de 24 funções, reduziu cruzamentos de 59 para 17, travessias de salas de 15 para 8 e comprimento de 6439,16 para 5307,77; os corredores continuam retos entre centros.
 
 ## Tecnologia
 

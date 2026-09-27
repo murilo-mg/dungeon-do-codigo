@@ -11,6 +11,11 @@ function criarLayout(funcoes) {
   return calcularLayoutMasmorra(criarGrafo(funcoes), funcoes);
 }
 
+function centroY(layout, nome) {
+  const sala = layout.salas.get(nome);
+  return sala.y + sala.altura / 2;
+}
+
 test('grafo vazio produz layout vazio', () => {
   assert.deepEqual(criarLayout([]), {
     salas: new Map(),
@@ -53,6 +58,71 @@ test('distribui cadeia em colunas de profundidades diferentes', () => {
 
   assert.ok(layout.salas.get('main').x < layout.salas.get('a').x);
   assert.ok(layout.salas.get('a').x < layout.salas.get('b').x);
+  assert.equal(centroY(layout, 'main'), centroY(layout, 'a'));
+  assert.equal(centroY(layout, 'a'), centroY(layout, 'b'));
+});
+
+test('ordena destinos cruzados pelos callers da coluna anterior', () => {
+  const funcoes = [
+    criarFuncao('main', 0, ['a', 'b']),
+    criarFuncao('a', 0, ['d']),
+    criarFuncao('b', 0, ['c']),
+    criarFuncao('c'),
+    criarFuncao('d'),
+  ];
+  const layout = criarLayout(funcoes);
+
+  assert.ok(centroY(layout, 'a') < centroY(layout, 'b'));
+  assert.ok(centroY(layout, 'd') < centroY(layout, 'c'));
+  assert.deepEqual([...layout.salas.keys()], ['main', 'a', 'b', 'c', 'd']);
+});
+
+test('ramificações usam a ordem estrutural nos empates e são determinísticas', () => {
+  const funcoes = [
+    criarFuncao('main', 0, ['a', 'b']),
+    criarFuncao('a', 0, ['x', 'y']),
+    criarFuncao('b', 0, ['z']),
+    criarFuncao('y'), criarFuncao('x'), criarFuncao('z'),
+  ];
+  const primeiro = criarLayout(funcoes);
+
+  assert.ok(centroY(primeiro, 'y') < centroY(primeiro, 'x'));
+  assert.ok(centroY(primeiro, 'x') < centroY(primeiro, 'z'));
+  assert.deepEqual(primeiro, criarLayout(funcoes));
+});
+
+test('barycenter considera todos os callers da coluna anterior', () => {
+  const funcoes = [
+    criarFuncao('main', 0, ['a', 'b', 'c', 'd']),
+    criarFuncao('a', 0, ['y']),
+    criarFuncao('b', 0, ['x']),
+    criarFuncao('c', 0, ['z']),
+    criarFuncao('d', 0, ['y']),
+    criarFuncao('y'), criarFuncao('x'), criarFuncao('z'),
+  ];
+  const grafo = criarGrafo(funcoes);
+  const arestasOriginais = grafo.arestas.map(aresta => ({ ...aresta }));
+  const layout = calcularLayoutMasmorra(grafo, funcoes);
+
+  assert.ok(centroY(layout, 'x') < centroY(layout, 'y'));
+  assert.ok(centroY(layout, 'y') < centroY(layout, 'z'));
+  assert.deepEqual(grafo.nos.get('y').chamadaPor, ['a', 'd']);
+  assert.deepEqual(grafo.arestas, arestasOriginais);
+});
+
+test('ciclo e chamada em sentido contrário não alteram a profundidade', () => {
+  const funcoes = [
+    criarFuncao('main', 0, ['a']),
+    criarFuncao('a', 0, ['b']),
+    criarFuncao('b', 0, ['a', 'main']),
+  ];
+  const grafo = criarGrafo(funcoes);
+  const layout = calcularLayoutMasmorra(grafo, funcoes);
+
+  assert.deepEqual(funcoes.map(funcao => grafo.nos.get(funcao.nome).profundidade),
+    [0, 1, 2]);
+  assert.ok(layout.salas.get('main').x < layout.salas.get('a').x);
+  assert.ok(layout.salas.get('a').x < layout.salas.get('b').x);
 });
 
 test('coloca funções isoladas na última coluna', () => {
@@ -63,6 +133,20 @@ test('coloca funções isoladas na última coluna', () => {
   const layout = criarLayout(funcoes);
 
   assert.ok(layout.salas.get('isolada').x > layout.salas.get('main').x);
+});
+
+test('preserva a ordem de funções isoladas na coluna final', () => {
+  const funcoes = [
+    criarFuncao('main', 0, ['a']),
+    criarFuncao('isoladaB'),
+    criarFuncao('a'),
+    criarFuncao('isoladaA'),
+  ];
+  const layout = criarLayout(funcoes);
+
+  assert.ok(layout.salas.get('isoladaB').x > layout.salas.get('a').x);
+  assert.equal(layout.salas.get('isoladaB').x, layout.salas.get('isoladaA').x);
+  assert.ok(centroY(layout, 'isoladaB') < centroY(layout, 'isoladaA'));
 });
 
 test('a mesma entrada produz exatamente o mesmo layout', () => {
@@ -116,8 +200,11 @@ test('respeita tamanhos diferentes conforme a complexidade', () => {
   const layout = criarLayout(funcoes);
 
   assert.equal(layout.salas.get('baixa').largura, 60);
+  assert.equal(layout.salas.get('baixa').altura, 60);
   assert.equal(layout.salas.get('media').largura, 80);
+  assert.equal(layout.salas.get('media').altura, 80);
   assert.equal(layout.salas.get('alta').largura, 105);
+  assert.equal(layout.salas.get('alta').altura, 105);
 });
 
 test('respeita o gap vertical considerando as alturas reais', () => {

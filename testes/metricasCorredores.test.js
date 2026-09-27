@@ -70,7 +70,7 @@ test('trechos colineares sobrepostos não são cruzamentos transversais', () => 
     segmento('c', 'd', salas)]).cruzamentos, 0);
 });
 
-test('linha de base: cadeia, ramificação, callers e cruzamento pelo layout atual', () => {
+test('ordenação preserva as métricas simples e elimina o cruzamento evitável', () => {
   const cenarios = {
     cadeia: [funcao('main', ['a']), funcao('a', ['b']), funcao('b', ['c']), funcao('c')],
     ramificacao: [funcao('main', ['a', 'b']), funcao('a', ['c']),
@@ -85,14 +85,16 @@ test('linha de base: cadeia, ramificação, callers e cruzamento pelo layout atu
     return [nome, { ...metricas,
       comprimentoTotal: Number(metricas.comprimentoTotal.toFixed(2)) }];
   }));
-  console.log('Linha de base dos corredores:', JSON.stringify(resultados));
+  console.log('Métricas de corredores após ordenação:', JSON.stringify(resultados));
   assert.deepEqual(resultados, {
     cadeia: { cruzamentos: 0, corredoresAtravessandoSalas: 0, comprimentoTotal: 255 },
     ramificacao: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
       comprimentoTotal: 366.16 },
     callers: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
       comprimentoTotal: 385.04 },
-    cruzado: { cruzamentos: 1, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 432.43 },
+    cruzado: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
+      comprimentoTotal: 366.16 },
   });
+  assert.ok(resultados.cruzado.cruzamentos < 1);
+  assert.ok(resultados.cruzado.comprimentoTotal < 432.43);
 });

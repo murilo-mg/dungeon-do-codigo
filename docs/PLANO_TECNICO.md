@@ -30,7 +30,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Detecção de recursão direta e participação em ciclos de chamadas conhecidas, com indicadores nos nós, salas e inspector.
 - Escolha de `main` como sala inicial, ou da primeira função quando não há `main`.
 - Cálculo de chamadas recebidas e profundidade alcançável a partir da função inicial.
-- Layout atual por colunas de profundidade e coluna separada para funções isoladas.
+- Layout por colunas de profundidade, ordenação vertical por callers da coluna anterior e coluna separada para funções isoladas.
 - Salas coloridas e criaturas conforme complexidade.
 - Marcadores em pixels inteiros nas laterais das salas: I/F/W/S para presença de estruturas e R/C para recursão direta ou ciclo indireto, com legenda HTML. Quantidades detalhadas, inclusive `case`, ficam no inspector.
 - Modos visuais Complexidade e Estrutura: o primeiro preserva cores e criaturas ligadas à complexidade; o segundo usa base neutra e marcadores de maior contraste, ocultando criaturas. Uma nova dungeon inicia em Complexidade.
@@ -41,20 +41,21 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Layout separado em `layoutMasmorra.js`, com mundo lógico dinâmico.
 - Testes de estresse com 5, 15, 30 e 60 funções, sem sobreposição de salas nos cenários atuais.
 - Linha de base de legibilidade dos corredores: cruzamentos transversais, corredores que atravessam o interior de outra sala e comprimento total dos segmentos retos atuais.
+- Primeiro experimento de ordenação vertical determinística: reduziu as três métricas no diagnóstico denso de 24 funções, sem sobreposição de salas.
 - Câmera básica que acompanha o personagem e respeita os limites do mundo; viewport de 560x480 e movimento limitado pelas dimensões do mundo.
 - Validação manual da câmera concluída pelo mantenedor, com salas e corredores alinhados, controles funcionando e nenhum bug visual encontrado.
 - Barra de câmera com zoom manual em passos de 25%, retorno a 100% e visão geral que encaixa a dungeon inteira no viewport. A validação visual desse novo recurso ainda está pendente.
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 191 testes automatizados Node.js registrados como passando.
+- 197 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
 - Leitura estrutural avançada: navegação pelo caminho completo e filtros estruturais.
 - Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
-- Melhoria do layout e dos corredores para reduzir cruzamentos, travessias de salas e comprimento quando os casos medidos justificarem.
+- Novas melhorias do layout e dos corredores para reduzir cruzamentos, travessias de salas e comprimento quando os casos medidos justificarem.
 - PWA.
 - Exportação de resultados.
 - Comparação antes/depois de duas versões do código.
@@ -86,6 +87,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: câmera básica com viewport de 560x480 e validação manual pelo mantenedor.
 - Concluído: zoom manual, retorno a 100% e Encaixar para visão geral da dungeon; validação visual desse recurso pendente.
 - Concluído: linha de base determinística da legibilidade dos corredores, sem mudança de geometria ou desenho.
+- Concluído: primeiro experimento de ordem vertical por callers, mantendo colunas e dimensões; cenário denso passou de 59/15/6439,16 para 17/8/5307,77 em cruzamentos/travessias/comprimento.
 - Pendentes: minimapa e colisão/topologia.
 
 ### Fase 4: leitura estrutural do programa
@@ -183,7 +185,7 @@ Gerar uma sequência de funções `f01` a `f30`, com `main` chamando algumas fun
 
 ## Testes de estresse
 
-Os cenários determinísticos com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`. Cadeias, funções no mesmo nível e combinações com funções isoladas apresentam zero sobreposições de salas nos cenários atuais; os resultados estão em `ESTADO_ATUAL.md`. Os mesmos cenários agora registram cruzamentos, travessias do interior de salas e comprimento dos corredores retos para comparação com futuras melhorias. A navegação com câmera também foi validada manualmente pelo mantenedor. Novas medições de análise, grafo, layout, primeiro desenho e interação, além de casos adicionais, devem orientar qualquer adoção futura de uma biblioteca de layout.
+Os cenários determinísticos com 5, 15, 30 e 60 funções estão concluídos em `testes/layoutMasmorra-estresse.test.js`. Cadeias, funções no mesmo nível e combinações com funções isoladas apresentam zero sobreposições de salas nos cenários atuais; os resultados estão em `ESTADO_ATUAL.md`. Esses cenários mantiveram suas métricas de corredores após a ordenação vertical. Um diagnóstico denso de 24 funções agora compara cruzamentos, travessias do interior de salas e comprimento dos corredores retos antes/depois. A navegação com câmera também foi validada manualmente pelo mantenedor. Novas medições de análise, grafo, layout, primeiro desenho e interação, além de casos adicionais, devem orientar qualquer adoção futura de uma biblioteca de layout.
 
 ## Segurança
 

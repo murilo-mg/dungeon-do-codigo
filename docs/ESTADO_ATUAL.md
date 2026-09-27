@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 191 testes passando.
+- A suíte registrada no estado deste documento tem 197 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -13,7 +13,7 @@
 - A entrada aceita código digitado/colado ou um arquivo `.c` local por seletor ou drop no editor. Aceita um arquivo por vez, até 512 KiB; só substitui o texto após leitura válida, sem executar ou enviar o arquivo.
 - O parser detecta funções, ignora comentários/literais na análise estrutural e detecta chamadas entre funções conhecidas.
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
-- O layout atual organiza salas em colunas conforme a profundidade e separa funções inalcançáveis em uma coluna de isoladas.
+- O layout atual organiza salas em colunas conforme a profundidade, ordena cada coluna alcançável pela posição média dos callers na coluna anterior e separa funções inalcançáveis em uma coluna de isoladas.
 - O Canvas renderiza cenário, salas, personagem, passos, efeitos e marcadores estruturais. No modo Complexidade, preserva cores por complexidade e criaturas; no modo Estrutura, usa base de pedra neutra, oculta criaturas e realça os marcadores.
 - O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
@@ -22,13 +22,13 @@
 
 ## Último marco
 
-O último marco é a importação local de um arquivo `.c` pelo botão Abrir .c ou por drop na área de código. O arquivo é validado pelo nome e pelo limite de 512 KiB antes de ser lido; extensão inválida, tamanho excessivo, seleção múltipla, leitura falha ou conteúdo vazio preservam o texto anterior. A importação não gera a dungeon automaticamente. A validação manual desse fluxo no navegador, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
+O último marco é o primeiro experimento de legibilidade do layout: ordenação vertical determinística por callers na coluna anterior, sem alterar colunas, dimensões, grafo ou segmentos de corredores. O caso cruzado da linha de base passou de 1 para 0 cruzamentos; o cenário denso também melhorou nas três métricas. O mantenedor validou visualmente a ordenação no navegador e decidiu mantê-la. A validação manual da importação `.c`, dos marcadores, dos modos visuais, do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
 `grafoC.js` representa explicitamente a função de entrada, os nós por nome, as arestas direcionadas, as chamadas recebidas, a profundidade mínima e o alcance a partir da entrada. Agora também marca autoarestas como recursão direta e detecta participação em ciclo apenas quando um caminho de chamadas conhecidas retorna ao próprio nó. `masmorra.js` consome esses dados sem duplicar o cálculo das relações.
 
-`layoutMasmorra.js` agora concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
+`layoutMasmorra.js` concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Na coluna alcançável, usa a média dos centros verticais dos callers da coluna anterior e desempata pela ordem estrutural; funções isoladas preservam sua ordem na coluna final. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
 
 `camera.js` calcula a posição a partir de um alvo sem suavização, considerando a área visível definida pelo zoom para limitar o deslocamento. Também calcula o menor zoom que encaixa o mundo e limita o zoom manual a 200%. `jogo.js` usa o personagem como alvo durante a exploração, o centro da sala selecionada no foco manual e mantém a visão geral fixa enquanto ela está ativa. As coordenadas armazenadas de salas, corredores, personagem, partículas e passos continuam sendo coordenadas do mundo.
 
@@ -63,7 +63,15 @@ Os testes determinísticos cobrem cadeia profunda, muitas funções no mesmo ní
 
 Antes do mundo dinâmico, as sobreposições começavam em 15 funções: 31 na cadeia, 32 no mesmo nível e 13 na combinação; em 60 funções chegavam a 606, 688 e 373, respectivamente. Depois da mudança, os 12 cenários apresentam zero sobreposições e nenhuma sala ultrapassa os limites do mundo calculado.
 
-A linha de base de legibilidade dos corredores mede cruzamentos transversais entre segmentos sem sala compartilhada, corredores cujo eixo atravessa o interior aberto de uma terceira sala e soma dos comprimentos retos entre centros. Contatos apenas com a borda, trechos colineares e largura visual do traço não entram nessas contagens. Nos cenários de mesmo nível com 5, 15, 30 e 60 funções, respectivamente 2, 10, 25 e 55 corredores atravessam outras salas, embora não haja sobreposição de salas nem cruzamentos transversais. Um caso propositalmente cruzado pelo layout atual apresenta 1 cruzamento. Os valores detalhados de comprimento e dos demais cenários estão fixados em `testes/metricasCorredores.test.js` e `testes/layoutMasmorra-estresse.test.js`; nenhuma geometria foi alterada nesta etapa.
+A linha de base de legibilidade dos corredores mede cruzamentos transversais entre segmentos sem sala compartilhada, corredores cujo eixo atravessa o interior aberto de uma terceira sala e soma dos comprimentos retos entre centros. Contatos apenas com a borda, trechos colineares e largura visual do traço não entram nessas contagens. Nos cenários de mesmo nível com 5, 15, 30 e 60 funções, respectivamente 2, 10, 25 e 55 corredores atravessam outras salas; a ordenação por callers não altera esses casos, pois todos têm o mesmo caller na coluna anterior. Cadeias, ramificação simples, múltiplos callers simples e os demais casos de estresse também mantêm suas métricas. O caso propositalmente cruzado passou de 1 para 0 cruzamentos e de 432,43 para 366,16 de comprimento, sem travessias de salas em nenhuma versão.
+
+| Diagnóstico denso (24 funções) | Antes | Agora | Diferença |
+| --- | ---: | ---: | ---: |
+| Cruzamentos | 59 | 17 | -42 |
+| Corredores atravessando terceira sala | 15 | 8 | -7 |
+| Comprimento total | 6439,16 | 5307,77 | -1131,39 |
+
+Esse diagnóstico inclui vários níveis, fan-out, múltiplos callers e chamadas de volta que pulam níveis. Nenhuma das três métricas piorou nele. A geometria dos segmentos continua reta entre centros; não houve roteamento novo. Os números estão fixados em `testes/metricasCorredores.test.js` e `testes/layoutMasmorra-estresse.test.js`.
 
 Nesta execução local, a criação do grafo e o cálculo do layout ficaram na ordem de milissegundos ou menos. Esses tempos são apenas observações da máquina usada, não garantias de performance; o custo computacional continua secundário diante da área visual necessária.
 

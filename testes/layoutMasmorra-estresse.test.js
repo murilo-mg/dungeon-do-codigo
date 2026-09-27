@@ -62,6 +62,37 @@ function criarFuncoes(quantidade, tipo) {
   ];
 }
 
+function criarCenarioDenso() {
+  const chamadas = {
+    main: ['carregar', 'validar', 'processar', 'apresentar'],
+    carregar: ['lerDisco', 'sanear'],
+    validar: ['sanear', 'tokenizar'],
+    processar: ['tokenizar', 'classificar', 'avaliar'],
+    apresentar: ['avaliar', 'formatar', 'emitir'],
+    emitir: ['escreverSaida'],
+    formatar: ['montarTexto', 'escreverSaida'],
+    avaliar: ['calcularTotal', 'compararItens', 'emitir'],
+    classificar: ['compararItens', 'reconhecerToken'],
+    tokenizar: ['reconhecerToken', 'filtrarTexto'],
+    sanear: ['filtrarTexto', 'decodificar'],
+    lerDisco: ['decodificar', 'abrirFluxo'],
+    escreverSaida: ['finalizar', 'carregar'],
+    montarTexto: ['finalizar', 'conferir'],
+    calcularTotal: ['conferir', 'acumular'],
+    compararItens: ['acumular'],
+    reconhecerToken: ['acumular'],
+    filtrarTexto: ['reservar'],
+    decodificar: ['reservar', 'validar'],
+    abrirFluxo: ['reservar'],
+    finalizar: ['processar'],
+    conferir: ['tokenizar'],
+    acumular: [],
+    reservar: [],
+  };
+  return Object.entries(chamadas).map(([nome, destinos]) =>
+    criarFuncao(nome, destinos));
+}
+
 function retangulosSobrepostos(layout) {
   const entradas = [...layout.entries()];
   let quantidade = 0;
@@ -209,4 +240,30 @@ test('sessenta funções isoladas expandem a altura sem sobreposição', () => {
   validarIntegridade(relatorio, funcoes);
   assert.equal(relatorio.sobreposicoes, 0);
   assert.ok(relatorio.alturaMundo > 480);
+});
+
+test('cenário denso mede ganho sem mudar níveis, arestas ou dimensões', () => {
+  const funcoes = criarCenarioDenso();
+  const relatorio = medirCenario(funcoes, performance.now());
+  validarIntegridade(relatorio, funcoes);
+  assert.equal(funcoes.length, 24);
+  assert.equal(relatorio.sobreposicoes, 0);
+  assert.equal(relatorio.grafo.nos.get('escreverSaida').profundidade, 3);
+  assert.equal(relatorio.grafo.nos.get('carregar').profundidade, 1);
+  assert.ok(relatorio.grafo.arestas.some(aresta =>
+    aresta.origem === 'escreverSaida' && aresta.destino === 'carregar'));
+  assert.deepEqual(relatorio.grafo.nos.get('reservar').chamadaPor,
+    ['filtrarTexto', 'decodificar', 'abrirFluxo']);
+  for (const [nome, sala] of relatorio.layout.salas) {
+    assert.deepEqual([sala.largura, sala.altura],
+      nome === 'main' ? [90, 80] : [60, 60]);
+  }
+  const { cruzamentos, corredoresAtravessandoSalas, comprimentoTotal } =
+    relatorio.metricasCorredores;
+  const novas = [cruzamentos, corredoresAtravessandoSalas,
+    Number(comprimentoTotal.toFixed(2))];
+  const anteriores = [59, 15, 6439.16];
+  assert.deepEqual(novas, [17, 8, 5307.77]);
+  novas.forEach((valor, indice) => assert.ok(valor < anteriores[indice]));
+  console.log('Cenário denso antes/depois:', JSON.stringify({ anteriores, novas }));
 });
