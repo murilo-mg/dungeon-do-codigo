@@ -650,6 +650,30 @@ textarea:focus-visible {
   font-size: 11px;
 }
 
+.controles-modo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: var(--pergaminho-fraco);
+  font-size: 11px;
+}
+
+.controles-modo button {
+  padding: 5px 9px;
+  font-size: 11px;
+  background: var(--pedra);
+  border: 1px solid var(--pedra-clara);
+  color: var(--pergaminho-fraco);
+}
+
+.controles-modo button[aria-pressed="true"] {
+  background: var(--brasa);
+  border-color: var(--brasa-clara);
+  color: #fff5e8;
+}
+
 .legenda-estrutural,
 .legenda-estrutural ul {
   display: flex;

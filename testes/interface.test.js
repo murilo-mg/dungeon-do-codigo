@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { criarAmbiente, encontrar } from './ambiente.js';
-import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes, configurarControlesCamera, atualizarZoomCamera } from '../js/interface.js';
+import { atualizarEstadoControles, atualizarPainelDeSala, exibirTelaDeConfiguracao, descreverSala, exibirTelaDeJogo, inicializarBuscaFuncoes, configurarBuscaFuncoes, limparBuscaFuncoes, configurarControlesCamera, atualizarZoomCamera, configurarModosVisuais, atualizarModoVisual } from '../js/interface.js';
 import { criarGrafo, obterEstruturaDaFuncao } from '../js/grafoC.js';
 import { analisarFuncoes } from '../js/analisadorC.js';
 
@@ -39,6 +39,33 @@ test('controles de câmera no HTML são botões nativos acessíveis', () => {
     assert.match(html, new RegExp(`<button id="${id}" type="button"[^>]*>[^<]+</button>`));
   }
   assert.match(html, /role="group" aria-label="Controles da câmera"/);
+});
+
+test('botões nativos de modo expõem seleção e chamam o jogo sem duplicar listeners', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /role="group" aria-label="Modo de leitura do mapa"/);
+  assert.match(html, /<button id="modo-complexidade" type="button" aria-pressed="true">Complexidade<\/button>/);
+  assert.match(html, /<button id="modo-estrutura" type="button" aria-pressed="false">Estrutura<\/button>/);
+  const ambiente = criarAmbiente();
+  const escolhidos = [];
+  configurarModosVisuais(modo => { escolhidos.push(modo); return modo; });
+  atualizarModoVisual('complexidade');
+  const complexidade = ambiente.elementos.get('modo-complexidade');
+  const estrutura = ambiente.elementos.get('modo-estrutura');
+  assert.equal(complexidade.atributos['aria-pressed'], 'true');
+  assert.equal(estrutura.atributos['aria-pressed'], 'false');
+  estrutura.emitir('click');
+  assert.deepEqual(escolhidos, ['estrutura']);
+  assert.equal(complexidade.atributos['aria-pressed'], 'false');
+  assert.equal(estrutura.atributos['aria-pressed'], 'true');
+  complexidade.emitir('click');
+  assert.deepEqual(escolhidos, ['estrutura', 'complexidade']);
+  assert.equal(complexidade.atributos['aria-pressed'], 'true');
+  assert.equal(estrutura.atributos['aria-pressed'], 'false');
+  assert.equal(estrutura.ouvintes.get('click').size, 1);
+  assert.equal(complexidade.ouvintes.get('click').size, 1);
+  const css = readFileSync(new URL('../css/estilo.css', import.meta.url), 'utf8');
+  assert.match(css, /\.controles-modo button\[aria-pressed="true"\]/);
 });
 
 test('legenda estática explica os seis marcadores sem conteúdo do código do usuário', () => {

@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente } from './ambiente.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
-  iniciarJogo, pararJogo, restaurarZoomCamera } from '../js/jogo.js';
+  iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from '../js/jogo.js';
+import { PALETA } from '../js/pixelArt.js';
+import { corPorSala } from '../js/masmorra.js';
 
 const salas = [
   { nome: 'main', complexidade: 0, x: 235, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
@@ -518,4 +520,90 @@ test('zoom e Encaixar mantêm os marcadores em coordenadas do mundo', () => {
   assert.deepEqual(canvas.posicoesCriaturas.at(-1), posicaoCriatura);
   assert.ok(canvas.escalas.at(-1).x < 1);
   pararJogo();
+});
+
+test('alternância visual preserva geometria, personagem, sala física e marcadores', () => {
+  const ambiente = criarAmbiente();
+  const inicial = { ...criarSalaVisual('main', 100, { if: 2 },
+    { recursivaDireta: true, participaDeCiclo: true }), ehSalaInicial: true };
+  const comum = { ...criarSalaVisual('comum', 300, { for: 1, while: 1, switch: 1 }),
+    complexidade: 8, participaDeCiclo: true };
+  const simples = criarSalaVisual('simples', 450);
+  const notificacoes = [];
+  iniciarJogo({ salas: [inicial, comum, simples], larguraMundo: 560, alturaMundo: 480 },
+    [], sala => notificacoes.push(sala?.nome ?? null));
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  const bases = canvas.preenchimentosSalas.slice(-3);
+  assert.deepEqual(bases.map(item => item.cor),
+    [corPorSala(inicial), corPorSala(comum), corPorSala(simples)]);
+  assert.equal(canvas.posicoesCriaturas.length, 3);
+  assert.equal(canvas.marcadores.length, 6);
+  const personagem = canvas.posicoesPersonagem.at(-1);
+  const contornos = canvas.contornos.length;
+  assert.equal(selecionarModoVisual('estrutura'), 'estrutura');
+  canvas.marcadoresDestacados = [];
+  ambiente.avancar();
+  const neutras = canvas.preenchimentosSalas.slice(-3);
+  assert.deepEqual(neutras.map(item => item.cor),
+    [PALETA.pedraClara, PALETA.pedra, PALETA.pedra]);
+  assert.deepEqual(neutras.map(({ x, y, largura, altura }) => ({ x, y, largura, altura })),
+    bases.map(({ x, y, largura, altura }) => ({ x, y, largura, altura })));
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), personagem);
+  assert.equal(canvas.posicoesCriaturas.length, 3);
+  assert.equal(canvas.marcadoresDestacados.length, 6);
+  assert.ok(canvas.marcadoresDestacados.every(({ x }) => x < simples.x));
+  assert.ok(canvas.contornos.length > contornos);
+  assert.deepEqual(notificacoes, ['main']);
+  canvas.marcadores = [];
+  selecionarModoVisual('complexidade');
+  ambiente.avancar();
+  assert.equal(canvas.marcadores.length, 6);
+  assert.equal(canvas.posicoesCriaturas.length, 6);
+  assert.deepEqual(canvas.preenchimentosSalas.slice(-3).map(item => item.cor),
+    bases.map(item => item.cor));
+  pararJogo();
+});
+
+test('troca visual mantém zoom, Encaixar, foco manual e seleção física separados', () => {
+  const ambiente = criarAmbiente();
+  const notificacoes = [];
+  iniciarJogo(mundoZoom, [], sala => notificacoes.push(sala?.nome ?? null));
+  ambiente.avancar();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const personagem = canvas.posicoesPersonagem.at(-1);
+  focarSala('distante');
+  encaixarMasmorra();
+  ambiente.avancar();
+  const escala = canvas.escalas.at(-1);
+  const translacao = canvas.translacoes.at(-1);
+  selecionarModoVisual('estrutura');
+  ambiente.avancar();
+  assert.deepEqual(canvas.escalas.at(-1), escala);
+  assert.deepEqual(canvas.translacoes.at(-1), translacao);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), personagem);
+  assert.deepEqual(notificacoes, ['main']);
+  assert.ok(canvas.contornos.some(contorno => contorno.x === 1895));
+  selecionarModoVisual('complexidade');
+  ambiente.avancar();
+  assert.deepEqual(canvas.escalas.at(-1), escala);
+  assert.deepEqual(canvas.translacoes.at(-1), translacao);
+  pararJogo();
+});
+
+test('nova dungeon e retorno ao editor reiniciam o modo visual', () => {
+  const ambiente = criarAmbiente();
+  iniciarJogo(masmorra, [], () => {});
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  assert.equal(selecionarModoVisual('estrutura'), 'estrutura');
+  ambiente.avancar();
+  assert.equal(canvas.preenchimentosSalas.at(-1).cor, PALETA.pedra);
+  const novaSala = { ...salas[0], nome: 'nova' };
+  iniciarJogo({ salas: [novaSala], larguraMundo: 560, alturaMundo: 480 }, [], () => {});
+  ambiente.avancar();
+  assert.equal(canvas.preenchimentosSalas.at(-1).cor, corPorSala(novaSala));
+  selecionarModoVisual('estrutura');
+  pararJogo();
+  assert.equal(selecionarModoVisual('inválido'), 'complexidade');
+  assert.equal(ambiente.pendentes.size, 0);
 });

@@ -52,7 +52,7 @@ O inspector mostra callers, callees, um caminho mínimo desde a entrada, o total
 
 ### Separar dados semânticos da representação visual
 
-O analisador expõe contagens por tipo mantendo o total e a fórmula de complexidade. O grafo determina recursão direta e participação em ciclo a partir de chamadas conhecidas; salas e inspector consomem esses dados. As salas agora recebem glifos pequenos para presença de I/F/W/S e R/C, enquanto `case` e quantidades permanecem no inspector. A cor base segue significando complexidade; dimensões e layout não mudam. Modos visuais alternativos e filtros continuam futuros.
+O analisador expõe contagens por tipo mantendo o total e a fórmula de complexidade. O grafo determina recursão direta e participação em ciclo a partir de chamadas conhecidas; salas e inspector consomem esses dados. As salas recebem glifos pequenos para presença de I/F/W/S e R/C, enquanto `case` e quantidades permanecem no inspector. Complexidade conserva a cor base e as criaturas anteriores; Estrutura usa base de pedra neutra, oculta as criaturas e aumenta o contraste dos mesmos glifos. A alternância afeta apenas o desenho, sem mudar dimensões, layout ou seleção. Filtros continuam futuros.
 
 ### Canvas para mapa; DOM para inspector e controles
 

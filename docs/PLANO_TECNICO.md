@@ -32,6 +32,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Layout atual por colunas de profundidade e coluna separada para funções isoladas.
 - Salas coloridas e criaturas conforme complexidade.
 - Marcadores em pixels inteiros nas laterais das salas: I/F/W/S para presença de estruturas e R/C para recursão direta ou ciclo indireto, com legenda HTML. Quantidades detalhadas, inclusive `case`, ficam no inspector.
+- Modos visuais Complexidade e Estrutura: o primeiro preserva cores e criaturas ligadas à complexidade; o segundo usa base neutra e marcadores de maior contraste, ocultando criaturas. Uma nova dungeon inicia em Complexidade.
 - Exploração por WASD/setas, foco no mapa, liberação por clique fora e `Esc`.
 - Preferência de movimento reduzido.
 - Inspector com descrição, perigo, métricas e trecho de código.
@@ -44,11 +45,11 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Inspector estrutural com callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de ciclo.
 - Navegação por botões de callers e callees, com foco manual da câmera na sala selecionada sem teleportar o personagem.
 - Busca por nome de função na dungeon atual, com foco pelo mesmo mecanismo das relações.
-- 171 testes automatizados Node.js registrados como passando.
+- 177 testes automatizados Node.js registrados como passando.
 
 ## Funcionalidades futuras
 
-- Leitura estrutural avançada: navegação pelo caminho completo, filtros estruturais e possíveis modos visuais alternativos.
+- Leitura estrutural avançada: navegação pelo caminho completo e filtros estruturais.
 - Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
 - PWA.
@@ -89,6 +90,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: navegação por botões de callers e callees, com seleção independente da sala física e foco manual da câmera.
 - Concluído: busca por função na dungeon atual, com foco pelo mesmo fluxo da navegação estrutural.
 - Concluído: marcadores de presença nas salas para I/F/W/S e R/C, preservando a cor de complexidade, a geometria e os contornos de interação.
+- Concluído: modos visuais Complexidade e Estrutura, com alternância imediata sem mudar grafo, geometria, câmera, busca ou inspector.
 - Destaque de relações e métricas.
 - Inspector acessível, foco previsível e controles de toque.
 - Validar a experiência com usuários e programas curtos.

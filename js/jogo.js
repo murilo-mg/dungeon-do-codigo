@@ -1,18 +1,18 @@
 // Responsável exclusivamente pela renderização em canvas e pela física do jogador.
 // Não manipula DOM diretamente: notifica mudanças de sala por callback.
 
-import { corPorSala } from './masmorra.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
 import { criarSegmentosDeCorredores } from './corredores.js';
 import { alterarZoom, atualizarCamera, criarCamera, definirZoom, encaixarCamera } from './camera.js';
 import { GLIFOS_MARCADORES, PALETA, desenharPixels } from './pixelArt.js';
-import { obterMarcadoresEstruturais } from './semanticaVisual.js';
+import { obterEstiloVisualDaSala, obterMarcadoresEstruturais } from './semanticaVisual.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
 import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem } from './personagem.js';
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
 const CORES_MARCADORES = { 1: PALETA.pergaminho };
+const CORES_MARCADORES_DESTACADOS = { 1: PALETA.pedraEscura };
 
 let funcaoDeNotificacaoControles = null;
 let contexto = null;
@@ -35,6 +35,7 @@ let cenario = null;
 let segmentosDeCorredores = [];
 let camera = null;
 let modoCamera = 'jogador';
+let modoVisual = 'complexidade';
 let larguraMundo = 560;
 let alturaMundo = 480;
 const TECLAS_MOVIMENTO = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd']);
@@ -86,6 +87,7 @@ export function iniciarJogo(
     alturaMundo,
   });
   modoCamera = 'jogador';
+  modoVisual = 'complexidade';
 
   cenario = criarCenario(
     salas,
@@ -117,6 +119,7 @@ export function pararJogo() {
   segmentosDeCorredores = [];
   camera = null;
   modoCamera = 'jogador';
+  modoVisual = 'complexidade';
   salaSelecionada = null;
   salaAtual = null;
   jogador = null;
@@ -143,6 +146,11 @@ export function focarSala(nome) {
     y: sala.y + sala.altura / 2,
   });
   return sala;
+}
+
+export function selecionarModoVisual(modo) {
+  if (modo === 'complexidade' || modo === 'estrutura') modoVisual = modo;
+  return modoVisual;
 }
 
 function mudarZoom(novaCamera) {
@@ -331,10 +339,11 @@ function desenharCorredores() {
 
 function desenharSala(sala) {
   const ativa = sala === salaAtual;
+  const estilo = obterEstiloVisualDaSala(sala, modoVisual);
   const x = Math.round(sala.x);
   const y = Math.round(sala.y);
   contexto.save();
-  contexto.fillStyle = corPorSala(sala);
+  contexto.fillStyle = estilo.corBase;
   contexto.globalAlpha = ativa ? 1 : 0.85;
   contexto.fillRect(x, y, sala.largura, sala.altura);
   contexto.globalAlpha = 0.13;
@@ -370,23 +379,25 @@ function desenharSala(sala) {
     nome = nome.replace(/…$/, '').slice(0, -1) + '…';
   }
   contexto.fillText(nome, x + sala.largura / 2, y + 15);
-  desenharCriatura(contexto, sala.complexidade, x + sala.largura / 2,
-    y + sala.altura - 20, 2, preferenciaMovimento.matches ? 0 : tempoCena + sala.x / 100);
-  desenharMarcadoresDaSala(sala, x, y);
+  if (estilo.exibirCriatura) {
+    desenharCriatura(contexto, sala.complexidade, x + sala.largura / 2,
+      y + sala.altura - 20, 2, preferenciaMovimento.matches ? 0 : tempoCena + sala.x / 100);
+  }
+  desenharMarcadoresDaSala(sala, x, y, estilo.destacarMarcadores);
   contexto.restore();
 }
 
-function desenharMarcadoresDaSala(sala, x, y) {
+function desenharMarcadoresDaSala(sala, x, y, destacar) {
   const { estruturas, chamada } = obterMarcadoresEstruturais(sala);
   estruturas.forEach((marcador, indice) => {
-    desenharMarcador(marcador, x + 4, y + 21 + indice * 9);
+    desenharMarcador(marcador, x + 4, y + 21 + indice * 9, destacar);
   });
-  if (chamada) desenharMarcador(chamada, x + sala.largura - 13, y + 21);
+  if (chamada) desenharMarcador(chamada, x + sala.largura - 13, y + 21, destacar);
 }
 
-function desenharMarcador(marcador, x, y) {
-  contexto.fillStyle = PALETA.pedraEscura;
+function desenharMarcador(marcador, x, y, destacar) {
+  contexto.fillStyle = destacar ? PALETA.pergaminho : PALETA.pedraEscura;
   contexto.fillRect(x, y, 9, 8);
   desenharPixels(contexto, GLIFOS_MARCADORES[marcador],
-    CORES_MARCADORES, x + 2, y + 1, 1);
+    destacar ? CORES_MARCADORES_DESTACADOS : CORES_MARCADORES, x + 2, y + 1, 1);
 }

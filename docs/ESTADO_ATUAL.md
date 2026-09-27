@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A suíte registrada no estado deste documento tem 171 testes passando.
+- A suíte registrada no estado deste documento tem 177 testes passando.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -13,7 +13,7 @@
 - O parser detecta funções, ignora comentários/literais na análise estrutural e detecta chamadas entre funções conhecidas.
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
 - O layout atual organiza salas em colunas conforme a profundidade e separa funções inalcançáveis em uma coluna de isoladas.
-- O Canvas renderiza cenário, salas, criaturas, personagem, passos, efeitos e marcadores estruturais discretos nas salas.
+- O Canvas renderiza cenário, salas, personagem, passos, efeitos e marcadores estruturais. No modo Complexidade, preserva cores por complexidade e criaturas; no modo Estrutura, usa base de pedra neutra, oculta criaturas e realça os marcadores.
 - O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
 - Os controles de exploração só capturam teclado após clique no mapa; clique fora e `Esc` liberam o mapa.
@@ -21,7 +21,7 @@
 
 ## Último marco
 
-O último marco é a representação visual discreta do perfil estrutural nas salas. Uma trilha à esquerda mostra I/F/W/S quando a função contém `if`/`for`/`while`/`switch`; à direita, R indica recursão direta e C indica ciclo indireto de chamadas. Os marcadores mostram presença, enquanto as quantidades, inclusive `case`, permanecem no inspector. Cor base, complexidade, geometria, criatura e contornos da sala física ou selecionada não mudaram. A validação visual dos novos marcadores, do zoom e da visão geral ainda está pendente.
+O último marco é a alternância imediata entre os modos visuais Complexidade e Estrutura. Complexidade mantém a leitura anterior por cores e criaturas, com marcadores discretos. Estrutura usa cores de pedra neutras, oculta criaturas e destaca os mesmos marcadores I/F/W/S e R/C. O modo pertence ao jogo atual e volta a Complexidade em uma nova dungeon ou ao retornar ao editor. A troca não modifica análise, geometria, personagem, câmera, busca, inspector nem seleções. A validação visual dos marcadores, dos dois modos, do zoom e da visão geral ainda está pendente.
 
 ## Base estrutural atual
 
@@ -78,7 +78,7 @@ O bloco atual está implementado no inspector, com:
 
 A navegação pelos botões de callers, callees e resultados da busca seleciona a função no inspector e foca a sala correspondente sem teleportar o personagem. A sala física e a selecionada são estados separados; a sala selecionada recebe contorno adicional no mapa, inclusive na visão geral. Navegação pelo caminho completo e minimapa continuam futuros.
 
-O perfil estrutural e os indicadores de ciclo também estão nas salas. O Canvas agora desenha pequenos glifos em pixels inteiros: I/F/W/S na lateral esquerda e R/C na direita. A cor base da sala continua indicando complexidade; os glifos indicam presença e são explicados em uma legenda HTML próxima aos controles da câmera. `case` não recebe marcador próprio nem cria S quando não há `switch`. Não existe modo Estrutura/Complexidade, filtro por estrutura ou contagem visual repetida.
+O perfil estrutural e os indicadores de ciclo também estão nas salas. O Canvas desenha pequenos glifos em pixels inteiros: I/F/W/S na lateral esquerda e R/C na direita. No modo Complexidade, a cor base indica complexidade; no modo Estrutura, a base neutra e o maior contraste dos glifos enfatizam a presença das estruturas. A legenda HTML fica próxima aos controles da câmera e dos modos. `case` não recebe marcador próprio nem cria S quando não há `switch`. Não existem filtro por estrutura nem contagem visual repetida.
 
 ## Implementações concluídas e pendências
 

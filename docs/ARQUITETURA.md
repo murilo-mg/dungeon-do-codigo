@@ -16,7 +16,7 @@ verdade do código -> grafo -> layout -> experiência
 
 ### `index.html`
 
-Define as telas de entrada e exploração, editor, Canvas, barra de câmera, legenda estrutural, campo de busca, inspector, status dos controles e legenda de complexidade. É a estrutura estática da aplicação.
+Define as telas de entrada e exploração, editor, Canvas, barra de câmera, botões de modo visual, legenda estrutural, campo de busca, inspector, status dos controles e legenda de complexidade. É a estrutura estática da aplicação.
 
 ### `css/estilo.css`
 
@@ -60,7 +60,7 @@ Mantém a física e o desenho do personagem, incluindo movimento, limites, dire�
 
 ### `js/semanticaVisual.js`
 
-Seleciona, sem DOM ou Canvas, os marcadores de presença I/F/W/S e o indicador R ou C a partir dos metadados já calculados da sala. Não conta estruturas nem analisa chamadas.
+Seleciona, sem DOM ou Canvas, os marcadores de presença I/F/W/S e o indicador R ou C a partir dos metadados já calculados da sala. Também decide a cor base e a presença de criatura e destaque de marcadores conforme o modo visual. Não conta estruturas nem analisa chamadas.
 
 ### `js/criaturas.js`
 
@@ -76,15 +76,15 @@ Fornece paleta, glifos de 5x5 pixels para os marcadores e dados/recursos de pixe
 
 ### `js/jogo.js`
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Desenha glifos discretos nas laterais da sala para presença de estruturas e recursão/ciclo, preservando a cor de complexidade e os contornos de interação. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
 
 ### `js/interface.js`
 
-Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles e do percentual de zoom. Busca, callers, callees e barra de câmera comunicam ações por callbacks. O inspector mostra as relações e indicadores de ciclo recebidos do grafo e o total e detalhamento de estruturas fornecidos pelo analisador; não recalcula esses dados. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+Manipula DOM, troca telas, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles, do modo visual e do percentual de zoom. Busca, callers, callees, barra de câmera e botões de modo comunicam ações por callbacks. O inspector mostra as relações e indicadores de ciclo recebidos do grafo e o total e detalhamento de estruturas fornecidos pelo analisador; não recalcula esses dados. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
 
 ### `js/principal.js`
 
-Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
+Inicializa a aplicação, recebe o código, chama análise, construção da masmorra e jogo, atualiza mensagens de erro e conecta callbacks entre jogo e interface. Fornece à busca os nomes de `grafo.nos`; resultados da busca e relações usam a mesma seleção, que foca a sala no jogo e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
 
 ## Fluxo atual
 

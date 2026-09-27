@@ -6,12 +6,13 @@ import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
-  iniciarJogo, pararJogo, restaurarZoomCamera } from './jogo.js';
+  iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from './jogo.js';
 import {
   atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao,
   atualizarPainelDeSala, inicializarBuscaFuncoes, configurarBuscaFuncoes,
   limparBuscaFuncoes,
   configurarControlesCamera, atualizarZoomCamera,
+  configurarModosVisuais, atualizarModoVisual,
 } from './interface.js';
 
 const codigoPadrao = `#include <stdio.h>
@@ -111,6 +112,8 @@ function inicializarAplicacao() {
     aoAproximar: aproximarCamera,
     aoEncaixar: encaixarMasmorra,
   });
+  configurarModosVisuais(selecionarModoVisual);
+  atualizarModoVisual('complexidade');
   const entradaCodigo = document.getElementById('entrada-codigo');
   entradaCodigo.value = codigoPadrao;
 
@@ -175,10 +178,12 @@ function aoClicarEmGerar(entradaCodigo) {
   iniciarJogo(masmorra, grafo.arestas, mostrarSala, atualizarEstadoControles,
     atualizarZoomCamera);
   atualizarZoomCamera(1);
+  atualizarModoVisual('complexidade');
 }
 
 function aoClicarEmVoltar() {
   pararJogo();
+  atualizarModoVisual('complexidade');
   limparBuscaFuncoes();
   exibirTelaDeConfiguracao();
 }

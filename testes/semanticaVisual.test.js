@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { obterMarcadoresEstruturais } from '../js/semanticaVisual.js';
-import { GLIFOS_MARCADORES } from '../js/pixelArt.js';
+import { obterEstiloVisualDaSala, obterMarcadoresEstruturais } from '../js/semanticaVisual.js';
+import { GLIFOS_MARCADORES, PALETA } from '../js/pixelArt.js';
+import { corPorSala } from '../js/masmorra.js';
 
 const semEstruturas = { if: 0, for: 0, while: 0, switch: 0, case: 0 };
 
@@ -67,4 +68,21 @@ test('seleção dos marcadores não modifica metadados nem geometria da sala', (
   const anterior = structuredClone(sala);
   obterMarcadoresEstruturais(sala);
   assert.deepEqual(sala, anterior);
+});
+
+test('estilo de Complexidade mantém cor original e criaturas; Estrutura usa pedra neutra', () => {
+  const comum = { complexidade: 8, ehSalaInicial: false, x: 10, largura: 60 };
+  const inicial = { ...comum, ehSalaInicial: true };
+  const anterior = structuredClone(comum);
+  assert.deepEqual(obterEstiloVisualDaSala(comum, 'complexidade'), {
+    corBase: corPorSala(comum), exibirCriatura: true, destacarMarcadores: false,
+  });
+  assert.deepEqual(obterEstiloVisualDaSala(inicial, 'complexidade'), {
+    corBase: corPorSala(inicial), exibirCriatura: true, destacarMarcadores: false,
+  });
+  assert.deepEqual(obterEstiloVisualDaSala(comum, 'estrutura'), {
+    corBase: PALETA.pedra, exibirCriatura: false, destacarMarcadores: true,
+  });
+  assert.equal(obterEstiloVisualDaSala(inicial, 'estrutura').corBase, PALETA.pedraClara);
+  assert.deepEqual(comum, anterior);
 });

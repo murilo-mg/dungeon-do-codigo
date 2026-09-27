@@ -29,6 +29,21 @@ export function atualizarZoomCamera(zoom) {
   botao.setAttribute('aria-label', `Zoom atual: ${percentual}. Restaurar para 100%`);
 }
 
+export function configurarModosVisuais(aoSelecionar) {
+  for (const modo of ['complexidade', 'estrutura']) {
+    document.getElementById(`modo-${modo}`).addEventListener('click', () => {
+      atualizarModoVisual(aoSelecionar(modo));
+    });
+  }
+}
+
+export function atualizarModoVisual(modo) {
+  for (const valor of ['complexidade', 'estrutura']) {
+    document.getElementById(`modo-${valor}`)
+      .setAttribute('aria-pressed', String(modo === valor));
+  }
+}
+
 export function inicializarBuscaFuncoes() {
   const campo = document.getElementById('busca-funcao');
   campo.addEventListener('input', atualizarResultadosBusca);

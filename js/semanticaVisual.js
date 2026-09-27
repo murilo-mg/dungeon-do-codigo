@@ -1,4 +1,7 @@
 // Seleciona sinais visuais a partir dos metadados já calculados da função.
+import { corPorSala } from './masmorra.js';
+import { PALETA } from './pixelArt.js';
+
 const ESTRUTURAS = [
   ['if', 'I'],
   ['for', 'F'],
@@ -13,4 +16,15 @@ export function obterMarcadoresEstruturais(sala) {
       .map(([, marcador]) => marcador),
     chamada: sala.recursivaDireta ? 'R' : sala.participaDeCiclo ? 'C' : null,
   };
+}
+
+export function obterEstiloVisualDaSala(sala, modo) {
+  if (modo === 'estrutura') {
+    return {
+      corBase: sala.ehSalaInicial ? PALETA.pedraClara : PALETA.pedra,
+      exibirCriatura: false,
+      destacarMarcadores: true,
+    };
+  }
+  return { corBase: corPorSala(sala), exibirCriatura: true, destacarMarcadores: false };
 }
