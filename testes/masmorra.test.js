@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { analisarFuncoes } from '../js/analisadorC.js';
+import { criarGrafo } from '../js/grafoC.js';
+import { calcularLayoutMasmorra } from '../js/layoutMasmorra.js';
 import { construirMasmorra, corPorSala, tamanhoPorComplexidade } from '../js/masmorra.js';
 
 function criarFuncao(nome, chamadas = []) {
@@ -18,9 +20,32 @@ function criarFuncao(nome, chamadas = []) {
 test('lista vazia produz uma masmorra vazia, sem sala fictícia', () => {
   assert.deepEqual(construirMasmorra([]), {
     salas: [],
+    regioes: [],
     larguraMundo: 560,
     alturaMundo: 480,
   });
+});
+
+test('regiões são metadados e preservam grafo, posições e dimensões das salas', () => {
+  const funcoes = [
+    criarFuncao('main', ['parse_primary', 'parse_expression']),
+    criarFuncao('parse_primary'), criarFuncao('parse_expression'),
+    criarFuncao('solta'),
+  ];
+  const grafo = criarGrafo(funcoes);
+  const grafoAntes = structuredClone(grafo);
+  const layout = calcularLayoutMasmorra(grafo, funcoes);
+  const masmorra = construirMasmorra(funcoes, grafo);
+  assert.equal(masmorra.regioes.find(regiao => regiao.titulo === 'Ala Parser')
+    .funcoes.length, 2);
+  assert.equal(masmorra.regioes.find(regiao => regiao.titulo === 'Criptas Isoladas')
+    .funcoes[0], 'solta');
+  for (const sala of masmorra.salas) {
+    const { x, y, largura, altura } = layout.salas.get(sala.nome);
+    assert.deepEqual({ x: sala.x, y: sala.y, largura: sala.largura, altura: sala.altura },
+      { x, y, largura, altura });
+  }
+  assert.deepEqual(grafo, grafoAntes);
 });
 
 test('preserva os dados da sala inicial com main ou com a primeira função disponível', () => {

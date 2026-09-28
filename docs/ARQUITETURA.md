@@ -36,7 +36,11 @@ Extrai funções por uma expressão de assinatura simplificada, conta linhas e e
 
 ### `js/masmorra.js`
 
-Consome o grafo e o layout calculado para montar as salas, incluindo o perfil de estruturas e os indicadores de recursão direta e ciclo vindos do grafo. As cores e dimensões continuam baseadas na complexidade existente. Não calcula colunas, posições ou dimensões.
+Consome o grafo e o layout calculado para montar as salas, incluindo o perfil de estruturas e os indicadores de recursão direta e ciclo vindos do grafo. Também devolve as regiões semânticas como dados separados das salas. As cores e dimensões continuam baseadas na complexidade existente. Não calcula colunas, posições ou dimensões.
+
+### `js/regioesMasmorra.js`
+
+Classifica funções a partir do grafo em entrada, Criptas Isoladas para todas as funções inalcançáveis, Salão Central para funções alcançáveis com pelo menos três callers alcançáveis distintos e alas normais. Alas com prefixo técnico comum usam esse nome humanizado quando o prefixo não é uma operação genérica; os demais grupos usam numeração determinística. Devolve identificador, tipo, título e funções, sem depender do layout ou desenhar no Canvas.
 
 ### `js/layoutMasmorra.js`
 
@@ -106,7 +110,7 @@ Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` 
 4. `analisadorC.js` devolve funções, métricas, estruturas por tipo e nomes de chamadas conhecidas.
 5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade, alcance e indicadores de ciclo.
 6. `layoutMasmorra.js` calcula as posições, dimensões e tamanho do mundo a partir do grafo e das funções.
-7. `masmorra.js` monta as salas usando o grafo e o layout.
+7. `masmorra.js` monta as salas usando o grafo e o layout e anexa as regiões semânticas calculadas a partir do grafo.
 8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
 9. `principal.js` inicia `jogo.js` passando a masmorra e as arestas reais.
 10. `jogo.js` atualiza a câmera, usa dimensões do mundo na física e projeta a região visível no Canvas conforme o zoom.

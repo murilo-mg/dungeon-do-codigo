@@ -3,6 +3,7 @@
 
 import { criarGrafo } from './grafoC.js';
 import { calcularLayoutMasmorra } from './layoutMasmorra.js';
+import { criarRegioesMasmorra } from './regioesMasmorra.js';
 
 export { tamanhoPorComplexidade } from './layoutMasmorra.js';
 
@@ -10,6 +11,7 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
   if (funcoes.length === 0) {
     return {
       salas: [],
+      regioes: [],
       larguraMundo: 560,
       alturaMundo: 480,
     };
@@ -39,6 +41,7 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
 
   return {
     salas,
+    regioes: criarRegioesMasmorra(grafo),
     larguraMundo: layout.larguraMundo,
     alturaMundo: layout.alturaMundo,
   };

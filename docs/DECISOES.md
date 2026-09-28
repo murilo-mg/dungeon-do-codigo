@@ -14,6 +14,10 @@ Salas representam funções e posições devem comunicar profundidade, alcance e
 
 O mesmo código deve produzir uma dungeon estável. Determinismo facilita aprendizagem, testes, comparação e depuração.
 
+### Classificar regiões sem alterar o layout
+
+`regioesMasmorra.js` usa chamadas e alcançabilidade do grafo para separar a entrada e todas as funções inalcançáveis, mesmo quando recebem várias chamadas em um componente desconectado. Apenas funções alcançáveis com pelo menos três callers alcançáveis distintos podem ser hubs. As demais formam alas por prefixo técnico comum quando há pelo menos duas com o mesmo prefixo antes de `_`; prefixos operacionais genéricos, como `get` e `create`, não nomeiam alas. Sem prefixo confiável, funções são agrupadas por relações reais remanescentes e numeradas na ordem estrutural. Apenas `parse` recebe a forma explícita Parser; outros nomes não são traduzidos. O resultado é metadado em `masmorra.regioes`, sem rótulos no Canvas nesta etapa.
+
 ### Medir legibilidade dos corredores antes de alterar o layout
 
 Além de tamanho do mundo e sobreposição de salas, comparar cruzamentos transversais, passagens pelo interior de terceiras salas e comprimento total dos corredores. A linha de base usa os segmentos retos atuais e casos determinísticos; o roteamento fica para uma etapa posterior.

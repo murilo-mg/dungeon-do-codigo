@@ -51,11 +51,13 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Foco topológico da função selecionada, preservando todas as cadeias relevantes desde a entrada e atenuando salas e corredores fora do contexto sem ocultá-los.
 - Clique simples em sala pela mesma seleção da busca e do inspector; duplo clique inicia navegação contínua pelos corredores existentes quando há rota, cancelável pelo teclado de movimento.
 - Zoom semântico das salas em mapa, identificação e detalhes; hover informa o nome completo sem seleção, e a função selecionada mantém etiqueta legível na visão distante.
-- Suíte automatizada Node.js passando nos 19 arquivos de teste.
+- Regiões semânticas como dados da masmorra: entrada, Salão Central, alas nomeadas pelo código ou numeradas e Criptas Isoladas, sem alteração do Canvas ou do layout.
+- Suíte automatizada Node.js passando nos 20 arquivos de teste.
 
 ## Funcionalidades futuras
 
 - Leitura estrutural avançada: navegação pelo caminho completo e filtros estruturais.
+- Representação visual das regiões semânticas no Canvas.
 - Minimapa e controles futuros como pan manual, drag e zoom contínuo.
 - Colisão/topologia.
 - Novas melhorias do layout e dos corredores para reduzir cruzamentos, travessias de salas e comprimento quando os casos medidos justificarem.
@@ -101,6 +103,7 @@ No estado atual, `analisadorC.js` extrai chamadas conhecidas, `grafoC.js` concen
 - Concluído: foco contextual no Canvas baseado em todas as relações reais até a função selecionada, sem alterar grafo, layout ou roteamento.
 - Concluído: seleção direta por clique em sala e navegação por duplo clique sobre corredores existentes, mantendo a seleção mesmo sem rota e sem mudar o movimento manual.
 - Concluído: representação semântica por zoom com limiares centralizados, etiquetas de hover e da função selecionada, sem alterar grafo, layout ou controles.
+- Concluído: classificação das regiões a partir do grafo, com títulos derivados de prefixos técnicos quando confiáveis e fallback determinístico; desenho dos rótulos permanece futuro.
 - Concluído: marcadores de presença nas salas para I/F/W/S e R/C, preservando a cor de complexidade, a geometria e os contornos de interação.
 - Concluído: modos visuais Complexidade e Estrutura, com alternância imediata sem mudar grafo, geometria, câmera, busca ou inspector.
 - Destaque de métricas e outras formas de explorar relações.

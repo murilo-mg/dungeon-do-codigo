@@ -4,7 +4,7 @@
 
 - Branch de desenvolvimento: `melhoria/v1-publica`.
 - O projeto é um frontend estático servido localmente; o script de testes é `npm test`.
-- A execução atual de `npm test` passou nos 18 arquivos de teste da suíte.
+- A execução atual de `npm test` passou nos 20 arquivos de teste da suíte.
 - O workspace de exploração já existe.
 
 ## Produto existente
@@ -14,6 +14,7 @@
 - O parser detecta funções, ignora comentários/literais na análise estrutural e detecta chamadas entre funções conhecidas.
 - A profundidade a partir de `main` já é calculada; se não houver `main`, a primeira função é usada como inicial.
 - O layout atual organiza salas em colunas conforme a profundidade, ordena cada coluna alcançável pela posição média dos callers na coluna anterior e separa funções inalcançáveis em uma coluna de isoladas.
+- A masmorra contém metadados de regiões semânticas: entrada, Salão Central para hubs, alas nomeadas por prefixo ou número e Criptas Isoladas. Os rótulos ainda não são desenhados no Canvas.
 - O Canvas renderiza cenário, salas, personagem, passos, efeitos e marcadores estruturais. No modo Complexidade, preserva cores por complexidade e criaturas; no modo Estrutura, usa base de pedra neutra, oculta criaturas e realça os marcadores.
 - O inspector no DOM mostra função, métricas, perigo, trecho do código, callers, callees, caminho mínimo desde a entrada, total e perfil de estruturas de controle e indicadores de recursão direta ou ciclo. Callers e callees são botões que permitem focar a sala relacionada.
 - A busca na exploração filtra nomes de `grafo.nos` por trecho, sem diferenciar maiúsculas de minúsculas, e foca a sala escolhida pelo mesmo fluxo dos botões de relações.
@@ -25,13 +26,15 @@
 
 ## Último marco
 
-O último marco é o zoom semântico das salas com controles discretos de zoom: a vista distante privilegia o mapa, a intermediária identifica funções e a próxima preserva os detalhes atuais. Hover e seleção permitem ler nomes completos sem alterar inspeção ou navegação. O zoom semântico e os controles foram validados visualmente pelo mantenedor. A validação manual da interação por clique, da importação `.c`, dos marcadores e dos modos visuais ainda está pendente.
+O último marco é a classificação semântica das regiões como dados, sem mudança visual ou geométrica. O zoom semântico e os controles discretos anteriores foram validados visualmente pelo mantenedor. A representação das regiões no Canvas fica para uma etapa posterior; a validação manual da interação por clique, da importação `.c`, dos marcadores e dos modos visuais ainda está pendente.
 
 ## Base estrutural atual
 
 `grafoC.js` representa explicitamente a função de entrada, os nós por nome, as arestas direcionadas, as chamadas recebidas, a profundidade mínima e o alcance a partir da entrada. Agora também marca autoarestas como recursão direta e detecta participação em ciclo apenas quando um caminho de chamadas conhecidas retorna ao próprio nó. `masmorra.js` consome esses dados sem duplicar o cálculo das relações.
 
 `layoutMasmorra.js` concentra a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões e o tamanho do mundo lógico. Na coluna alcançável, usa a média dos centros verticais dos callers da coluna anterior e desempata pela ordem estrutural; funções isoladas preservam sua ordem na coluna final. Sua API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua em 560x480; `masmorra.js` consome somente `layout.salas` para montar as salas.
+
+`regioesMasmorra.js` lê o grafo sem modificá-lo e retorna regiões com `id`, `tipo`, `titulo` e `funcoes`. A entrada nunca vira ala; toda função inalcançável pertence às Criptas Isoladas, mesmo com três callers em um componente desconectado. Somente funções alcançáveis com pelo menos três callers alcançáveis distintos podem formar o Salão Central. Alas alcançáveis usam prefixo técnico comum anterior a `_` quando há pelo menos duas funções e ele não é uma operação genérica; caso contrário, grupos ligados por chamadas recebem numeração determinística. `masmorra.js` expõe esses dados em `regioes`; posições e dimensões continuam vindas apenas do layout.
 
 `camera.js` calcula a posição a partir de um alvo sem suavização, considerando a área visível definida pelo zoom para limitar o deslocamento. Também calcula o menor zoom que encaixa o mundo e limita o zoom manual a 200%. `jogo.js` usa o personagem como alvo durante a exploração, o centro da sala selecionada no foco manual e mantém a visão geral fixa enquanto ela está ativa. As coordenadas armazenadas de salas, corredores, personagem, partículas e passos continuam sendo coordenadas do mundo.
 
