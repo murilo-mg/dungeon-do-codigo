@@ -2,145 +2,1258 @@
 
 ## Visão geral
 
-A aplicação é um frontend estático em HTML, CSS e JavaScript ES Modules. O código C é tratado como texto: o navegador analisa sua estrutura, gera descritores de funções e monta uma experiência de exploração em Canvas com informações complementares no DOM.
+O Dungeon do Código é uma aplicação frontend estática feita com HTML, CSS e JavaScript ES Modules.
 
-A separação atual é:
+O código C fornecido pelo usuário é tratado como texto. Ele é analisado no navegador, convertido em uma representação estrutural e usado para construir uma dungeon explorável em Canvas.
+
+A aplicação não compila nem executa o código C.
+
+Também não existe backend no estado atual.
+
+A separação principal do projeto é:
 
 ```text
-verdade do código -> grafo -> layout -> experiência
+código
+  ↓
+análise
+  ↓
+grafo
+  ├──────────────┐
+  ↓              ↓
+layout       regiões semânticas
+  └──────┬───────┘
+         ↓
+     masmorra
+         ↓
+    corredores
+         ↓
+ jogo / renderização
+         ↕
+      interface
 ```
 
-`grafoC.js` concentra a estrutura das relações entre funções. `layoutMasmorra.js` concentra a geometria das salas e do mundo lógico. `masmorra.js` consome o grafo e o layout para montar as entidades, enquanto `corredores.js` transforma as arestas em segmentos geométricos compartilhados por jogo e cenário. `camera.js` transforma a região visível do mundo em viewport.
+O objetivo dessa separação é impedir que regras de análise, geometria e interface fiquem misturadas.
 
-## Módulos atuais
+---
 
-### `index.html`
+# Princípios arquiteturais
 
-Define as telas de entrada e exploração, editor, botão para abrir `.c`, área de drop no editor, Canvas, barra de câmera, botões de modo visual, legenda estrutural, campo de busca, inspector, status dos controles e legenda de complexidade. É a estrutura estática da aplicação.
+## A estrutura do código é a fonte de verdade
 
-### `css/estilo.css`
+Informações como:
 
-Define o visual das telas, editor, mapa, inspector, criaturas, status e indicador ativo dos controles. Não contém lógica de análise.
+- callers;
+- callees;
+- profundidade;
+- alcance;
+- ciclos;
+- recursão;
+- regiões;
 
-### `js/lexicoC.js`
+devem vir da análise e do grafo.
 
-Percorre o texto para distinguir código, comentários, strings e literais de caracteres. Produz representações mascaradas preservando índices e quebras de linha e lança erros de análise para entradas incompletas.
+A renderização não deve inventar essas informações.
 
-### `js/entradaCodigo.js`
+---
 
-Valida o nome `.c` e o limite de 512 KiB antes da leitura local. Não lê o conteúdo nem acessa DOM ou rede.
+## Grafo e geometria são responsabilidades diferentes
 
-### `js/analisadorC.js`
+O grafo responde perguntas como:
 
-Extrai funções por uma expressão de assinatura simplificada, conta linhas e estruturas de controle por tipo (`if`, `for`, `while`, `switch`, `case`), calcula a complexidade pela fórmula existente e encontra chamadas entre funções conhecidas. Usa o corpo sanitizado pelo léxico para as contagens e exclui o corpo estrutural temporário dos descritores ao finalizar.
+```text
+quem chama quem?
+```
 
-### `js/masmorra.js`
+O layout responde perguntas como:
 
-Consome o grafo e o layout calculado para montar as salas, incluindo o perfil de estruturas e os indicadores de recursão direta e ciclo vindos do grafo. Também devolve as regiões semânticas como dados separados das salas. As cores e dimensões continuam baseadas na complexidade existente. Não calcula colunas, posições ou dimensões.
+```text
+onde essa sala deve ficar?
+```
 
-### `js/regioesMasmorra.js`
+Uma camada não deve assumir a responsabilidade da outra.
 
-Classifica funções a partir do grafo em entrada, Criptas Isoladas para todas as funções inalcançáveis, Salão Central para funções alcançáveis com pelo menos três callers alcançáveis distintos e alas normais. Alas com prefixo técnico comum usam esse nome humanizado quando o prefixo não é uma operação genérica; os demais grupos usam numeração determinística. Devolve identificador, tipo, título e funções, sem depender do layout ou desenhar no Canvas.
+---
 
-### `js/layoutMasmorra.js`
+## Regiões semânticas não controlam o layout
 
-Calcula, sem DOM, Canvas ou estado global, a organização por profundidade, as colunas, a distribuição vertical, as posições, as dimensões das salas e o tamanho do mundo lógico. A API retorna `{ salas, larguraMundo, alturaMundo }`. O viewport continua sendo 560x480, mas o mundo cresce quando as dimensões reais das salas e os gaps mínimos exigem mais espaço. Dentro de cada profundidade alcançável, ordena as funções pela média vertical dos callers na coluna anterior, com empate pela ordem estrutural original. Funções não alcançáveis ficam na coluna final, em sua ordem original.
+`regioesMasmorra.js` classifica funções semanticamente.
 
-### `js/camera.js`
+Ele não:
 
-Calcula, sem DOM, Canvas, eventos ou estado global, a posição e o zoom da câmera. Usa o zoom para calcular a área visível do mundo e os limites de deslocamento. Também calcula o zoom mínimo que encaixa o mundo inteiro no viewport; `jogo.js` escolhe como alvo o personagem ou o centro de uma sala em foco manual.
+- move salas;
+- calcula coordenadas;
+- cria corredores;
+- desenha no Canvas.
 
-### `js/zoomDiscreto.js`
+Isso permite evoluir a aparência das regiões sem mudar as regras que determinam quem pertence a cada uma.
 
-Escolhe o próximo degrau dos botões + e − entre 50%, 75%, 100%, 125%, 150%, 175% e 200%, incluindo o valor calculado por Encaixar como mínimo próprio da dungeon. Não altera o cálculo nem a posição da câmera.
+---
 
-### `js/grafoC.js`
+## Coordenadas do mundo são separadas da câmera
 
-Representa explicitamente a estrutura do programa: função de entrada, nós por nome, arestas direcionadas, chamadas recebidas (`chamadaPor`), profundidade mínima e alcançabilidade. Detecta recursão direta por autoaresta e participação em ciclo quando há caminho de retorno ao próprio nó. Também fornece callers, callees, esses indicadores, um caminho mínimo para o inspector e o contexto topológico de todas as cadeias relevantes até a função selecionada. Considera apenas chamadas para funções conhecidas, elimina arestas duplicadas e não depende de Canvas, DOM ou geometria.
+Salas, personagem, corredores, passos e efeitos possuem posições no mundo lógico.
 
-### `js/cenario.js`
+A câmera apenas decide qual parte desse mundo será projetada no Canvas.
 
-Cria e desenha o cenário de fundo e suas decorações, evitando áreas ocupadas pelas salas e pelos segmentos de corredores reais recebidos do jogo. Não reconstrói o grafo nem cria corredores próprios.
+Zoom não altera a geometria real da dungeon.
 
-### `js/corredores.js`
+---
 
-Converte `salas + arestas` em segmentos com origem, destino, início e fim. Ignora salas ausentes, autoarestas e duplicatas. É uma função pura, sem Canvas ou DOM, usada para manter a geometria dos corredores igual no jogo e no cenário.
+## Canvas e DOM possuem papéis diferentes
 
-### `js/navegacaoMasmorra.js`
+O Canvas é usado para:
 
-Calcula uma rota geométrica entre a posição atual e uma sala usando apenas os centros das salas e os segmentos de corredores existentes. Aceita partida dentro de uma sala ou na faixa desenhada de um corredor; trata corredores como transitáveis nos dois sentidos, sem alterar o grafo de chamadas. Devolve pontos de passagem ou ausência de rota, sem DOM, Canvas ou estado global.
+- dungeon;
+- salas;
+- corredores;
+- personagem;
+- cenário;
+- efeitos;
+- elementos visuais da exploração.
 
-### `js/personagem.js`
+O DOM é usado para:
 
-Mantém a física e o desenho do personagem, incluindo movimento, limites, direção e passos.
+- editor;
+- botões;
+- busca;
+- inspector;
+- mensagens;
+- controles;
+- texto;
+- elementos que precisam de foco e acessibilidade.
 
-### `js/semanticaVisual.js`
+---
 
-Seleciona, sem DOM ou Canvas, os marcadores de presença I/F/W/S e o indicador R ou C a partir dos metadados já calculados da sala. Também decide a cor base e a presença de criatura e destaque de marcadores conforme o modo visual. Classifica o zoom em distante, intermediário e próximo por limiares centralizados, sem alterar a câmera. Não conta estruturas nem analisa chamadas.
+# Camadas do projeto
 
-### `js/criaturas.js`
+A arquitetura pode ser dividida em sete grupos principais.
 
-Define criaturas associadas à complexidade e desenha seus retratos e representações nas salas.
+```text
+1. Entrada e análise
+2. Grafo estrutural
+3. Semântica da dungeon
+4. Geometria
+5. Exploração e renderização
+6. Interface
+7. Orquestração
+```
 
-### `js/efeitos.js`
+---
 
-Cria, atualiza e desenha partículas de entrada, com limites de quantidade e duração.
+# 1. Entrada e análise
 
-### `js/pixelArt.js`
+## `index.html`
 
-Fornece paleta, glifos de 5x5 pixels para os marcadores e dados/recursos de pixel art usados pela renderização.
+Define a estrutura estática da aplicação.
 
-### `js/jogo.js`
+Contém, entre outros elementos:
 
-Coordena o ciclo de animação, renderiza Canvas, atualiza física, detecta a sala sob o jogador e gerencia teclado, foco, `Esc`, listeners e preferência de movimento reduzido. Mantém a sala física separada da seleção manual e alterna a câmera entre seguir o jogador, focar a sala selecionada e mostrar a visão geral. Converte cliques do Canvas para coordenadas do mundo; um clique em sala solicita a seleção ao orquestrador, e um duplo clique percorre a rota calculada por `navegacaoMasmorra.js` usando a velocidade do personagem. O hover reutiliza essa conversão apenas para mostrar o nome completo, sem selecionar. Teclado de movimento interrompe a rota. Aplica escala e deslocamento apenas ao desenho, sem alterar as coordenadas do mundo, e desenha um contorno adicional na sala selecionada. Durante a seleção, conserva visíveis as salas e os corredores fora do contexto topológico com opacidade menor, sem alterar suas coordenadas. O nível semântico oculta nomes e detalhes internos na visão distante, mantém nomes na intermediária e preserva o desenho completo na próxima; etiquetas não escaladas identificam o hover e a seleção distante. Guarda um único modo visual, reiniciado em Complexidade a cada dungeon: Complexidade conserva cores por complexidade, criaturas e glifos discretos; Estrutura usa base neutra, oculta criaturas e destaca os mesmos glifos. Recebe as arestas reais, usa `corredores.js` para obter segmentos e desenha somente os corredores válidos. Não deve manipular DOM diretamente; comunica mudanças por callbacks.
+- editor de código;
+- abertura de arquivo `.c`;
+- área de exploração;
+- Canvas;
+- busca;
+- inspector;
+- controles de câmera;
+- controles de modo visual;
+- legendas;
+- informações de estado da exploração.
 
-### `js/interface.js`
+Não deve conter regras de análise do código.
 
-Manipula DOM, troca telas, aceita escolha ou drop de arquivo no editor, apresenta mensagens de erro e nome do arquivo, filtra e desenha os resultados da busca, atualiza o inspector estrutural, anima descrições, desenha retratos e atualiza o estado visual dos controles, do modo visual e do percentual de zoom. Busca, importação, callers, callees, barra de câmera e botões de modo comunicam ações por callbacks. O inspector mostra as relações e indicadores de ciclo recebidos do grafo e o total e detalhamento de estruturas fornecidos pelo analisador; não recalcula esses dados. Conteúdo vindo do usuário deve ser inserido como texto, não HTML.
+---
 
-### `js/principal.js`
+## `css/estilo.css`
 
-Inicializa a aplicação, recebe o código, coordena a leitura local de um `.c` por vez e chama análise, construção da masmorra e jogo. Fornece à busca os nomes de `grafo.nos`; resultados da busca, relações e cliques em salas usam a mesma seleção, que foca a sala no jogo, passa o contexto topológico calculado a partir do grafo para a renderização e entrega seus dados estruturais ao inspector. Conecta os botões da barra às operações de câmera e os botões de modo ao estado visual do jogo; atualiza o percentual quando a visão geral termina por seleção ou clique no Canvas.
+Define a apresentação visual da aplicação.
 
-## Fluxo atual
+Cuida da aparência de:
 
-1. O usuário edita, cola ou abre/arrasta um arquivo `.c`, lido localmente no editor sem geração automática.
-2. `principal.js` chama `analisarFuncoes`.
-3. `lexicoC.js` protege strings, caracteres e comentários durante a análise.
-4. `analisadorC.js` devolve funções, métricas, estruturas por tipo e nomes de chamadas conhecidas.
-5. `grafoC.js` cria nós, arestas, chamadas recebidas, profundidade, alcance e indicadores de ciclo.
-6. `layoutMasmorra.js` calcula as posições, dimensões e tamanho do mundo a partir do grafo e das funções.
-7. `masmorra.js` monta as salas usando o grafo e o layout e anexa as regiões semânticas calculadas a partir do grafo.
-8. `corredores.js` transforma as arestas e salas em segmentos geométricos compartilhados.
-9. `principal.js` inicia `jogo.js` passando a masmorra e as arestas reais.
-10. `jogo.js` atualiza a câmera, usa dimensões do mundo na física e projeta a região visível no Canvas conforme o zoom.
-11. `cenario.js` reserva os mesmos segmentos para suas decorações.
-12. `interface.js` atualiza o inspector e o status dos controles.
+- editor;
+- telas;
+- controles;
+- inspector;
+- busca;
+- estados da interface.
 
-## Arquitetura futura desejada
+As regras estruturais da dungeon não devem depender do CSS.
 
-O inspector já mostra callers, callees, um caminho mínimo desde a entrada, o total e o perfil de estruturas de controle e a presença de recursão direta ou ciclo de chamadas. As salas mostram apenas presença por marcadores: I, F, W, S, R e C; quantidades e `case` ficam no inspector. Os botões de callers, callees, resultados da busca e cliques em salas selecionam a mesma função; o duplo clique também inicia o deslocamento por corredores existentes. Navegar pelo caminho completo e outras formas de exploração continuam futuras. As evoluções e os módulos abaixo dependem de necessidade demonstrada por testes, uso ou complexidade concreta.
+---
 
-O módulo `grafoC.js` já fornece um caminho mínimo desde a entrada para cada função alcançável. Listar todos os caminhos e fazer análises mais sofisticadas de ciclos continuam sendo evoluções futuras.
+## `js/entradaCodigo.js`
 
-### `layoutMasmorra.js`
+Centraliza regras básicas relacionadas à importação de arquivos C.
 
-O módulo já existe e concentra a geometria e o mundo lógico dinâmico. A primeira ordenação vertical por relações do grafo reduziu cruzamentos no caso cruzado e no cenário denso de diagnóstico, preservando colunas, dimensões e ausência de sobreposições. Os testes de estresse com 5, 15, 30 e 60 funções continuam sem sobreposições de salas. Novos aprimoramentos devem partir de problemas medidos. O layout não deve decidir o significado das chamadas nem desenhar.
+Atualmente valida:
 
-### `camera.js`
+- extensão `.c`;
+- limite de 512 KiB.
 
-O acompanhamento básico e os botões de zoom por níveis canônicos entre 50% e 200%, mais o mínimo calculado por Encaixar, estão implementados. O botão Encaixar mostra o mundo inteiro sem ampliá-lo acima de 100% e mantém a visão geral até uma nova ação de navegação. O viewport permanece em 560x480, a câmera respeita os limites do mundo e o movimento usa as dimensões do mundo. A câmera básica, o zoom semântico, os controles discretos e a visão geral foram validados visualmente pelo mantenedor. Minimap, pan manual, drag, easing e otimizações de culling continuam futuros.
+A leitura efetiva do arquivo e a interação com o DOM ficam em outras camadas.
 
-### `exportacao.js`
+Esse módulo não:
 
-Deverá concentrar exportação de imagem, relatório ou dados estruturais, com formatos pequenos e documentados.
+- executa o arquivo;
+- envia o arquivo para rede;
+- analisa C.
 
-## Regras de dependência
+---
 
-- A verdade estrutural não deve depender da UI.
-- O grafo não deve depender do layout.
-- O layout não deve desenhar nem executar física.
-- `jogo.js` deve renderizar e cuidar de física/controles.
-- `interface.js` deve cuidar do DOM.
-- `principal.js` deve orquestrar, não acumular regras de parser ou renderização.
-- Canvas é apropriado para mapa e animação; DOM é apropriado para inspector, controles, texto e acessibilidade.
+## `js/lexicoC.js`
+
+Faz a separação léxica básica necessária para proteger a análise estrutural.
+
+Distingue:
+
+- código;
+- comentários;
+- strings;
+- caracteres.
+
+Produz representações mascaradas que preservam:
+
+- índices;
+- comprimento;
+- quebras de linha.
+
+Isso permite que outras etapas analisem a estrutura sem interpretar conteúdo textual como código.
+
+Exemplo:
+
+```c
+printf("if while }");
+```
+
+não deve ser interpretado como:
+
+- um `if`;
+- um `while`;
+- o fechamento real de uma função.
+
+Também identifica entradas estruturalmente incompletas suportadas pela análise atual.
+
+---
+
+## `js/analisadorC.js`
+
+Transforma o código C em descritores de funções.
+
+Entre os dados extraídos atualmente estão:
+
+- nome da função;
+- trecho original;
+- corpo estrutural;
+- quantidade de linhas;
+- `if`;
+- `for`;
+- `while`;
+- `switch`;
+- `case`;
+- complexidade segundo a fórmula atual;
+- chamadas para funções conhecidas.
+
+A extração de funções utiliza uma estratégia simplificada e não representa toda a gramática de C.
+
+O analisador usa o resultado do léxico para evitar falsos positivos em comentários e literais.
+
+Ele não:
+
+- executa código;
+- compila C;
+- cria salas;
+- calcula posições;
+- desenha no Canvas.
+
+---
+
+# 2. Grafo estrutural
+
+## `js/grafoC.js`
+
+É a principal representação das relações entre funções conhecidas.
+
+O grafo mantém:
+
+- função de entrada;
+- nós;
+- arestas direcionadas;
+- callers;
+- callees;
+- profundidade mínima;
+- alcançabilidade;
+- recursão direta;
+- participação em ciclos.
+
+Quando existe `main`, ela é usada como entrada.
+
+Quando não existe, a primeira função encontrada é usada.
+
+O módulo também fornece dados para diferentes formas de navegação e leitura estrutural.
+
+Entre elas:
+
+- caminho mínimo desde a entrada;
+- relações de callers e callees;
+- contexto topológico da função selecionada.
+
+O grafo não depende de:
+
+- Canvas;
+- DOM;
+- câmera;
+- posição das salas.
+
+---
+
+## Chamadas conhecidas
+
+O grafo atual representa chamadas entre funções encontradas no próprio código analisado.
+
+Por exemplo:
+
+```c
+void b() {}
+
+void a() {
+    b();
+}
+
+int main() {
+    a();
+}
+```
+
+gera:
+
+```text
+main → a → b
+```
+
+Chamadas externas que não possuem uma função correspondente no arquivo não viram salas no grafo atual.
+
+---
+
+## Ciclos e recursão
+
+Uma chamada da função para ela mesma pode ser marcada como recursão direta.
+
+Exemplo:
+
+```text
+a → a
+```
+
+Ciclos entre funções também são detectados.
+
+Exemplo:
+
+```text
+a → b → c → a
+```
+
+Essas informações pertencem ao grafo, não à renderização.
+
+---
+
+# 3. Semântica da dungeon
+
+## `js/regioesMasmorra.js`
+
+Classifica funções em regiões usando somente informações estruturais.
+
+Atualmente existem quatro categorias principais.
+
+### Entrada
+
+A função inicial é separada das alas normais.
+
+---
+
+### Salão Central
+
+Somente funções alcançáveis podem ser consideradas hubs.
+
+A regra atual exige pelo menos:
+
+```text
+3 callers alcançáveis distintos
+```
+
+O nome da função não participa dessa decisão.
+
+---
+
+### Alas
+
+Funções alcançáveis podem formar alas.
+
+Quando duas ou mais funções compartilham um prefixo técnico considerado confiável, esse prefixo pode dar nome à região.
+
+Exemplo:
+
+```text
+parse_primary
+parse_expression
+parse_unary
+```
+
+pode gerar:
+
+```text
+Ala Parser
+```
+
+Prefixos operacionais genéricos não são usados como domínio.
+
+Entre eles:
+
+```text
+get
+set
+create
+delete
+remove
+add
+find
+init
+free
+read
+write
+load
+save
+update
+process
+handle
+make
+new
+```
+
+Sem um prefixo confiável, o agrupamento estrutural recebe um nome neutro:
+
+```text
+Ala 1
+Ala 2
+...
+```
+
+---
+
+### Criptas Isoladas
+
+Toda função não alcançável a partir da entrada pertence às Criptas Isoladas.
+
+Essa regra tem prioridade sobre a identificação de hubs.
+
+Um componente desconectado continua isolado mesmo quando várias funções dele chamam uma mesma função.
+
+---
+
+## Dados produzidos
+
+Cada região possui informações como:
+
+```js
+{
+  id,
+  tipo,
+  titulo,
+  funcoes
+}
+```
+
+Esses dados são independentes do Canvas.
+
+No estado atual, as regiões ainda não são representadas visualmente no mapa.
+
+---
+
+# 4. Geometria
+
+## `js/layoutMasmorra.js`
+
+É responsável por calcular a geometria das salas.
+
+Entre suas responsabilidades estão:
+
+- colunas;
+- distribuição vertical;
+- posições;
+- dimensões;
+- tamanho do mundo lógico.
+
+O layout usa informações do grafo, mas não modifica o grafo.
+
+As funções alcançáveis são organizadas principalmente por profundidade.
+
+Dentro de uma coluna, relações de callers ajudam a determinar a ordenação vertical.
+
+Funções inalcançáveis ficam separadas na parte destinada às isoladas.
+
+O mundo possui tamanho mínimo compatível com o viewport, mas pode crescer horizontal ou verticalmente conforme o programa exige.
+
+A API mantém dados como:
+
+```js
+{
+  salas,
+  larguraMundo,
+  alturaMundo
+}
+```
+
+O layout não:
+
+- desenha;
+- manipula DOM;
+- controla personagem;
+- classifica regiões.
+
+---
+
+## `js/masmorra.js`
+
+É a camada que reúne os dados necessários para formar a dungeon.
+
+Recebe:
+
+- funções;
+- grafo.
+
+Usa:
+
+- `layoutMasmorra.js`;
+- `regioesMasmorra.js`.
+
+E devolve a estrutura final da masmorra, incluindo:
+
+- salas;
+- regiões;
+- largura do mundo;
+- altura do mundo.
+
+As salas recebem dados vindos das funções e do grafo, como:
+
+- métricas;
+- estruturas;
+- recursão;
+- ciclos.
+
+`masmorra.js` não deve duplicar algoritmos que pertencem ao grafo ou ao layout.
+
+---
+
+## `js/corredores.js`
+
+Transforma:
+
+```text
+salas + arestas do grafo
+```
+
+em segmentos geométricos.
+
+Esses segmentos representam as conexões atuais da dungeon.
+
+O módulo:
+
+- ignora autoarestas para desenho;
+- evita duplicatas;
+- ignora referências a salas inexistentes;
+- não modifica o grafo.
+
+Os mesmos segmentos podem ser usados por diferentes partes da experiência.
+
+Isso evita que o jogo e o cenário tenham duas versões diferentes dos corredores.
+
+---
+
+## Limitação atual dos corredores
+
+Os corredores ainda utilizam segmentos diretos.
+
+Em cenários densos, principalmente com muitas funções no mesmo nível, uma conexão pode atravessar visualmente uma terceira sala.
+
+O roteamento mais elaborado pertence a uma etapa futura.
+
+---
+
+# 5. Exploração e renderização
+
+## `js/camera.js`
+
+Calcula a região visível do mundo.
+
+Entre suas responsabilidades estão:
+
+- posição da câmera;
+- limites de deslocamento;
+- cálculo de encaixe;
+- área visível considerando zoom.
+
+Não altera as coordenadas das salas ou do personagem.
+
+---
+
+## `js/zoomDiscreto.js`
+
+Controla os degraus usados pelos botões de zoom.
+
+Os níveis atuais incluem valores como:
+
+```text
+50%
+75%
+100%
+125%
+150%
+175%
+200%
+```
+
+O valor de Encaixar também pode participar dos degraus quando necessário.
+
+O módulo decide níveis de zoom, mas não altera a geometria.
+
+---
+
+## `js/semanticaVisual.js`
+
+Centraliza decisões de representação visual baseadas em dados que já foram calculados.
+
+Entre elas:
+
+- marcadores I/F/W/S;
+- indicador R/C;
+- aparência por modo visual;
+- presença de criatura;
+- nível de detalhe conforme o zoom.
+
+O módulo não deve recalcular:
+
+- chamadas;
+- estruturas;
+- ciclos;
+- complexidade.
+
+---
+
+## Zoom semântico
+
+O desenho das salas possui níveis de detalhe.
+
+### Distante
+
+Prioriza o mapa e a geometria geral.
+
+Elementos pequenos podem ser omitidos.
+
+### Intermediário
+
+Prioriza a identificação das funções.
+
+### Próximo
+
+Mantém os detalhes completos da sala.
+
+Essa mudança é apenas visual.
+
+---
+
+## `js/navegacaoMasmorra.js`
+
+Calcula rotas sobre a geometria dos corredores existentes.
+
+A navegação automática pode partir:
+
+- de dentro de uma sala;
+- de um corredor válido.
+
+O módulo usa os segmentos existentes e devolve pontos de passagem.
+
+Ele não cria chamadas novas no grafo.
+
+Para navegação física, os corredores podem ser percorridos nos dois sentidos, mesmo que a chamada original seja direcionada.
+
+Isso não muda o significado do grafo.
+
+---
+
+## `js/personagem.js`
+
+Concentra o estado e a física básica do personagem.
+
+Cuida de:
+
+- posição;
+- direção;
+- movimento;
+- limites;
+- passos;
+- desenho.
+
+O movimento manual ainda não representa uma colisão completa com paredes da dungeon.
+
+---
+
+## `js/cenario.js`
+
+Desenha o ambiente ao redor das salas.
+
+Recebe informações sobre:
+
+- salas;
+- corredores.
+
+As decorações evitam ocupar áreas destinadas à estrutura principal da dungeon.
+
+O cenário não reconstrói o grafo.
+
+---
+
+## `js/criaturas.js`
+
+Define e desenha criaturas ligadas à representação de complexidade.
+
+Esses elementos pertencem à apresentação visual.
+
+Eles não modificam a métrica que recebem.
+
+---
+
+## `js/efeitos.js`
+
+Gerencia efeitos transitórios usados na exploração.
+
+Mantém limites de:
+
+- duração;
+- quantidade.
+
+---
+
+## `js/pixelArt.js`
+
+Centraliza recursos reutilizáveis de pixel art.
+
+Inclui elementos como:
+
+- paleta;
+- glifos;
+- representações usadas pelos marcadores.
+
+---
+
+## `js/jogo.js`
+
+É o principal coordenador da experiência dentro do Canvas.
+
+Entre suas responsabilidades estão:
+
+- ciclo de animação;
+- renderização;
+- movimentação;
+- câmera;
+- zoom;
+- detecção de sala;
+- clique;
+- duplo clique;
+- hover;
+- foco;
+- seleção;
+- navegação automática;
+- modos visuais;
+- efeitos;
+- corredores.
+
+O jogo recebe dados estruturais já calculados.
+
+Ele não deve analisar código C.
+
+Também não deve manipular diretamente o conteúdo textual do DOM.
+
+A comunicação com a interface ocorre por callbacks.
+
+---
+
+## Sala física e sala selecionada
+
+O projeto diferencia:
+
+```text
+sala onde o personagem está
+```
+
+de:
+
+```text
+sala que o usuário está inspecionando
+```
+
+Selecionar uma função não teleporta o personagem.
+
+A câmera pode focar a sala selecionada sem alterar a posição física.
+
+---
+
+## Clique e duplo clique
+
+Um clique em uma sala solicita a seleção daquela função.
+
+Um duplo clique também pode iniciar navegação automática quando existe uma rota válida.
+
+Movimento manual cancela a rota automática.
+
+---
+
+## Foco contextual
+
+Ao selecionar uma função, o contexto topológico calculado pelo grafo pode ser exibido.
+
+As funções relevantes permanecem destacadas.
+
+As demais continuam no mapa com menor opacidade.
+
+O jogo apenas apresenta esse resultado.
+
+A definição de quais funções pertencem ao contexto continua no grafo.
+
+---
+
+# 6. Interface
+
+## `js/interface.js`
+
+Centraliza a manipulação do DOM.
+
+Entre suas responsabilidades estão:
+
+- troca entre telas;
+- editor;
+- importação de arquivo;
+- mensagens;
+- busca;
+- resultados;
+- inspector;
+- callers;
+- callees;
+- controles de câmera;
+- modos visuais;
+- status;
+- percentual de zoom.
+
+O conteúdo originado do código do usuário deve ser tratado como texto.
+
+A interface não deve interpretar novamente a estrutura C.
+
+---
+
+## Inspector
+
+O inspector recebe dados das camadas estruturais.
+
+Atualmente pode apresentar:
+
+- função selecionada;
+- trecho de código;
+- métricas;
+- perfil das estruturas;
+- callers;
+- callees;
+- caminho mínimo;
+- recursão;
+- ciclos.
+
+A interface não deve recalcular essas informações.
+
+---
+
+# 7. Orquestração
+
+## `js/principal.js`
+
+É o ponto central de integração da aplicação.
+
+Coordena o fluxo entre:
+
+- interface;
+- analisador;
+- grafo;
+- masmorra;
+- jogo.
+
+Entre suas responsabilidades estão:
+
+- receber o código;
+- iniciar análise;
+- criar o grafo;
+- construir a dungeon;
+- iniciar o jogo;
+- conectar busca;
+- conectar seleção;
+- conectar inspector;
+- conectar câmera;
+- conectar modos.
+
+`principal.js` deve orquestrar módulos.
+
+Ele não deve acumular algoritmos que pertencem ao parser, grafo, layout ou renderização.
+
+---
+
+# Fluxo completo atual
+
+## Entrada
+
+O usuário:
+
+```text
+digita
+cola
+ou abre um arquivo .c
+```
+
+O arquivo é carregado localmente no editor.
+
+A importação não gera automaticamente uma dungeon.
+
+---
+
+## Análise
+
+Quando o usuário solicita a geração:
+
+```text
+principal.js
+    ↓
+analisadorC.js
+    ↕
+lexicoC.js
+```
+
+São produzidos descritores das funções.
+
+---
+
+## Estrutura
+
+Depois:
+
+```text
+funções
+   ↓
+grafoC.js
+```
+
+São calculados:
+
+- nós;
+- arestas;
+- entrada;
+- alcance;
+- profundidade;
+- callers;
+- callees;
+- ciclos;
+- recursão.
+
+---
+
+## Dungeon
+
+O grafo alimenta duas responsabilidades independentes:
+
+```text
+              grafo
+             /     \
+            ↓       ↓
+        layout    regiões
+            \       /
+             ↓     ↓
+             masmorra
+```
+
+`layoutMasmorra.js` define geometria.
+
+`regioesMasmorra.js` define classificação semântica.
+
+`masmorra.js` reúne os resultados.
+
+---
+
+## Corredores
+
+Depois:
+
+```text
+salas + arestas
+      ↓
+corredores.js
+```
+
+são transformados em segmentos geométricos.
+
+---
+
+## Exploração
+
+Finalmente:
+
+```text
+masmorra
+arestas
+   ↓
+jogo.js
+```
+
+A experiência é renderizada no Canvas.
+
+`interface.js` apresenta os dados textuais e os controles no DOM.
+
+---
+
+# Estado e responsabilidades
+
+A arquitetura tenta evitar múltiplas fontes de verdade.
+
+## Estrutura do programa
+
+Fonte:
+
+```text
+grafoC.js
+```
+
+---
+
+## Geometria
+
+Fonte:
+
+```text
+layoutMasmorra.js
+```
+
+---
+
+## Regiões
+
+Fonte:
+
+```text
+regioesMasmorra.js
+```
+
+---
+
+## Câmera
+
+Fonte:
+
+```text
+camera.js
+jogo.js
+```
+
+---
+
+## Conteúdo textual da interface
+
+Responsabilidade:
+
+```text
+interface.js
+```
+
+---
+
+# Testes
+
+A suíte automatizada usa o test runner nativo do Node.js.
+
+Ela é executada com:
+
+```bash
+npm test
+```
+
+Os testes cobrem diferentes camadas de forma separada e integrada.
+
+Entre elas:
+
+- léxico;
+- análise;
+- grafo;
+- layout;
+- regiões;
+- corredores;
+- navegação;
+- câmera;
+- zoom;
+- renderização;
+- interface;
+- importação;
+- integração.
+
+Não é necessário manter na documentação uma contagem fixa de testes, porque esse número cresce durante o desenvolvimento.
+
+---
+
+# Integração contínua
+
+O repositório possui GitHub Actions.
+
+O workflow executa:
+
+```bash
+npm test
+```
+
+em pushes e pull requests.
+
+Isso ajuda a detectar regressões antes da integração de novas mudanças.
+
+O deploy público ainda não faz parte dessa arquitetura.
+
+---
+
+# Privacidade no estado atual
+
+No estado atual:
+
+- o projeto é frontend estático;
+- o código é analisado no navegador;
+- não existe backend da aplicação;
+- o código C não é compilado;
+- o código C não é executado;
+- a importação lê um arquivo local.
+
+A arquitetura de publicação ainda passará por uma revisão específica de segurança.
+
+Não deve ser prometida segurança ou privacidade absoluta.
+
+---
+
+# Limitações arquiteturais atuais
+
+O analisador suporta um subconjunto de C.
+
+Construções avançadas podem exigir outra abordagem no futuro.
+
+Entre os casos que ainda precisam de atenção estão:
+
+- macros complexas;
+- pré-processamento condicional;
+- ponteiros de função;
+- declarações avançadas.
+
+Os corredores também ainda utilizam geometria simples.
+
+Além disso:
+
+- regiões ainda não são desenhadas;
+- minimapa ainda não existe;
+- pan manual e drag ainda não existem;
+- colisão física completa com paredes ainda não existe.
+
+Esses pontos não devem ser implementados dentro de módulos errados apenas para acelerar uma entrega.
+
+---
+
+# Próximas extensões arquiteturais
+
+## Visualização das regiões
+
+A próxima camada deverá consumir:
+
+```text
+masmorra.regioes
+```
+
+e representar visualmente:
+
+- Entrada;
+- Salão Central;
+- Alas;
+- Criptas Isoladas.
+
+Essa representação deve consumir a classificação existente.
+
+Não deve duplicar ou reinventar as regras de agrupamento.
+
+---
+
+## Corredores 2.0
+
+Uma evolução futura deve separar melhor:
+
+```text
+relação lógica
+```
+
+de:
+
+```text
+rota geométrica
+```
+
+O grafo continuará dizendo quais salas estão relacionadas.
+
+Um roteador poderá decidir por onde o corredor passa.
+
+O roteamento deverá evitar, quando possível:
+
+- atravessar salas;
+- produzir caminhos confusos;
+- criar conexões físicas falsas.
+
+---
+
+## Segurança
+
+Antes da publicação pública, a arquitetura deverá ser revisada considerando:
+
+- limites de processamento;
+- entradas hostis;
+- DOM;
+- política de rede;
+- CSP;
+- headers;
+- hospedagem;
+- CI de publicação.
+
+Essas medidas ainda não devem ser descritas como implementadas.
+
+---
+
+# Regras de dependência
+
+As seguintes regras devem ser preservadas:
+
+- análise C não depende do Canvas;
+- grafo não depende do layout;
+- regiões não dependem do layout;
+- layout não decide semântica;
+- layout não renderiza;
+- corredores não modificam o grafo;
+- câmera não modifica a geometria do mundo;
+- jogo não analisa C;
+- interface não recalcula o grafo;
+- `principal.js` orquestra, mas não concentra algoritmos das outras camadas;
+- Canvas cuida da experiência espacial;
+- DOM cuida principalmente de texto e controles.
+
+---
+
+# Regra principal
+
+A arquitetura deve continuar permitindo responder:
+
+```text
+De onde veio esta informação?
+```
+
+Se uma informação estrutural aparece na interface, deve ser possível apontar para a camada que a calculou.
+
+A renderização apresenta os dados.
+
+Ela não deve criar uma verdade nova sobre o código.
