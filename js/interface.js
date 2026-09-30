@@ -6,18 +6,181 @@ const MILISSEGUNDOS_POR_LETRA = 18;
 let idAnimacaoPainel = null;
 let concluirAnimacao = null;
 let preferenciaMovimento = null;
+let nomesDaBusca = [];
+let resultadosDaBusca = [];
+let aoSelecionarResultado = null;
+
+export function configurarControlesCamera({ aoAfastar, aoRestaurar, aoAproximar, aoEncaixar }) {
+  const acoes = [
+    ['camera-afastar', aoAfastar],
+    ['camera-zoom', aoRestaurar],
+    ['camera-aproximar', aoAproximar],
+    ['camera-encaixar', aoEncaixar],
+  ];
+  for (const [id, acao] of acoes) {
+    document.getElementById(id).addEventListener('click', () => atualizarZoomCamera(acao()));
+  }
+}
+
+export function atualizarZoomCamera(zoom) {
+  const percentual = `${Math.round(zoom * 100)}%`;
+  const botao = document.getElementById('camera-zoom');
+  botao.textContent = percentual;
+  botao.setAttribute('aria-label', `Zoom atual: ${percentual}. Restaurar para 100%`);
+}
+
+export function configurarModosVisuais(aoSelecionar) {
+  for (const modo of ['complexidade', 'estrutura']) {
+    document.getElementById(`modo-${modo}`).addEventListener('click', () => {
+      atualizarModoVisual(aoSelecionar(modo));
+    });
+  }
+}
+
+export function atualizarModoVisual(modo) {
+  for (const valor of ['complexidade', 'estrutura']) {
+    document.getElementById(`modo-${valor}`)
+      .setAttribute('aria-pressed', String(modo === valor));
+  }
+}
+
+export function configurarImportacaoCodigo(aoSelecionar, aoEditar) {
+  const editor = document.getElementById('entrada-codigo');
+  const campoArquivo = document.getElementById('arquivo-c');
+  const ehArrasteDeArquivo = evento =>
+    Array.from(evento.dataTransfer?.types ?? []).includes('Files') ||
+    (evento.dataTransfer?.files?.length ?? 0) > 0;
+  const removerDestaque = () => editor.setAttribute('data-arrastando', 'false');
+
+  document.getElementById('botao-abrir-c').addEventListener('click', () => campoArquivo.click());
+  campoArquivo.addEventListener('change', () => {
+    const arquivos = Array.from(campoArquivo.files ?? []);
+    campoArquivo.value = '';
+    if (arquivos.length) aoSelecionar(arquivos);
+  });
+  editor.addEventListener('input', aoEditar);
+  for (const tipo of ['dragenter', 'dragover']) {
+    editor.addEventListener(tipo, evento => {
+      if (!ehArrasteDeArquivo(evento)) return;
+      evento.preventDefault();
+      editor.setAttribute('data-arrastando', 'true');
+    });
+  }
+  editor.addEventListener('dragleave', removerDestaque);
+  editor.addEventListener('drop', evento => {
+    if (!ehArrasteDeArquivo(evento)) return;
+    evento.preventDefault();
+    removerDestaque();
+    aoSelecionar(Array.from(evento.dataTransfer.files ?? []));
+  });
+  document.addEventListener('dragover', evento => {
+    if (!ehArrasteDeArquivo(evento)) return;
+    evento.preventDefault();
+    if (evento.target !== editor) removerDestaque();
+  });
+  document.addEventListener('drop', evento => {
+    if (!ehArrasteDeArquivo(evento)) return;
+    evento.preventDefault();
+    removerDestaque();
+  });
+}
+
+export function limparErroEntrada() {
+  const mensagem = document.getElementById('mensagem-erro');
+  mensagem.textContent = '';
+  mensagem.classList.remove('ativa');
+}
+
+export function mostrarErroEntrada(texto) {
+  const mensagem = document.getElementById('mensagem-erro');
+  mensagem.textContent = texto;
+  mensagem.classList.add('ativa');
+}
+
+export function mostrarArquivoImportado(conteudo, nome) {
+  const editor = document.getElementById('entrada-codigo');
+  editor.value = conteudo;
+  document.getElementById('arquivo-atual').textContent = `Arquivo: ${nome}`;
+  limparErroEntrada();
+  editor.focus({ preventScroll: true });
+}
+
+export function inicializarBuscaFuncoes() {
+  const campo = document.getElementById('busca-funcao');
+  campo.addEventListener('input', atualizarResultadosBusca);
+  campo.addEventListener('keydown', evento => {
+    if (evento.key !== 'Enter' || resultadosDaBusca.length === 0) return;
+    evento.preventDefault();
+    aoSelecionarResultado?.(resultadosDaBusca[0]);
+  });
+}
+
+export function configurarBuscaFuncoes(nomes, aoSelecionar) {
+  limparBuscaFuncoes();
+  nomesDaBusca = [...nomes];
+  aoSelecionarResultado = aoSelecionar;
+}
+
+export function limparBuscaFuncoes() {
+  nomesDaBusca = [];
+  resultadosDaBusca = [];
+  aoSelecionarResultado = null;
+  document.getElementById('busca-funcao').value = '';
+  document.getElementById('resultados-busca').replaceChildren();
+}
+
+function atualizarResultadosBusca() {
+  const consulta = document.getElementById('busca-funcao').value.trim().toLowerCase();
+  const painel = document.getElementById('resultados-busca');
+  painel.replaceChildren();
+  resultadosDaBusca = consulta
+    ? nomesDaBusca.filter(nome => nome.toLowerCase().includes(consulta))
+    : [];
+  if (!consulta) return;
+  if (resultadosDaBusca.length === 0) {
+    painel.append(criarElemento('p', 'busca-vazia', 'Nenhuma função encontrada.'));
+    return;
+  }
+  const lista = criarElemento('ul', 'lista-busca');
+  for (const nome of resultadosDaBusca) {
+    const item = criarElemento('li');
+    const botao = criarElemento('button', 'resultado-busca', `${nome}()`);
+    botao.setAttribute('type', 'button');
+    botao.addEventListener('click', () => aoSelecionarResultado?.(nome));
+    item.append(botao);
+    lista.append(item);
+  }
+  painel.append(lista);
+}
 
 export function exibirTelaDeJogo() {
-  document.getElementById('painel-configuracao').style.display = 'none';
+  document.getElementById('tela-entrada').style.display = 'none';
   document.getElementById('area-jogo').style.display = 'flex';
-  document.getElementById('canvas-jogo').focus({ preventScroll: true });
+}
+
+export function atualizarEstadoControles(ativos) {
+  const indicador = document.getElementById('status-indicador');
+  const texto = document.getElementById('status-controles-texto');
+
+  indicador.className =
+    ativos
+      ? 'status-indicador ativo'
+      : 'status-indicador';
+
+  texto.textContent = ativos
+    ? 'Exploração ativa · WASD / setas · Esc libera'
+    : 'Clique no mapa para explorar · WASD / setas';
 }
 
 export function exibirTelaDeConfiguracao() {
   cancelarAnimacaoPainel();
+
   document.getElementById('area-jogo').style.display = 'none';
-  document.getElementById('painel-configuracao').style.display = 'block';
-  document.getElementById('entrada-codigo').focus({ preventScroll: true });
+  document.getElementById('tela-entrada').style.display = 'flex';
+
+  document.getElementById('entrada-codigo').focus({
+    preventScroll: true,
+  });
 }
 
 function cancelarAnimacaoPainel() {
@@ -49,10 +212,13 @@ export function descreverSala(sala) {
   const observacao = sala.complexidade <= 2 ? 'Uma sala tranquila para começar a exploração.'
     : sala.complexidade <= 6 ? 'Há mais caminhos de decisão para investigar aqui.'
       : 'Esta sala merece atenção: o índice indica mais complexidade para explorar.';
-  return `${sala.nome}() tem ${sala.linhas} linha(s) de corpo e ${sala.estruturasControle} estrutura(s) de controle. ${observacao}`;
+  const estruturas = sala.estruturasControle == null
+    ? 'total de estruturas de controle indisponível'
+    : `${sala.estruturasControle} estrutura(s) de controle`;
+  return `${sala.nome}() tem ${sala.linhas} linha(s) de corpo e ${estruturas}. ${observacao}`;
 }
 
-export function atualizarPainelDeSala(sala) {
+export function atualizarPainelDeSala(sala, estrutura = null, aoSelecionarFuncao = null) {
   cancelarAnimacaoPainel();
   const painelInfo = document.getElementById('info-sala');
   painelInfo.replaceChildren();
@@ -100,8 +266,73 @@ export function atualizarPainelDeSala(sala) {
     + (sala.textoCompleto.length > TAMANHO_MAXIMO_TRECHO ? '\n...' : ''));
   painelInfo.append(cabecalho, descricao, descricaoAcessivel,
     criarEstatistica('Linhas de corpo', sala.linhas),
-    criarEstatistica('Estruturas de controle', sala.estruturasControle), perigo, codigo);
+    criarEstatistica('Complexidade', sala.complexidade));
+  if (estrutura) {
+    painelInfo.append(criarEstatistica('Profundidade',
+      estrutura.profundidade ?? 'Não alcançável a partir da entrada'));
+  }
+  painelInfo.append(criarPerfilEstruturas(sala));
+  if (estrutura) {
+    painelInfo.append(
+      criarListaDeFuncoes('Chamada por', 'callers-funcao', estrutura.callers,
+        estrutura.ehEntrada ? 'Entrada do programa' : 'Nenhuma chamada conhecida', aoSelecionarFuncao),
+      criarListaDeFuncoes('Chama', 'callees-funcao', estrutura.callees,
+        'Nenhuma função conhecida', aoSelecionarFuncao),
+      criarSecao('Ciclos de chamadas', 'ciclo-funcao',
+        estrutura.recursivaDireta ? 'Recursão direta; participa de ciclo de chamadas'
+          : estrutura.participaDeCiclo ? 'Participa de ciclo de chamadas'
+            : 'Sem ciclo detectado'),
+      criarSecao('Caminho desde a entrada', 'caminho-funcao',
+        estrutura.caminho ? estrutura.caminho.map(nome => `${nome}()`).join(' → ')
+          : 'Não alcançável a partir da entrada'));
+  }
+  const secaoCodigo = criarSecao('Código', 'trecho-funcao');
+  secaoCodigo.append(codigo);
+  painelInfo.append(perigo, secaoCodigo);
   animarPainel(descricao, textoDescricao, preenchimento, criatura.preenchimento);
+}
+
+function criarPerfilEstruturas(sala) {
+  const secao = criarSecao('Estruturas', 'estruturas-funcao',
+    sala.estruturasControle == null ? 'Informação não disponível'
+      : sala.estruturasControle === 0 ? 'Nenhuma estrutura de controle'
+        : `${sala.estruturasControle} estrutura(s) de controle (total)`);
+  const presentes = Object.entries(sala.estruturasPorTipo ?? {})
+    .filter(([, quantidade]) => quantidade > 0);
+  if (presentes.length > 0) {
+    const lista = criarElemento('ul', 'perfil-estruturas');
+    for (const [tipo, quantidade] of presentes) {
+      lista.append(criarElemento('li', '', `${tipo}: ${quantidade}`));
+    }
+    secao.append(lista);
+  }
+  return secao;
+}
+
+function criarSecao(titulo, classe, texto) {
+  const secao = criarElemento('section', `secao-inspector ${classe}`);
+  secao.append(criarElemento('h4', 'titulo-inspector', titulo));
+  if (texto !== undefined) secao.append(criarElemento('p', classe, texto));
+  return secao;
+}
+
+function criarListaDeFuncoes(titulo, classe, nomes, mensagemVazia, aoSelecionarFuncao) {
+  const secao = criarSecao(titulo, classe);
+  if (nomes.length === 0) {
+    secao.append(criarElemento('p', classe, mensagemVazia));
+  } else {
+    const lista = criarElemento('ul', classe);
+    for (const nome of nomes) {
+      const item = criarElemento('li');
+      const botao = criarElemento('button', 'relacao-funcao', `${nome}()`);
+      botao.setAttribute('type', 'button');
+      botao.addEventListener('click', () => aoSelecionarFuncao?.(nome));
+      item.append(botao);
+      lista.append(item);
+    }
+    secao.append(lista);
+  }
+  return secao;
 }
 
 function animarPainel(descricao, texto, preenchimento, valor) {

@@ -1,7 +1,8 @@
 // Estado, movimento e animação do aventureiro, sem eventos ou acesso ao DOM.
 import { PALETA, desenharPixels } from './pixelArt.js';
 
-const VELOCIDADE = 156; // Pixels por segundo (equivalente a 2,6 por quadro a 60 Hz).
+export const VELOCIDADE_PERSONAGEM = 156; // Pixels por segundo (2,6 por quadro a 60 Hz).
+export const RAIO_BASE_PERSONAGEM = 10;
 const DURACAO_PASSO = 0.8;
 const INTERVALO_PASSO = 0.14;
 const QUADROS_CAMINHADA = [0, 1, 0, 2];
@@ -29,16 +30,23 @@ export function criarPersonagem(x, y) {
     tempoParado: 0, tempoPasso: 0, pe: 1, passos: [] };
 }
 
-export function atualizarPersonagem(jogador, direcao, segundos, limites, reduzirMovimento = false) {
+export function atualizarPersonagem(jogador, direcao, segundos, limites,
+  reduzirMovimento = false, resolverMovimento = null) {
   const comprimento = Math.hypot(direcao.x, direcao.y);
   const anterior = { x: jogador.x, y: jogador.y };
   if (comprimento) {
     jogador.direcao = direcao.x ? (direcao.x > 0 ? 'direita' : 'esquerda')
       : (direcao.y > 0 ? 'baixo' : 'cima');
-    jogador.x = Math.max(12, Math.min(limites.largura - 12,
-      jogador.x + direcao.x / comprimento * VELOCIDADE * segundos));
-    jogador.y = Math.max(14, Math.min(limites.altura - 14,
-      jogador.y + direcao.y / comprimento * VELOCIDADE * segundos));
+    const deslocamento = {
+      x: direcao.x / comprimento * VELOCIDADE_PERSONAGEM * segundos,
+      y: direcao.y / comprimento * VELOCIDADE_PERSONAGEM * segundos,
+    };
+    const posicao = resolverMovimento ? resolverMovimento(anterior, deslocamento) : {
+      x: Math.max(12, Math.min(limites.largura - 12, jogador.x + deslocamento.x)),
+      y: Math.max(14, Math.min(limites.altura - 14, jogador.y + deslocamento.y)),
+    };
+    jogador.x = posicao.x;
+    jogador.y = posicao.y;
   }
   jogador.andando = jogador.x !== anterior.x || jogador.y !== anterior.y;
   jogador.tempoAndando = jogador.andando ? jogador.tempoAndando + segundos : 0;

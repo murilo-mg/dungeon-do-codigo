@@ -1,20 +1,204 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { construirMasmorra } from '../js/masmorra.js';
+import { analisarFuncoes } from '../js/analisadorC.js';
+import { criarGrafo } from '../js/grafoC.js';
+import { calcularLayoutMasmorra } from '../js/layoutMasmorra.js';
+import { construirMasmorra, corPorSala, tamanhoPorComplexidade } from '../js/masmorra.js';
+
+function criarFuncao(nome, chamadas = []) {
+  return {
+    nome,
+    corpo: chamadas.map(chamada => `${chamada}();`).join(' '),
+    textoCompleto: `void ${nome}() {}`,
+    linhas: 0,
+    estruturasControle: 0,
+    complexidade: 0,
+    chamadas,
+  };
+}
 
 test('lista vazia produz uma masmorra vazia, sem sala fictícia', () => {
-  assert.deepEqual(construirMasmorra([]), []);
+  assert.deepEqual(construirMasmorra([]), {
+    salas: [],
+    regioes: [],
+    larguraMundo: 560,
+    alturaMundo: 480,
+  });
+});
+
+test('regiões são metadados e preservam grafo, posições e dimensões das salas', () => {
+  const funcoes = [
+    criarFuncao('main', ['parse_primary', 'parse_expression']),
+    criarFuncao('parse_primary'), criarFuncao('parse_expression'),
+    criarFuncao('solta'),
+  ];
+  const grafo = criarGrafo(funcoes);
+  const grafoAntes = structuredClone(grafo);
+  const layout = calcularLayoutMasmorra(grafo, funcoes);
+  const masmorra = construirMasmorra(funcoes, grafo);
+  assert.equal(masmorra.regioes.find(regiao => regiao.titulo === 'Ala Parser')
+    .funcoes.length, 2);
+  assert.equal(masmorra.regioes.find(regiao => regiao.titulo === 'Criptas Isoladas')
+    .funcoes[0], 'solta');
+  for (const sala of masmorra.salas) {
+    const { x, y, largura, altura } = layout.salas.get(sala.nome);
+    assert.deepEqual({ x: sala.x, y: sala.y, largura: sala.largura, altura: sala.altura },
+      { x, y, largura, altura });
+  }
+  assert.deepEqual(grafo, grafoAntes);
 });
 
 test('preserva os dados da sala inicial com main ou com a primeira função disponível', () => {
-  const auxiliar = { nome: 'auxiliar', corpo: '', textoCompleto: 'void auxiliar() {}',
-    linhas: 0, estruturasControle: 0, complexidade: 0 };
-  const principal = { ...auxiliar, nome: 'main', corpo: 'auxiliar();' };
-  assert.equal(construirMasmorra([auxiliar])[0].nome, 'auxiliar');
-  const salas = construirMasmorra([auxiliar, principal]);
+  const auxiliar = criarFuncao('auxiliar');
+
+  const masmorraAuxiliar = construirMasmorra([auxiliar]);
+  assert.equal(masmorraAuxiliar.salas[0].nome, 'auxiliar');
+  assert.equal(masmorraAuxiliar.salas[0].profundidade, 0);
+
+  const principal = criarFuncao('main', ['auxiliar']);
+  const masmorra = construirMasmorra([auxiliar, principal]);
+  const salas = masmorra.salas;
   assert.equal(salas.length, 2);
   assert.equal(salas[0].nome, 'main');
   assert.equal(salas[0].ehSalaInicial, true);
+  assert.equal(salas[0].profundidade, 0);
+  assert.equal(masmorra.larguraMundo, 560);
+  assert.equal(masmorra.alturaMundo, 480);
+
   assert.equal(salas[1].ehChamadaPelaPrincipal, true);
-  assert.deepEqual([auxiliar, principal].map(funcao => funcao.nome), ['auxiliar', 'main']);
+  assert.equal(salas[1].profundidade, 1);
+
+  assert.deepEqual(
+    [auxiliar, principal].map(funcao => funcao.nome),
+    ['auxiliar', 'main']
+  );
+});
+
+test('calcula chamadas recebidas e profundidade a partir da função inicial', () => {
+  const funcoes = [
+    criarFuncao('validar'),
+    criarFuncao('salvar', ['processar']),
+    criarFuncao('processar', ['salvar']),
+    criarFuncao('carregar', ['validar']),
+    criarFuncao('isolada'),
+    criarFuncao('main', ['carregar', 'processar']),
+  ];
+
+  const salas = construirMasmorra(funcoes).salas;
+  const porNome = new Map(
+    salas.map(sala => [sala.nome, sala])
+  );
+
+  assert.equal(porNome.get('main').profundidade, 0);
+
+  assert.equal(porNome.get('carregar').profundidade, 1);
+  assert.deepEqual(
+    porNome.get('carregar').chamadaPor,
+    ['main']
+  );
+
+  assert.equal(porNome.get('processar').profundidade, 1);
+  assert.deepEqual(
+    new Set(porNome.get('processar').chamadaPor),
+    new Set(['main', 'salvar'])
+  );
+
+  assert.equal(porNome.get('validar').profundidade, 2);
+  assert.deepEqual(
+    porNome.get('validar').chamadaPor,
+    ['carregar']
+  );
+
+  assert.equal(porNome.get('salvar').profundidade, 2);
+  assert.deepEqual(
+    porNome.get('salvar').chamadaPor,
+    ['processar']
+  );
+
+  assert.equal(porNome.get('isolada').profundidade, null);
+
+  assert.equal(
+    funcoes.some(funcao => 'profundidade' in funcao),
+    false
+  );
+});
+
+test('organiza salas em colunas conforme a profundidade das chamadas', () => {
+  const funcoes = [
+    criarFuncao('validar'),
+    criarFuncao('salvar'),
+    criarFuncao('carregar', ['validar']),
+    criarFuncao('processar', ['salvar']),
+    criarFuncao('isolada'),
+    criarFuncao('main', ['carregar', 'processar']),
+  ];
+
+  const salas = construirMasmorra(funcoes).salas;
+
+  const porNome = new Map(
+    salas.map(sala => [sala.nome, sala])
+  );
+
+  const main = porNome.get('main');
+  const carregar = porNome.get('carregar');
+  const processar = porNome.get('processar');
+  const validar = porNome.get('validar');
+  const salvar = porNome.get('salvar');
+  const isolada = porNome.get('isolada');
+
+  assert.ok(main.x + main.largura / 2 < carregar.x + carregar.largura / 2);
+  assert.equal(carregar.x, processar.x);
+
+  assert.ok(carregar.x < validar.x);
+  assert.equal(validar.x, salvar.x);
+
+  assert.notEqual(carregar.y, processar.y);
+  assert.notEqual(validar.y, salvar.y);
+
+  assert.ok(isolada.x > validar.x);
+  assert.equal(isolada.profundidade, null);
+});
+
+test('salas recebem perfil estrutural e indicadores de recursão/ciclo do grafo', () => {
+  const funcoes = analisarFuncoes(`void direta(){direta();}
+    void a(){for (;;) {} b();}
+    void b(){a();}
+    int main(){if (1) {} a(); direta();}`);
+  const masmorra = construirMasmorra(funcoes);
+  const salas = new Map(masmorra.salas.map(sala => [sala.nome, sala]));
+  assert.equal(masmorra.salas[0].nome, 'main');
+  assert.equal(salas.get('main').ehSalaInicial, true);
+  assert.deepEqual(salas.get('main').estruturasPorTipo,
+    { if: 1, for: 0, while: 0, switch: 0, case: 0 });
+  assert.deepEqual(salas.get('a').estruturasPorTipo,
+    { if: 0, for: 1, while: 0, switch: 0, case: 0 });
+  assert.deepEqual([salas.get('direta').recursivaDireta, salas.get('direta').participaDeCiclo],
+    [true, true]);
+  assert.deepEqual([salas.get('a').recursivaDireta, salas.get('a').participaDeCiclo],
+    [false, true]);
+  assert.deepEqual([salas.get('b').recursivaDireta, salas.get('b').participaDeCiclo],
+    [false, true]);
+  assert.deepEqual([salas.get('main').recursivaDireta, salas.get('main').participaDeCiclo],
+    [false, false]);
+});
+
+test('metadados estruturais não alteram posições, tamanhos ou cores por complexidade', () => {
+  const funcoes = analisarFuncoes(`void a(){if (1) {} for (;;) {}}
+    int main(){a();}`);
+  const comPerfil = construirMasmorra(funcoes);
+  const semPerfil = construirMasmorra(funcoes.map(({ estruturasPorTipo, ...funcao }) => funcao));
+  const geometria = masmorra => masmorra.salas.map(({ nome, x, y, largura, altura }) =>
+    ({ nome, x, y, largura, altura }));
+  assert.deepEqual(geometria(comPerfil), geometria(semPerfil));
+  assert.equal(comPerfil.larguraMundo, semPerfil.larguraMundo);
+  assert.equal(comPerfil.alturaMundo, semPerfil.alturaMundo);
+  for (const sala of comPerfil.salas) {
+    assert.equal(sala.largura, sala.ehSalaInicial ? 90 : tamanhoPorComplexidade(sala.complexidade));
+    assert.equal(corPorSala(sala), corPorSala(semPerfil.salas.find(outra => outra.nome === sala.nome)));
+  }
+  const salaA = comPerfil.salas.find(sala => sala.nome === 'a');
+  assert.equal(salaA.complexidade, 4);
+  assert.equal(salaA.largura, 80);
+  assert.equal(corPorSala(salaA), '#c2601a');
+  assert.equal(corPorSala(comPerfil.salas[0]), '#c9a227');
 });

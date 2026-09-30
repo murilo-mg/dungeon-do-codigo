@@ -3,9 +3,22 @@
 // masmorra, renderização do jogo e atualização da interface.
 
 import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
+import { calcularContextoTopologico, criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
-import { iniciarJogo, pararJogo } from './jogo.js';
-import { exibirTelaDeJogo, exibirTelaDeConfiguracao, atualizarPainelDeSala } from './interface.js';
+import { validarArquivoC } from './entradaCodigo.js';
+import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
+  iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from './jogo.js';
+import {
+  atualizarEstadoControles, exibirTelaDeJogo, exibirTelaDeConfiguracao,
+  atualizarPainelDeSala, inicializarBuscaFuncoes, configurarBuscaFuncoes,
+  limparBuscaFuncoes,
+  configurarControlesCamera, atualizarZoomCamera,
+  configurarModosVisuais, atualizarModoVisual,
+  configurarImportacaoCodigo, limparErroEntrada, mostrarErroEntrada,
+  mostrarArquivoImportado,
+} from './interface.js';
+
+let sequenciaImportacao = 0;
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -97,6 +110,16 @@ int main() {
 document.addEventListener('DOMContentLoaded', inicializarAplicacao);
 
 function inicializarAplicacao() {
+  inicializarBuscaFuncoes();
+  configurarImportacaoCodigo(aoSelecionarArquivos, () => { sequenciaImportacao++; });
+  configurarControlesCamera({
+    aoAfastar: afastarCamera,
+    aoRestaurar: restaurarZoomCamera,
+    aoAproximar: aproximarCamera,
+    aoEncaixar: encaixarMasmorra,
+  });
+  configurarModosVisuais(selecionarModoVisual);
+  atualizarModoVisual('complexidade');
   const entradaCodigo = document.getElementById('entrada-codigo');
   entradaCodigo.value = codigoPadrao;
 
@@ -104,29 +127,92 @@ function inicializarAplicacao() {
   document.getElementById('botao-voltar').addEventListener('click', aoClicarEmVoltar);
 }
 
+async function aoSelecionarArquivos(arquivos) {
+  const tentativa = ++sequenciaImportacao;
+  if (arquivos.length !== 1) {
+    mostrarErroEntrada('Selecione apenas um arquivo .c por vez.');
+    return;
+  }
+  const arquivo = arquivos[0];
+  const erro = validarArquivoC(arquivo);
+  if (erro) {
+    mostrarErroEntrada(erro);
+    return;
+  }
+  try {
+    const conteudo = await arquivo.text();
+    if (tentativa !== sequenciaImportacao) return;
+    if (!conteudo.trim()) {
+      mostrarErroEntrada('O arquivo está vazio.');
+      return;
+    }
+    mostrarArquivoImportado(conteudo, arquivo.name);
+  } catch {
+    if (tentativa === sequenciaImportacao) {
+      mostrarErroEntrada('Não foi possível ler o arquivo.');
+    }
+  }
+}
+
 function aoClicarEmGerar(entradaCodigo) {
+  sequenciaImportacao++;
+  limparErroEntrada();
+
+  if (!entradaCodigo.value.trim()) {
+    mostrarErroEntrada('Cole um código em C antes de gerar a dungeon.');
+    entradaCodigo.focus({ preventScroll: true });
+    return;
+  }
+
   let funcoes;
+
   try {
     funcoes = analisarFuncoes(entradaCodigo.value);
   } catch (erro) {
     if (!(erro instanceof ErroAnaliseC)) throw erro;
-    alert(`Não foi possível analisar o código. ${erro.message}`);
+
+    mostrarErroEntrada(`Não foi possível analisar o código. ${erro.message}`);
+
     entradaCodigo.focus({ preventScroll: true });
     return;
   }
 
   if (funcoes.length === 0) {
-    alert('Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.');
+    mostrarErroEntrada(
+      'Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.'
+    );
     return;
   }
 
-  const salas = construirMasmorra(funcoes);
+  const grafo = criarGrafo(funcoes);
+  const masmorra = construirMasmorra(
+    funcoes,
+    grafo,
+    { layoutRegional: true }
+  );
+
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
-  iniciarJogo(salas, atualizarPainelDeSala);
+  function mostrarSala(sala) {
+    atualizarPainelDeSala(sala, sala ? obterEstruturaDaFuncao(grafo, sala.nome) : null,
+      selecionarFuncao);
+  }
+  function selecionarFuncao(nome) {
+    if (!grafo.nos.has(nome)) return;
+    const sala = focarSala(nome, calcularContextoTopologico(grafo, nome));
+    if (sala) mostrarSala(sala);
+    return sala;
+  }
+  configurarBuscaFuncoes(grafo.nos.keys(), selecionarFuncao);
+  iniciarJogo(masmorra, grafo.arestas, mostrarSala, atualizarEstadoControles,
+    atualizarZoomCamera, selecionarFuncao);
+  atualizarZoomCamera(1);
+  atualizarModoVisual('complexidade');
 }
 
 function aoClicarEmVoltar() {
   pararJogo();
+  atualizarModoVisual('complexidade');
+  limparBuscaFuncoes();
   exibirTelaDeConfiguracao();
 }

@@ -9,40 +9,185 @@
 </head>
 <body>
 
-<h1>Dungeon do Código</h1>
-<p class="subtitulo">Cole um arquivo em C. Cada função vira uma sala: quanto mais complexa a função, maior e mais perigosa a sala. Ande com as setas ou WASD para explorar.</p>
+<main id="tela-entrada" class="tela-entrada">
 
+<h1>Dungeon do Código</h1>
+<p class="subtitulo">Cole código C ou abra um arquivo .c. Cada função vira uma sala: quanto mais complexa a função, maior e mais perigosa a sala. Ande com as setas ou WASD para explorar.</p>
+<p class="dica dica-privacidade">
+  Processado localmente no seu navegador. Seu código não é enviado, armazenado nem executado.
+</p>
 <div class="painel configuracao" id="painel-configuracao">
   <label for="entrada-codigo">Código-fonte em C</label>
-  <textarea id="entrada-codigo"></textarea>
+  <p class="dica dica-editor">
+    Experimente com o código já carregado, cole o seu ou abra um arquivo .c.
+  </p>
+  <textarea id="entrada-codigo" aria-describedby="dica-importacao"></textarea>
+  <div class="importacao-codigo">
+    <button id="botao-abrir-c" class="fantasma" type="button">Abrir .c</button>
+    <input id="arquivo-c" type="file" accept=".c,text/plain,text/x-c" hidden>
+    <span id="dica-importacao" class="dica">Ou arraste um .c para a área de código (até 512 KiB).</span>
+    <span id="arquivo-atual" class="dica" role="status" aria-live="polite"></span>
+  </div>
   <div class="linha">
+    <p id="mensagem-erro" class="mensagem-erro" role="alert"></p>
     <button id="botao-gerar">Gerar dungeon</button>
     <span class="dica">Funciona melhor com funções simples, sem structs aninhadas complexas</span>
   </div>
 </div>
 
-<div class="area-jogo" id="area-jogo" style="display:none;">
-  <div>
-    <canvas id="canvas-jogo" tabindex="0" aria-label="Masmorra explorável. Use as setas ou WASD para andar." width="560" height="480"></canvas>
-    <p class="dica-controles">Mover: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> ou <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></p>
-    <div class="linha linha-centralizada">
-      <button class="fantasma" id="botao-voltar">&larr; colar outro código</button>
+<section class="preview-dungeon" aria-label="Prévia visual da transformação do código em dungeon">
+  <div class="preview-cabecalho">
+    <span class="preview-etapa">código</span>
+    <span class="preview-seta">→</span>
+    <span class="preview-etapa">função</span>
+    <span class="preview-seta">→</span>
+    <span class="preview-etapa">sala</span>
+  </div>
+
+  <div class="preview-transformacao">
+    <div class="preview-codigo">
+      <span>int main() {</span>
+      <span class="preview-simples">  iniciar();</span>
+      <span>}</span>
+      <span>&nbsp;</span>
+      <span>void processar() {</span>
+      <span class="preview-complexa">  if (...) {</span>
+      <span class="preview-complexa">    for (...) { ... }</span>
+      <span>  }</span>
+      <span>}</span>
+    </div>
+
+    <span class="preview-fluxo">→</span>
+
+    <div class="preview-mapa">
+      <div class="preview-sala preview-sala-simples">
+        <span class="preview-nome">main()</span>
+      </div>
+
+      <div class="preview-corredor"></div>
+
+      <div class="preview-sala preview-sala-complexa">
+        <span class="preview-nome">processar()</span>
+      </div>
     </div>
   </div>
-  <div class="lateral">
-    <div class="painel cartao">
-      <h3>Sala atual</h3>
-      <div id="info-sala"><p class="vazio">Ande até uma sala para inspecionar a função.</p></div>
+
+  <p class="preview-legenda">
+    O analisador identifica as funções e transforma cada uma em uma sala.
+    Mais estruturas de controle aumentam a complexidade e o perigo.
+  </p>
+</section>
+</main>
+
+<section class="workspace" id="area-jogo" style="display:none;">
+
+  <header class="workspace-topo">
+    <div>
+      <p class="workspace-marca">Dungeon do Código</p>
+      <p class="workspace-contexto">Exploração do programa</p>
     </div>
-    <div class="painel cartao">
-      <h3>Legenda de perigo</h3>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#5a7d3a;"></span>Baixa complexidade</div>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#c2601a;"></span>Complexidade média</div>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#8f2323;"></span>Alta complexidade — sala de chefe</div>
-      <div class="item-legenda"><span class="amostra-cor" style="background:#c9a227;"></span>Sala inicial — main()</div>
+
+    <button class="fantasma" id="botao-voltar">
+      ← novo código
+    </button>
+  </header>
+
+  <div class="workspace-conteudo">
+
+    <div class="workspace-mapa">
+      <canvas
+        id="canvas-jogo"
+        tabindex="0"
+        aria-label="Masmorra explorável. Use as setas ou WASD para andar."
+        width="560"
+        height="480"
+      ></canvas>
+      <div class="controles-camera" role="group" aria-label="Controles da câmera">
+        <button id="camera-afastar" type="button" aria-label="Afastar zoom">−</button>
+        <button id="camera-zoom" type="button" aria-label="Zoom atual: 100%. Restaurar para 100%">100%</button>
+        <button id="camera-aproximar" type="button" aria-label="Aproximar zoom">+</button>
+        <button id="camera-encaixar" type="button">Encaixar</button>
+      </div>
+      <div class="controles-modo" role="group" aria-label="Modo de leitura do mapa">
+        <span>Modo:</span>
+        <button id="modo-complexidade" type="button" aria-pressed="true">Complexidade</button>
+        <button id="modo-estrutura" type="button" aria-pressed="false">Estrutura</button>
+      </div>
+      <section class="legenda-estrutural" aria-label="Legenda dos marcadores das salas">
+        <span>Estruturas:</span>
+        <ul>
+          <li><strong>I</strong> if</li>
+          <li><strong>F</strong> for</li>
+          <li><strong>W</strong> while</li>
+          <li><strong>S</strong> switch</li>
+          <li><strong>R</strong> recursão direta</li>
+          <li><strong>C</strong> ciclo indireto</li>
+        </ul>
+        <span>Complexidade: cores e criaturas; Estrutura: marcadores de estruturas e ciclos.</span>
+        <span>Pontes: caminhos sobrepostos, sem passagem de um para o outro.</span>
+        <span>Galerias verdes com marcas quadradas: circulação livre, não representam chamadas.</span>
+      </section>
     </div>
+
+    <aside class="workspace-inspetor">
+      <div class="painel cartao">
+        <div class="busca-funcoes">
+          <label for="busca-funcao">Buscar função</label>
+          <input id="busca-funcao" type="search" placeholder="Buscar função..." autocomplete="off">
+          <div id="resultados-busca" aria-live="polite"></div>
+        </div>
+        <h3>Função em inspeção</h3>
+
+        <div id="info-sala">
+          <p class="vazio">
+            Explore uma sala para inspecionar a função.
+          </p>
+        </div>
+      </div>
+    </aside>
+
   </div>
-</div>
+
+  <footer class="workspace-status">
+    <div class="status-controles">
+      <span
+        id="status-indicador"
+        class="status-indicador"
+        aria-hidden="true"
+      ></span>
+
+      <span
+        id="status-controles-texto"
+        aria-live="polite"
+      >
+        Clique no mapa para explorar · WASD / setas
+      </span>
+    </div>
+
+    <div class="status-legenda">
+      <span>
+        <span class="amostra-cor baixa"></span>
+        baixa
+      </span>
+
+      <span>
+        <span class="amostra-cor media"></span>
+        média
+      </span>
+
+      <span>
+        <span class="amostra-cor alta"></span>
+        alta
+      </span>
+
+      <span>
+        <span class="amostra-cor inicial"></span>
+        main
+      </span>
+    </div>
+  </footer>
+
+</section>
 
 <script type="module" src="js/principal.js"></script>
 </body>
