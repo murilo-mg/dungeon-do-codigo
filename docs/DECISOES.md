@@ -1,12 +1,15 @@
 # Decisões técnicas
 
-Este documento registra decisões que orientam o desenvolvimento atual do Dungeon do Código.
+Este documento registra decisões que orientam o desenvolvimento atual do **Dungeon do Código**.
 
-Ele não é uma lista de todas as ideias possíveis.
+Ele não é um plano de funcionalidades futuras.
 
-Uma decisão só deve ser apresentada aqui como atual quando ela já estiver adotada no projeto ou quando funcionar como regra explícita para sua evolução.
+Uma decisão deve aparecer aqui quando:
 
-Funcionalidades futuras pertencem principalmente a `PLANO_TECNICO.md`.
+- já estiver adotada no projeto; ou
+- funcionar como regra explícita para preservar a arquitetura.
+
+Funcionalidades planejadas pertencem principalmente a `PLANO_TECNICO.md`.
 
 ---
 
@@ -14,152 +17,185 @@ Funcionalidades futuras pertencem principalmente a `PLANO_TECNICO.md`.
 
 ## A dungeon deve explicar o programa, não inventá-lo
 
-O Dungeon pode usar linguagem visual de jogos.
+O Dungeon pode usar uma linguagem visual inspirada em jogos.
 
-Isso não significa que pode criar significado sem evidência.
+Isso não significa que pode criar significado sem evidência no código.
 
 A regra principal é:
 
-> **Se um significado visual não puder ser justificado por dados reais do código, ele não deve ser apresentado como fato.**
+> **Se um significado visual não puder ser justificado pelos dados reais do programa analisado, ele não deve ser apresentado como fato.**
 
 Isso vale para:
 
-- nomes;
-- agrupamentos;
-- regiões;
-- importância;
 - relações;
+- nomes;
+- regiões;
 - métricas;
+- importância;
 - destaques;
-- descrições.
+- descrições;
+- agrupamentos.
 
-Uma representação neutra é preferível a uma interpretação inventada.
+Quando não existe evidência suficiente, uma representação neutra é preferível.
 
 ---
 
-# Estrutura da dungeon
+# Determinismo
 
 ## Não usar aleatoriedade como estrutura principal
 
-Uma dungeon procedural aleatória pode ser visualmente interessante, mas prejudicaria:
+A estrutura principal da dungeon deve ser reproduzível.
 
-- comparação;
-- aprendizado;
-- testes;
-- depuração;
-- previsibilidade.
+O mesmo código precisa produzir a mesma organização estrutural.
 
-O mesmo código deve produzir uma estrutura estável.
-
-Elementos puramente decorativos podem variar quando isso não altera significado.
-
----
-
-## Priorizar determinismo
-
-A mesma entrada deve produzir o mesmo resultado estrutural.
-
-Determinismo ajuda em:
+Isso facilita:
 
 - testes;
 - comparação;
 - reprodução de bugs;
 - leitura do mapa;
-- futuras comparações antes/depois.
+- futuras comparações entre versões.
 
-O layout possui critérios determinísticos e usa ordem estrutural para resolver empates quando necessário.
-
----
-
-## Profundidade deve influenciar a organização
-
-A profundidade calculada a partir da entrada é uma informação real do grafo.
-
-Por isso ela é usada como uma das principais referências da organização espacial.
-
-Funções em profundidades diferentes tendem a ocupar colunas diferentes.
+Elementos puramente decorativos podem variar quando isso não altera significado, geometria importante ou comportamento.
 
 ---
 
-## Usar callers para melhorar a disposição
+## Resolver empates de forma estável
 
-Dentro de uma profundidade, a posição dos callers da coluna anterior pode ajudar a ordenar as funções.
+Layout, roteamento e composição regional devem usar critérios determinísticos.
 
-Essa estratégia foi escolhida porque melhora a legibilidade de vários casos sem alterar:
+Quando duas opções são equivalentes, a escolha deve seguir uma ordem estável.
 
-- o grafo;
-- a profundidade;
-- o tamanho das salas.
-
-Novas alterações de layout devem partir de problemas medidos.
+Não deve depender de aleatoriedade oculta.
 
 ---
 
-## Não instalar Dagre ou ELK sem necessidade demonstrada
+# Análise de C
 
-O projeto possui um layout próprio separado e testável.
+## Separar léxico da análise estrutural
 
-Nos cenários atuais, ele resolve os problemas de sobreposição que motivaram sua criação.
+Comentários, strings e caracteres não devem ser analisados como código estrutural.
 
-Adicionar uma biblioteca de layout aumentaria:
+Exemplo:
 
-- dependências;
-- complexidade;
-- superfície de manutenção.
+```c
+printf("if while }");
+```
 
-Dagre, ELK ou soluções semelhantes podem ser avaliadas no futuro se casos reais mostrarem que a implementação atual não consegue evoluir de forma adequada.
+não deve ser interpretado como:
+
+- um `if`;
+- um `while`;
+- o fechamento real de uma função.
+
+Por isso existe uma etapa léxica anterior à análise estrutural.
+
+---
+
+## Manter uma análise própria simples enquanto ela atender ao objetivo
+
+O projeto não pretende implementar toda a gramática de C neste momento.
+
+A análise atual foi construída para a experiência do Dungeon.
+
+Um parser completo só deve ser considerado quando limitações reais justificarem esse custo.
+
+---
+
+## Não esconder limitações do analisador
+
+O projeto deve deixar claro quando uma construção pode não ser compreendida corretamente.
+
+Entre os casos mais delicados estão:
+
+- macros complexas;
+- pré-processamento condicional;
+- ponteiros de função;
+- declarações avançadas;
+- formas pouco comuns da gramática.
+
+É preferível comunicar uma limitação real do que mostrar um mapa incorreto com aparência de certeza.
+
+---
+
+## Chamadas externas não viram salas internas automaticamente
+
+O grafo interno representa principalmente funções conhecidas no próprio código analisado.
+
+Chamadas como:
+
+```text
+printf
+malloc
+strlen
+fopen
+```
+
+não devem virar salas internas apenas por aparecerem no código.
+
+Elas podem futuramente ser apresentadas como informação complementar.
+
+---
+
+## Não mudar a métrica de complexidade sem estudar o impacto
+
+A complexidade atual influencia:
+
+- tamanhos;
+- cores;
+- criaturas;
+- leitura visual;
+- comparações.
+
+Uma troca de fórmula não deve acontecer apenas porque existe uma métrica mais conhecida.
+
+Antes de mudar, é necessário:
+
+- documentar a fórmula atual;
+- entender sua função no produto;
+- avaliar impacto visual;
+- comparar alternativas;
+- criar testes apropriados.
 
 ---
 
 # Grafo
 
-## O grafo é separado do layout
+## O grafo é separado da geometria
 
-O grafo representa relações.
-
-O layout representa espaço.
-
-Por isso:
+`grafoC.js` responde perguntas como:
 
 ```text
-grafoC.js
+quem chama quem?
 ```
 
-não deve decidir posições de Canvas, e:
+Layout, corredores e circulação respondem perguntas espaciais.
 
-```text
-layoutMasmorra.js
-```
-
-não deve determinar quem chama quem.
-
-Essa separação deve continuar sendo preservada.
+Nenhum módulo geométrico deve determinar relações do programa.
 
 ---
 
 ## Representar apenas relações conhecidas como internas
 
-Uma chamada só entra no grafo interno atual quando existe uma função correspondente no código analisado.
+Uma chamada entra no grafo interno quando existe uma função correspondente entre as funções analisadas.
 
-Isso evita criar salas fictícias para funções que não fazem parte do arquivo.
-
-Chamadas externas podem futuramente aparecer como informação complementar, mas não devem ser confundidas com funções internas.
+Isso evita criar funções fictícias.
 
 ---
 
-## Separar direção lógica de navegação física
+## Direção lógica e movimento físico são coisas diferentes
 
-Uma chamada possui direção:
+Uma chamada:
 
 ```text
 a → b
 ```
 
-A navegação física do personagem pode percorrer o corredor nos dois sentidos.
+é direcionada.
 
-Essa escolha facilita exploração sem modificar o significado do grafo.
+O personagem pode percorrer fisicamente o corredor correspondente nos dois sentidos.
 
-Portanto:
+Logo:
 
 ```text
 movimento físico bidirecional
@@ -168,8 +204,18 @@ movimento físico bidirecional
 não significa:
 
 ```text
-chamada de função bidirecional
+chamada bidirecional
 ```
+
+---
+
+## Cruzamento visual não significa conexão
+
+Dois caminhos podem cruzar geometricamente sem compartilhar topologia.
+
+A identidade dos percursos deve continuar explícita.
+
+Não se deve inferir uma ligação apenas porque duas linhas se encontram na tela.
 
 ---
 
@@ -177,51 +223,37 @@ chamada de função bidirecional
 
 ## Regiões são dados antes de serem desenho
 
-A classificação das regiões foi implementada separadamente do Canvas.
+A classificação semântica acontece antes da renderização.
 
-Isso permite:
+`regioesMasmorra.js` não deve:
 
-- testar as regras;
-- mudar a aparência depois;
-- evitar que geometria determine significado.
+- mover salas;
+- calcular coordenadas;
+- desenhar no Canvas.
 
-`regioesMasmorra.js` não decide posições.
+Isso permite mudar a aparência sem mudar a classificação.
 
 ---
 
 ## A entrada não é uma ala normal
 
-A função de entrada possui um papel estrutural diferente.
+A função de entrada possui papel estrutural próprio.
 
 Quando existe `main`, ela assume esse papel.
 
 Caso contrário, a primeira função encontrada é usada.
 
-A entrada é representada separadamente das alas.
-
 ---
 
-## Toda função inalcançável pertence às Criptas Isoladas
+## Funções inalcançáveis pertencem às Criptas Isoladas
 
-Alcançabilidade tem prioridade sobre a classificação de hub.
+Alcançabilidade tem prioridade sobre outras classificações.
 
-Se não existe caminho da entrada até uma função, ela pertence às Criptas Isoladas.
-
-Mesmo que outras funções desconectadas chamem essa função diversas vezes, ela não deve ser apresentada como um centro da dungeon principal.
+Uma função desconectada da entrada não deve virar Salão Central apenas porque recebe muitas chamadas de outras funções também desconectadas.
 
 ---
 
 ## Hubs dependem do grafo, não do nome
-
-O Salão Central representa uma característica estrutural.
-
-A regra atual considera candidata uma função:
-
-```text
-alcançável
-+
-pelo menos 3 callers alcançáveis distintos
-```
 
 Uma função chamada:
 
@@ -231,13 +263,15 @@ central
 core
 ```
 
-não ganha esse papel apenas pelo nome.
+não ganha importância estrutural apenas pelo nome.
+
+A classificação atual depende de relações reais, incluindo callers alcançáveis.
 
 ---
 
 ## Usar nomes de alas de forma conservadora
 
-Prefixos técnicos comuns podem ajudar a nomear grupos.
+Prefixos técnicos comuns podem ajudar a nomear regiões.
 
 Exemplo:
 
@@ -253,11 +287,11 @@ pode produzir:
 Ala VM
 ```
 
-Mas essa inferência precisa ser conservadora.
+Mas a inferência deve ser conservadora.
 
 ---
 
-## Prefixos operacionais não são domínios
+## Prefixos operacionais não representam automaticamente domínios
 
 Termos como:
 
@@ -282,9 +316,9 @@ make
 new
 ```
 
-normalmente representam operações, não componentes arquiteturais.
+normalmente indicam operações.
 
-Por isso não devem produzir automaticamente nomes como:
+Eles não devem produzir automaticamente regiões como:
 
 ```text
 Ala Get
@@ -293,74 +327,316 @@ Ala Create
 
 ---
 
-## Preferir `Ala N` a inventar significado
+## Preferir um nome neutro a inventar significado
 
-Quando não existe evidência suficiente para um nome semântico, o projeto usa:
+Quando não existe evidência suficiente para um nome semântico, usar:
 
 ```text
 Ala 1
 Ala 2
-...
+Ala 3
 ```
 
-Esse nome informa menos, mas não comunica uma interpretação falsa.
+é melhor do que comunicar uma interpretação falsa.
 
 ---
 
-# Análise de C
+# Layout
 
-## Usar análise própria simples enquanto ela atender ao objetivo
+## Profundidade pode influenciar a organização
 
-O projeto possui uma análise construída especificamente para a experiência atual.
+A profundidade no grafo é um dado real.
 
-Ela não pretende implementar toda a gramática de C.
-
-Enquanto esse subconjunto for suficiente para o objetivo do produto, não existe necessidade de introduzir imediatamente um parser completo.
+Por isso ela pode ser usada como referência espacial.
 
 ---
 
-## Separar léxico da análise estrutural
+## Callers podem ajudar a ordenar salas
 
-Comentários, strings e caracteres não devem ser analisados como código.
+A posição de callers pode ser usada para melhorar legibilidade do layout.
 
-Por isso existe uma etapa léxica anterior às contagens estruturais.
+Essa estratégia não deve modificar:
 
-Essa decisão evita falsos positivos como:
+- grafo;
+- profundidade;
+- tamanho das salas;
+- relações.
 
-```c
-printf("if while }");
+---
+
+## O layout regional consome semântica pronta
+
+`layoutRegioes.js` pode usar:
+
+- regiões;
+- grafo;
+- dimensões das salas.
+
+Mas não deve recalcular:
+
+- hubs;
+- alcançabilidade;
+- nomes;
+- chamadas.
+
+---
+
+## Não instalar Dagre ou ELK sem necessidade demonstrada
+
+O projeto possui um layout próprio, separado e testável.
+
+Bibliotecas externas de layout só devem ser consideradas quando casos reais mostrarem que a solução atual não atende adequadamente.
+
+Adicionar dependências sem problema concreto aumenta:
+
+- complexidade;
+- superfície de manutenção;
+- custo de explicação;
+- risco de regressão.
+
+---
+
+# Corredores
+
+## Corredores semânticos representam chamadas reais
+
+Os corredores de chamadas devem nascer das arestas reais do grafo.
+
+Eles não devem ser criados apenas para preencher espaço ou melhorar aparência.
+
+---
+
+## A geometria pode evoluir sem alterar a chamada
+
+Uma chamada pode ser representada por:
+
+- um segmento;
+- vários segmentos ortogonais;
+- um percurso com desvios.
+
+Enquanto a identidade da chamada for preservada, a geometria pode evoluir.
+
+---
+
+## Portas devem surgir de conexões reais
+
+Uma abertura em uma sala deve corresponder a um percurso físico real.
+
+Portas não devem aparecer como decoração aleatória.
+
+---
+
+## Preservar folga física quando possível
+
+O roteamento deve evitar:
+
+- atravessar terceiras salas;
+- portas coladas em quinas;
+- caminhos sem espaço para a base do personagem.
+
+Quando a geometria não oferece uma rota segura, não se deve criar uma passagem falsa apenas para manter conectividade visual.
+
+---
+
+# Circulação física
+
+## Separar galerias de exploração das chamadas
+
+Galerias físicas existem para melhorar a exploração.
+
+Elas não representam código.
+
+Por isso ficam em uma estrutura separada:
+
+```text
+passagensExploracao
 ```
 
----
+Elas não devem ser adicionadas a:
 
-## Não esconder as limitações do analisador
-
-O projeto deve deixar claro que construções mais avançadas podem não ser compreendidas corretamente.
-
-Entre elas:
-
-- macros complexas;
-- pré-processamento;
-- ponteiros de função;
-- declarações avançadas.
-
-É melhor apresentar uma limitação verdadeira do que comunicar uma análise incorreta com aparência de certeza.
+- `grafo.arestas`;
+- callers;
+- callees;
+- caminho estrutural;
+- foco topológico;
+- classificação semântica.
 
 ---
 
-## Não mudar a métrica de complexidade sem estudar o impacto
+## Visitabilidade não altera alcançabilidade
 
-A complexidade atual influencia diferentes elementos visuais.
+Uma função isolada pode ser visitada fisicamente.
 
-Uma troca de fórmula afetaria:
+Isso não deve fazê-la parecer alcançável pela função de entrada.
 
-- classificação;
-- cores;
-- tamanhos;
-- criaturas;
-- comparações.
+A interface precisa manter essa diferença clara.
 
-Antes de substituir a métrica, o projeto deve primeiro tornar sua fórmula atual mais explicável e avaliar alternativas de forma consciente.
+---
+
+## Usar poucas ligações físicas adicionais
+
+As galerias não devem transformar a dungeon em uma malha artificial de atalhos.
+
+A estratégia deve acrescentar apenas as conexões necessárias para melhorar circulação entre componentes físicos.
+
+---
+
+## Não forçar uma galeria através de obstáculos
+
+Se o roteamento com folga não encontra um caminho seguro, a galeria não deve ser criada.
+
+É preferível manter uma limitação física do que atravessar salas ou paredes de forma incoerente.
+
+---
+
+# Física e navegação
+
+## A física trabalha com geometria pronta
+
+`areaCaminhavel.js` não deve conhecer o significado do grafo.
+
+Ele recebe:
+
+- salas;
+- percursos;
+- raio físico.
+
+E decide apenas onde o personagem pode estar.
+
+---
+
+## Preservar identidade do percurso
+
+Durante o movimento, a física deve saber em qual percurso o personagem está.
+
+Isso impede mudar para outro caminho em um simples cruzamento visual.
+
+---
+
+## Movimento manual e automático usam a mesma física
+
+A navegação automática não deve possuir regras de colisão privilegiadas.
+
+Se o personagem não consegue atravessar fisicamente um local manualmente, a navegação automática também não deve atravessá-lo.
+
+---
+
+## A colisão representa a base do personagem
+
+O sprite inteiro não precisa funcionar como um retângulo rígido.
+
+A base física representa o contato com o chão.
+
+Essa escolha permite uma leitura visual mais natural em perspectiva 2D.
+
+A cabeça do sprite pode se sobrepor visualmente a uma parede sem que a base atravesse a colisão.
+
+---
+
+# Câmera e zoom
+
+## A câmera não modifica o mundo
+
+Zoom, Encaixar e deslocamento livre são operações de visualização.
+
+Eles não devem alterar:
+
+- posições das salas;
+- posição do personagem;
+- grafo;
+- regiões;
+- colisões.
+
+---
+
+## Encaixar é uma visão, não um novo layout
+
+O botão Encaixar deve calcular uma câmera capaz de mostrar a dungeon.
+
+Ele não deve reposicionar salas para fazê-las caber.
+
+---
+
+## Zoom semântico pode esconder detalhes, não significado
+
+Detalhes visuais podem ser simplificados quando o mapa está distante.
+
+Isso não pode alterar:
+
+- relações;
+- seleção;
+- localização física;
+- significado da dungeon.
+
+---
+
+# Renderização
+
+## O desenho consome dados prontos
+
+`desenhoMasmorra.js` e `jogo.js` podem decidir aparência.
+
+Eles não devem reconstruir:
+
+- grafo;
+- classificação de regiões;
+- chamadas;
+- alcançabilidade.
+
+---
+
+## Alvenaria e decoração não definem colisão
+
+Paredes, musgo, tochas, pedras e outros acabamentos pertencem à apresentação.
+
+A física deve continuar baseada na geometria explícita de salas e percursos.
+
+---
+
+## Galerias devem ser visualmente distinguíveis
+
+Como galerias não representam chamadas C, sua aparência deve ajudar o usuário a perceber essa diferença.
+
+Essa distinção não precisa ser exagerada, mas deve evitar que o usuário interprete uma passagem física como uma chamada.
+
+---
+
+# Interface
+
+## Canvas para espaço, DOM para informação e controles
+
+O Canvas é adequado para:
+
+- dungeon;
+- personagem;
+- caminhos;
+- efeitos;
+- interação espacial.
+
+O DOM é preferível para:
+
+- editor;
+- busca;
+- inspector;
+- botões;
+- mensagens;
+- conteúdo acessível.
+
+---
+
+## Conteúdo do usuário deve ser tratado como texto
+
+Nomes e trechos de código fornecidos pelo usuário não devem ser inseridos como HTML interpretável.
+
+A interface deve preservar o conteúdo como texto.
+
+---
+
+## Seleção e posição física são estados diferentes
+
+A função selecionada pode ser diferente da sala onde o personagem está.
+
+Selecionar uma função não deve teletransportar o personagem.
 
 ---
 
@@ -368,15 +644,15 @@ Antes de substituir a métrica, o projeto deve primeiro tornar sua fórmula atua
 
 ## Continuar com HTML, CSS e JavaScript ES Modules
 
-A arquitetura atual é suficiente para a versão em desenvolvimento.
+A arquitetura atual atende ao projeto.
 
-Ela possui vantagens importantes:
+Entre as vantagens estão:
 
 - pouca configuração;
-- fácil execução;
 - poucas dependências;
-- funcionamento como site estático;
-- código fácil de explicar.
+- fácil execução;
+- publicação como site estático;
+- código direto de explicar.
 
 Novas tecnologias devem resolver problemas concretos.
 
@@ -386,14 +662,14 @@ Novas tecnologias devem resolver problemas concretos.
 
 React não resolve atualmente um problema necessário da aplicação.
 
-Sua adoção traria:
+Sua adoção adicionaria:
 
-- build adicional;
+- build;
 - dependências;
 - abstrações;
 - migração da interface existente.
 
-Pode ser reconsiderado se a complexidade da interface justificar essa mudança no futuro.
+Pode ser reconsiderado se a complexidade da interface justificar no futuro.
 
 ---
 
@@ -410,489 +686,137 @@ Canvas 2D atende atualmente:
 - zoom;
 - cenário.
 
-Three.js ou WebGL só devem ser considerados se houver uma necessidade concreta que Canvas 2D não consiga atender de forma adequada.
+Three.js ou WebGL só devem ser considerados se aparecer uma necessidade que Canvas 2D não consiga atender adequadamente.
 
 ---
 
 ## Não usar motor de jogos agora
 
-O projeto ainda não possui necessidades como:
+A aplicação não precisa atualmente de uma engine completa.
 
-- combate complexo;
-- vários mapas;
-- grande sistema de entidades;
-- física avançada;
-- gerenciamento pesado de recursos.
-
-Adicionar um motor de jogos hoje aumentaria o projeto sem resolver um requisito atual.
-
----
-
-# Backend e privacidade
-
-## Não usar backend na versão atual
-
-As funcionalidades atuais podem funcionar no navegador.
-
-Um backend traria custos e responsabilidades adicionais:
-
-- hospedagem;
-- privacidade;
-- armazenamento;
-- segurança;
-- manutenção.
-
-Ele só deve ser introduzido se existir um requisito concreto que não possa ser resolvido localmente.
-
----
-
-## Não executar código C
-
-O Dungeon analisa texto.
-
-Ele não deve compilar ou executar código C no estado atual.
-
-Executar código fornecido por usuários criaria uma arquitetura de segurança completamente diferente.
-
-Isso não é necessário para o objetivo atual do projeto.
-
----
-
-## Processar localmente
-
-A análise deve continuar local no navegador enquanto a arquitetura permitir.
-
-O código do usuário não deve ser enviado automaticamente para um servidor.
-
-Qualquer mudança futura que exija envio do código precisa ser explícita e tratada como mudança de arquitetura e de privacidade.
-
----
-
-## Não prometer privacidade absoluta
-
-O projeto pode descrever seu comportamento técnico real.
-
-Por exemplo:
-
-```text
-o código é analisado localmente no navegador
-```
-
-Mas não deve usar afirmações como:
-
-```text
-100% privado
-100% seguro
-```
-
-Segurança precisa ser verificável, não apenas declarada.
-
----
-
-# Importação de arquivos
-
-## Importar um arquivo por vez
-
-A importação atual trabalha com um único `.c`.
-
-Essa limitação mantém o fluxo simples e compatível com o analisador atual.
-
-Projetos com vários arquivos são uma possível evolução futura, mas exigiriam novas regras de:
-
-- nomes;
-- chamadas;
-- arquivos;
-- escopo;
-- interface.
-
----
-
-## Manter limite de tamanho
-
-O limite atual é de 512 KiB.
-
-Ele existe principalmente para evitar entradas acidentais muito grandes.
-
-Esse limite não deve ser considerado proteção completa contra consumo excessivo de CPU.
-
-Antes da publicação, também devem ser avaliados limites relacionados à complexidade da entrada.
-
----
-
-## Importação não deve executar nem gerar automaticamente
-
-Abrir um arquivo deve carregar seu conteúdo no editor.
-
-O usuário continua decidindo quando gerar a dungeon.
-
-Essa separação evita ações inesperadas.
-
----
-
-# Interface
-
-## Canvas para espaço; DOM para informação textual
-
-Canvas permanece responsável pela experiência espacial.
-
-DOM permanece responsável principalmente por:
-
-- inspector;
-- busca;
-- botões;
-- editor;
-- mensagens;
-- estados.
-
-Isso também facilita acessibilidade e interação com texto.
-
----
-
-## Seleção não deve teleportar o jogador
-
-Selecionar uma função e estar fisicamente em uma função são estados diferentes.
-
-Busca, callers, callees e clique simples podem focar outra sala sem alterar a posição do personagem.
-
-Movimento físico acontece apenas quando existe uma ação específica de navegação.
-
----
-
-## Busca, relações e clique compartilham a mesma seleção
-
-Não devem existir três sistemas independentes de função selecionada.
-
-Busca, callers, callees e clique na sala utilizam o mesmo fluxo.
-
-Isso reduz estados inconsistentes.
-
----
-
-## Duplo clique pode iniciar navegação
-
-O duplo clique possui um significado diferente do clique simples.
-
-Clique:
-
-```text
-inspecionar
-```
-
-Duplo clique:
-
-```text
-inspecionar + tentar navegar
-```
-
-Quando não existe rota, a seleção ainda pode ocorrer sem criar uma passagem artificial.
-
----
-
-## Destacar contexto sem esconder o restante
-
-O foco contextual reduz a importância visual de elementos fora das cadeias relevantes.
-
-Eles continuam presentes no mapa.
-
-Essa decisão mantém o contexto global disponível enquanto o usuário estuda uma função.
-
----
-
-# Modos visuais
-
-## Complexidade e Estrutura são representações da mesma dungeon
-
-Trocar o modo visual não deve mudar:
-
-- grafo;
-- posições;
-- tamanhos;
-- câmera;
-- personagem;
-- seleção.
-
-O modo altera apenas como os mesmos dados são apresentados.
-
----
-
-## Marcadores indicam presença, não quantidade
-
-Os glifos:
-
-```text
-I
-F
-W
-S
-R
-C
-```
-
-comunicam presença estrutural.
-
-Detalhes e quantidades ficam no inspector.
-
-Essa escolha evita sobrecarregar visualmente salas pequenas.
-
----
-
-# Câmera e zoom
-
-## Zoom altera projeção, não geometria
-
-Zoom não modifica:
-
-- posição física;
-- dimensões do mundo;
-- grafo;
-- corredores;
-- detecção estrutural.
-
-Apenas a transformação visual muda.
-
----
-
-## Níveis de zoom podem mudar a quantidade de detalhe
-
-O zoom semântico existe para manter o mapa legível.
-
-Visão distante não precisa mostrar os mesmos detalhes da visão próxima.
-
-Contudo, ocultar detalhes não pode alterar o significado da dungeon.
-
----
-
-## Encaixar é uma visão, não uma reconstrução
-
-A função Encaixar calcula uma câmera capaz de mostrar o mundo inteiro.
-
-Ela não reposiciona as salas para caber no viewport.
-
----
-
-# Corredores
-
-## Corredores atuais representam arestas reais
-
-O desenho dos corredores parte das arestas do grafo.
-
-Eles não devem ser criados apenas para preencher o cenário.
-
----
-
-## Cruzamento visual não significa conexão física
-
-Quando o roteamento evoluir, dois corredores podem se cruzar sem que exista uma passagem entre eles.
-
-A topologia precisa continuar explícita.
-
-Não se deve inferir conexão apenas porque duas linhas se encontram visualmente.
-
----
-
-## Medir antes de mudar
-
-Melhorias de corredores devem ser avaliadas usando métricas e cenários de teste.
-
-Entre os problemas relevantes estão:
-
-- travessia de terceira sala;
-- cruzamentos;
-- comprimento excessivo;
-- perda de legibilidade.
-
-A futura versão dos corredores deve resolver problemas reais sem alterar as relações do grafo.
-
----
-
-# Acessibilidade
-
-## Não depender exclusivamente de cor
-
-Estrutura ou importância não devem ser comunicadas somente por mudança de cor.
-
-Marcadores, contornos, texto e outras formas podem complementar a representação.
-
----
-
-## Manter informação textual no DOM
-
-Informações importantes sobre o código devem continuar disponíveis fora do Canvas sempre que possível.
-
-O inspector é a principal representação textual atual.
-
-Uma visão estrutural alternativa ao mapa pode ser adicionada no futuro se necessário.
+Adicionar um motor de jogos aumentaria a complexidade sem resolver um problema necessário da baseline.
 
 ---
 
 # Testes
 
-## Mudanças estruturais precisam de regressão automatizada
+## Bugs corrigidos devem virar regressões automatizadas
 
-Correções de análise devem incluir exemplos C que reproduzam o problema.
-
-Mudanças de grafo devem possuir casos determinísticos.
-
-Mudanças de layout devem verificar invariantes geométricos.
-
----
-
-## Não registrar contagens de testes como estado permanente
-
-A quantidade de testes muda com frequência.
-
-Documentos vivos devem preferir:
-
-```bash
-npm test
-```
-
-em vez de frases como:
+Quando possível, o fluxo deve ser:
 
 ```text
-existem X testes
-```
-
-Números podem continuar em documentos históricos quando fizerem parte do registro daquela revisão.
-
----
-
-# Integração contínua
-
-## Executar testes em push e pull request
-
-O repositório possui GitHub Actions executando a suíte automaticamente.
-
-Esse comportamento deve continuar servindo como proteção contra regressões.
-
----
-
-## Deploy futuro deve depender de testes verdes
-
-Quando a publicação automática for implementada, a intenção é que uma versão considerada estável não seja publicada depois de uma suíte quebrada.
-
-O mecanismo exato de deploy ainda não foi decidido.
-
----
-
-# Segurança para publicação
-
-## Segurança é uma etapa própria
-
-A publicação não deve acontecer apenas porque a interface está funcionando.
-
-Antes da primeira versão pública devem ser avaliados:
-
-- entradas hostis;
-- consumo de CPU;
-- limites;
-- DOM;
-- CSP;
-- headers;
-- recursos externos;
-- hospedagem;
-- política de rede.
-
-Essas medidas ainda não são tratadas como concluídas.
-
----
-
-## Evitar dependências externas sem necessidade
-
-Scripts, fontes ou bibliotecas externas aumentam:
-
-- dependência de terceiros;
-- superfície de ataque;
-- requisições de rede.
-
-Devem ser adicionados apenas quando houver um benefício concreto.
-
----
-
-## Não armazenar automaticamente o código
-
-O conteúdo do usuário não deve ser salvo automaticamente.
-
-Se algum tipo de sessão ou persistência for criado no futuro, precisa ser explícito e cuidadosamente limitado.
-
----
-
-# Documentação
-
-## Documentos vivos devem representar o estado atual
-
-Os arquivos de arquitetura, decisões, estado atual e plano técnico precisam acompanhar mudanças relevantes do comportamento.
-
-Não devem continuar descrevendo como futuro algo que já foi implementado.
-
----
-
-## Documentos históricos devem permanecer históricos
-
-Arquivos como `CORRECOES.md` podem manter:
-
-- números antigos;
-- limitações antigas;
-- contexto da época.
-
-Eles devem apenas deixar claro que representam uma revisão passada.
-
-Não se deve reescrever o passado como se o projeto atual já existisse naquele momento.
-
----
-
-# Entrada de novas tecnologias
-
-Uma nova biblioteca, framework ou serviço deve responder:
-
-```text
-Qual problema concreto isso resolve?
-```
-
-Não é motivo suficiente:
-
-```text
-é moderno
-é popular
-fica mais profissional
-```
-
-A tecnologia deve melhorar o projeto mais do que aumenta sua complexidade.
-
----
-
-# Ordem das prioridades
-
-As decisões atuais favorecem esta sequência:
-
-```text
+bug encontrado
+      ↓
+caso mínimo reproduzível
+      ↓
+teste falhando
+      ↓
 correção
-↓
-confiabilidade
-↓
-clareza
-↓
-experiência
-↓
-segurança
-↓
-expansão
+      ↓
+teste passando
 ```
 
-Funcionalidades maiores não devem impedir a consolidação das bases existentes.
+Isso vale especialmente para:
+
+- análise de C;
+- grafo;
+- layout;
+- corredores;
+- circulação;
+- colisão;
+- câmera;
+- navegação.
 
 ---
 
-# Regra final
+## Não enfraquecer testes apenas para aceitar uma mudança
 
-O projeto deve continuar sendo compreensível pelo próprio mantenedor.
+Quando uma alteração quebra uma expectativa, primeiro é necessário decidir:
 
-Uma mudança técnica é melhor quando:
+```text
+o comportamento mudou legitimamente?
+```
 
-- resolve um problema real;
-- pode ser explicada;
-- pode ser testada;
-- mantém responsabilidades separadas;
-- não cria complexidade desnecessária.
+ou:
 
-O Dungeon do Código deve crescer sem perder a capacidade de explicar tanto o código analisado quanto o próprio código que o constrói.
+```text
+a implementação introduziu uma regressão?
+```
+
+Só depois a expectativa deve ser ajustada.
+
+---
+
+## Preservar testes de propriedades
+
+Além de exemplos específicos, o projeto deve continuar verificando propriedades como:
+
+- determinismo;
+- ausência de sobreposição;
+- ausência de conexões falsas;
+- preservação do grafo;
+- rotas fisicamente percorríveis;
+- funções isoladas continuarem isoladas;
+- cruzamentos não criarem atalhos.
+
+---
+
+# Baseline
+
+## Estabilizar antes de continuar experimentando
+
+Quando o projeto atingir um estado funcional amplo e testado, deve existir um ponto de referência estável antes de iniciar novas experiências.
+
+A baseline precisa ter:
+
+- testes verdes;
+- documentação alinhada;
+- limitações registradas;
+- arquitetura descrita;
+- estado reproduzível.
+
+---
+
+## Novas experiências não devem destruir o ponto estável
+
+Depois da baseline, mudanças relevantes devem ser desenvolvidas de forma que seja possível voltar ao estado estável.
+
+A baseline funciona como referência técnica, não como fim do desenvolvimento.
+
+---
+
+# Regra para futuras decisões
+
+Antes de adotar uma mudança arquitetural relevante, responder:
+
+```text
+Qual problema concreto ela resolve?
+
+Qual dado do código ela preserva?
+
+Ela mistura semântica e geometria?
+
+Ela aumenta dependências sem necessidade?
+
+Conseguimos testar seu comportamento?
+
+Ela mantém a dungeon explicável?
+```
+
+Se a mudança não tiver uma resposta clara para essas perguntas, ela não deve entrar apenas por parecer mais sofisticada.
+
+---
+
+# Regra principal
+
+O Dungeon pode ficar mais bonito, mais explorável e mais completo.
+
+Mas sua arquitetura deve continuar preservando esta diferença:
+
+```text
+significado extraído do código
+            ≠
+estrutura criada apenas para visualização e exploração
+```
+
+Essa separação é a base de confiança do projeto.

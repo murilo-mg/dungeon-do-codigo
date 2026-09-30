@@ -10,6 +10,8 @@
 > - `docs/ARQUITETURA.md`
 > - `docs/PLANO_TECNICO.md`
 
+---
+
 ## Contexto da revisão
 
 Esta revisão aconteceu quando o projeto ainda estava consolidando a análise básica de código C e a primeira versão da dungeon.
@@ -17,6 +19,8 @@ Esta revisão aconteceu quando o projeto ainda estava consolidando a análise b�
 Foram reproduzidos cinco comportamentos problemáticos encontrados na versão anterior.
 
 O objetivo daquela etapa foi corrigir a análise sem alterar as regras visuais de perigo nem as principais etapas já existentes da interface.
+
+---
 
 ## Problemas corrigidos
 
@@ -232,13 +236,13 @@ Exemplo de fluxo:
 
 ```text
 bug encontrado
-    ↓
+   ↓
 programa C mínimo que reproduz
-    ↓
+   ↓
 teste falhando
-    ↓
+   ↓
 correção
-    ↓
+   ↓
 teste passando
 ```
 

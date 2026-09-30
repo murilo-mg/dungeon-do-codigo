@@ -1,19 +1,28 @@
 // Responsável exclusivamente pela renderização em canvas e pela física do jogador.
 // Não manipula DOM diretamente: notifica mudanças de sala por callback.
 
+import { desenharTerritorio, desenharAlvenariaSala, desenharPlacaRegiao, desenharAcabamentoCorredores, desenharPortalSala, desenharGalerias } from './desenhoMasmorra.js';
+import { calcularFormaTerritorio } from './layoutRegioes.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
-import { criarSegmentosDeCorredores } from './corredores.js';
+import { criarSegmentosDeCorredores, calcularCruzamentosCorredores, chaveDoCorredor, LARGURA_CORREDOR } from './corredores.js';
+import { criarAreaCaminhavel, localizarNaArea, moverNaArea } from './areaCaminhavel.js';
 import { calcularRotaCaminhavel } from './navegacaoMasmorra.js';
-import { atualizarCamera, criarCamera, definirZoom, encaixarCamera,
+import { atualizarCamera, criarCamera, definirZoom, deslocarCamera, encaixarCamera,
   zoomParaEncaixar } from './camera.js';
 import { proximoZoomDiscreto } from './zoomDiscreto.js';
 import { GLIFOS_MARCADORES, PALETA, desenharPixels } from './pixelArt.js';
-import { obterEstiloVisualDaSala, obterMarcadoresEstruturais,
-  obterNivelDetalhe } from './semanticaVisual.js';
+import {
+  atribuirCoresRegioes,
+  classificarVisualmenteCorredores,
+  calcularLimitesVisuaisRegioes,
+  obterEstiloVisualDaSala,
+  obterMarcadoresEstruturais,
+  obterNivelDetalhe
+} from './semanticaVisual.js';
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
 import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem,
-  VELOCIDADE_PERSONAGEM } from './personagem.js';
+  VELOCIDADE_PERSONAGEM, RAIO_BASE_PERSONAGEM } from './personagem.js';
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
 const CORES_MARCADORES = { 1: PALETA.pergaminho };
@@ -22,11 +31,14 @@ const MARGEM_ETIQUETA = 8;
 const ESPACAMENTO_ETIQUETA = 6;
 const ALTURA_LINHA_ETIQUETA = 14;
 const LARGURA_MAXIMA_ETIQUETA = 240;
+const MARGEM_REGIAO = 20;
+const INTERVALO_DUPLO_CLIQUE = 500;
 
 let funcaoDeNotificacaoControles = null;
 let contexto = null;
 let canvas = null;
 let salas = [];
+let regioesVisuais = [];
 let jogador = null;
 let salaAtual = null;
 let salaSelecionada = null;
@@ -44,10 +56,17 @@ let primeiraDeteccao = true;
 let controlesAtivos = false;
 let cenario = null;
 let segmentosDeCorredores = [];
+let passagensExploracao = [];
+let segmentosNavegaveis = [];
+let cruzamentosCorredores = [];
+let tiposVisuaisCorredores = new Map();
+let areaCaminhavel = null;
+let localFisico = null;
 let rotaAutomatica = null;
 let ultimoCliqueEmSala = null;
 let posicaoPonteiro = null;
 let camera = null;
+let observadorViewport = null;
 let modoCamera = 'jogador';
 let modoVisual = 'complexidade';
 let larguraMundo = 560;
@@ -65,9 +84,63 @@ export function iniciarJogo(
   pararJogo();
 
   salas = novaMasmorra.salas;
+  const regioes = novaMasmorra.regioes ?? [];
+  const territoriosRegioes = novaMasmorra.territoriosRegioes;
+
+  const limitesRegioes =
+    territoriosRegioes instanceof Map &&
+    territoriosRegioes.size
+      ? regioes
+        .map(regiao => {
+          const territorio = territoriosRegioes.get(regiao.id);
+
+          if (!territorio) return null;
+
+          return {
+            ...regiao,
+            ...territorio,
+          };
+        })
+        .filter(Boolean)
+      : calcularLimitesVisuaisRegioes(
+        regioes,
+        salas,
+        MARGEM_REGIAO
+      );
+
+  const coresRegioes = atribuirCoresRegioes(regioes);
+  const funcoesPorRegiao = new Map(
+    regioes.map(regiao => [regiao.id, regiao.funcoes]));
+
+  regioesVisuais = limitesRegioes.map(regiao => {
+    const membros = (funcoesPorRegiao.get(regiao.id) ?? [])
+      .map(nome => salas.find(sala => sala.nome === nome))
+      .filter(Boolean);
+
+    const ancora = membros.reduce((melhor, sala) => {
+      if (!melhor || sala.y < melhor.y ||
+        (sala.y === melhor.y && sala.x < melhor.x)) {
+        return sala;
+      }
+      return melhor;
+    }, null);
+
+    return {
+      ...regiao,
+      membros,
+      ancora,
+      forma: calcularFormaTerritorio(regiao, membros),
+      cor: coresRegioes.get(regiao.id),
+    };
+  });
+
   larguraMundo = novaMasmorra.larguraMundo;
   alturaMundo = novaMasmorra.alturaMundo;
   segmentosDeCorredores = criarSegmentosDeCorredores(salas, novasArestas);
+  passagensExploracao = novaMasmorra.passagensExploracao ?? [];
+  segmentosNavegaveis = [...segmentosDeCorredores, ...passagensExploracao];
+  tiposVisuaisCorredores = classificarVisualmenteCorredores(regioes, novasArestas);
+  cruzamentosCorredores = calcularCruzamentosCorredores(segmentosNavegaveis);
 
   funcaoDeNotificacao = aoMudarDeSala;
   funcaoDeNotificacaoControles = aoMudarControles;
@@ -86,6 +159,9 @@ export function iniciarJogo(
       ? salaInicial.y + salaInicial.altura / 2
       : POSICAO_INICIAL_JOGADOR.y
   );
+
+  areaCaminhavel = criarAreaCaminhavel(salas, segmentosNavegaveis, RAIO_BASE_PERSONAGEM);
+  localFisico = localizarNaArea(areaCaminhavel, jogador);
 
   salaAtual = null;
   salaSelecionada = null;
@@ -108,12 +184,17 @@ export function iniciarJogo(
   });
   modoCamera = 'jogador';
   modoVisual = 'complexidade';
+  redimensionarViewport();
+  if (typeof window.ResizeObserver === 'function') {
+    observadorViewport = new window.ResizeObserver(redimensionarViewport);
+    observadorViewport.observe(canvas);
+  }
 
   cenario = criarCenario(
     salas,
     larguraMundo,
     alturaMundo,
-    segmentosDeCorredores
+    segmentosNavegaveis
   );
 
   preferenciaMovimento = window.matchMedia(
@@ -134,9 +215,18 @@ export function pararJogo() {
     idQuadroAnimacao = null;
   }
   removerEventosDeTeclado();
+  observadorViewport?.disconnect();
+  observadorViewport = null;
   limparTeclas();
   particulas = [];
+  regioesVisuais = [];
   segmentosDeCorredores = [];
+  passagensExploracao = [];
+  segmentosNavegaveis = [];
+  cruzamentosCorredores = [];
+  tiposVisuaisCorredores = new Map();
+  areaCaminhavel = null;
+  localFisico = null;
   rotaAutomatica = null;
   ultimoCliqueEmSala = null;
   posicaoPonteiro = null;
@@ -210,7 +300,7 @@ export function encaixarMasmorra() {
 }
 
 function atualizarAlvoCamera() {
-  if (modoCamera === 'visao-geral') return;
+  if (modoCamera === 'visao-geral' || modoCamera === 'livre') return;
   const alvo = modoCamera === 'sala' && salaSelecionada
     ? { x: salaSelecionada.x + salaSelecionada.largura / 2,
       y: salaSelecionada.y + salaSelecionada.altura / 2 }
@@ -218,7 +308,28 @@ function atualizarAlvoCamera() {
   camera = atualizarCamera(camera, alvo);
 }
 
+function redimensionarViewport() {
+  if (!canvas || !camera) return;
+  const largura = Math.round(canvas.clientWidth);
+  const altura = Math.round(canvas.clientHeight);
+  if (!Number.isFinite(largura) || !Number.isFinite(altura) ||
+    largura <= 0 || altura <= 0 ||
+    (largura === canvas.width && altura === canvas.height)) return;
+
+  // O bitmap acompanha o espaço disponível; somente a projeção muda.
+  canvas.width = largura;
+  canvas.height = altura;
+  contexto.imageSmoothingEnabled = false;
+  camera = { ...camera, larguraViewport: largura, alturaViewport: altura };
+  camera = modoCamera === 'visao-geral'
+    ? encaixarCamera(camera)
+    : definirZoom(camera, camera.zoom);
+  atualizarAlvoCamera();
+  funcaoDeNotificacaoZoom?.(camera.zoom);
+}
+
 function registrarEventosDeTeclado() {
+  window.addEventListener('resize', redimensionarViewport);
   window.addEventListener('keydown', marcarTeclaPressionada);
   window.addEventListener('keyup', marcarTeclaLiberada);
   window.addEventListener('blur', limparTeclas);
@@ -226,11 +337,15 @@ function registrarEventosDeTeclado() {
   document.addEventListener('visibilitychange', limparTeclas);
   canvas.addEventListener('click', selecionarSalaClicada);
   canvas.addEventListener('dblclick', navegarParaSalaClicada);
+  canvas.addEventListener('wheel', moverCameraComRoda, { passive: false });
   canvas.addEventListener('pointermove', atualizarPonteiroNoMapa);
   canvas.addEventListener('pointerleave', limparPonteiroNoMapa);
+  canvas.addEventListener('focus', ativarExploracaoPorFoco);
+  canvas.addEventListener('blur', desativarExploracaoPorFoco);
 }
 
 function removerEventosDeTeclado() {
+  window.removeEventListener('resize', redimensionarViewport);
   window.removeEventListener('keydown', marcarTeclaPressionada);
   window.removeEventListener('keyup', marcarTeclaLiberada);
   window.removeEventListener('blur', limparTeclas);
@@ -238,10 +353,16 @@ function removerEventosDeTeclado() {
   document.removeEventListener('pointerdown', atualizarFocoDoJogo, true);
   canvas?.removeEventListener('click', selecionarSalaClicada);
   canvas?.removeEventListener('dblclick', navegarParaSalaClicada);
+  canvas?.removeEventListener('wheel', moverCameraComRoda);
   canvas?.removeEventListener('pointermove', atualizarPonteiroNoMapa);
   canvas?.removeEventListener('pointerleave', limparPonteiroNoMapa);
+  canvas?.removeEventListener('focus', ativarExploracaoPorFoco);
+  canvas?.removeEventListener('blur', desativarExploracaoPorFoco);
   controlesAtivos = false;
 }
+
+function ativarExploracaoPorFoco() { alterarEstadoControles(true); }
+function desativarExploracaoPorFoco() { alterarEstadoControles(false); }
 
 function alterarEstadoControles(ativos) {
   if (controlesAtivos === ativos) {
@@ -282,7 +403,14 @@ function atualizarFocoDoJogo(evento) {
 }
 
 function salaDoClique(evento) {
-  if (evento.detail >= 2 && ultimoCliqueEmSala &&
+  // PointerEvent.detail permanece zero no segundo pressionamento nativo.
+  // A câmera pode ter mudado após o click anterior; preserve seu alvo por essa
+  // janela curta para que o pointerdown não apague a memória do duplo clique.
+  const repeticaoPonteiro = evento.type === 'pointerdown' && ultimoCliqueEmSala &&
+    Number.isFinite(evento.timeStamp) && Number.isFinite(ultimoCliqueEmSala.instante) &&
+    evento.timeStamp >= ultimoCliqueEmSala.instante &&
+    evento.timeStamp - ultimoCliqueEmSala.instante <= INTERVALO_DUPLO_CLIQUE;
+  if ((evento.detail >= 2 || repeticaoPonteiro) && ultimoCliqueEmSala &&
     Math.hypot(evento.clientX - ultimoCliqueEmSala.x,
       evento.clientY - ultimoCliqueEmSala.y) <= 5) return ultimoCliqueEmSala.sala;
   return detectarSalaClicada(evento);
@@ -312,6 +440,24 @@ function pontoInternoDoCanvas(evento) {
   return { x: x * canvas.width / largura, y: y * canvas.height / altura };
 }
 
+function moverCameraComRoda(evento) {
+  if (!camera) return;
+
+  const ponto = pontoInternoDoCanvas(evento);
+  if (!ponto) return;
+
+  evento.preventDefault();
+
+  const escala = 1 / camera.zoom;
+
+  camera = deslocarCamera(camera, {
+    x: (evento.shiftKey ? evento.deltaY : evento.deltaX) * escala,
+    y: (evento.shiftKey ? 0 : evento.deltaY) * escala,
+  });
+
+  modoCamera = 'livre';
+}
+
 function atualizarPonteiroNoMapa(evento) {
   if (evento.pointerType === 'touch') return;
   posicaoPonteiro = { clientX: evento.clientX, clientY: evento.clientY };
@@ -325,7 +471,7 @@ function selecionarSalaClicada(evento) {
   if (evento.button !== undefined && evento.button !== 0) return;
   const sala = salaDoClique(evento);
   if (evento.detail !== 2) ultimoCliqueEmSala = sala
-    ? { sala, x: evento.clientX, y: evento.clientY } : null;
+    ? { sala, x: evento.clientX, y: evento.clientY, instante: evento.timeStamp } : null;
   if (sala && (evento.detail !== 2 || sala !== salaSelecionada))
     funcaoDeSelecao?.(sala.nome);
 }
@@ -335,7 +481,7 @@ function navegarParaSalaClicada(evento) {
   const sala = salaDoClique(evento);
   ultimoCliqueEmSala = null;
   if (!sala || (sala !== salaSelecionada && !funcaoDeSelecao?.(sala.nome))) return;
-  rotaAutomatica = calcularRotaCaminhavel(salas, segmentosDeCorredores, jogador, sala.nome);
+  rotaAutomatica = calcularRotaCaminhavel(salas, segmentosNavegaveis, jogador, sala.nome, localFisico);
   if (!rotaAutomatica) return;
   const direcaoManual = calcularDirecaoDoMovimento();
   if (direcaoManual.x || direcaoManual.y) {
@@ -382,12 +528,18 @@ function executarCicloDeJogo(instante) {
   particulas = preferenciaMovimento.matches ? [] : atualizarParticulas(particulas, segundos);
   if (rotaAutomatica) atualizarNavegacaoAutomatica(segundos);
   else atualizarPersonagem(jogador, calcularDirecaoDoMovimento(), segundos,
-    { largura: larguraMundo, altura: alturaMundo }, preferenciaMovimento.matches);
+    { largura: larguraMundo, altura: alturaMundo }, preferenciaMovimento.matches, resolverMovimento);
   atualizarAlvoCamera();
   atualizarSalaAtualSeNecessario();
   primeiraDeteccao = false;
   desenharCena();
   idQuadroAnimacao = requestAnimationFrame(executarCicloDeJogo);
+}
+
+function resolverMovimento(posicao, deslocamento) {
+  const resultado = moverNaArea(areaCaminhavel, localFisico, posicao, deslocamento);
+  localFisico = resultado.local;
+  return resultado;
 }
 
 function atualizarNavegacaoAutomatica(segundos) {
@@ -403,7 +555,8 @@ function atualizarNavegacaoAutomatica(segundos) {
     }
     const duracao = Math.min(restante, distancia / VELOCIDADE_PERSONAGEM);
     const anterior = { x: jogador.x, y: jogador.y };
-    atualizarPersonagem(jogador, direcao, duracao, limites, preferenciaMovimento.matches);
+    atualizarPersonagem(jogador, direcao, duracao, limites, preferenciaMovimento.matches,
+      resolverMovimento);
     if (Math.hypot(alvo.x - jogador.x, alvo.y - jogador.y) < 1e-6) rotaAutomatica.shift();
     if (jogador.x === anterior.x && jogador.y === anterior.y) {
       rotaAutomatica = null;
@@ -440,16 +593,13 @@ function atualizarSalaAtualSeNecessario() {
 }
 
 function detectarSalaSobJogador() {
-  return salas.find(sala =>
-    jogador.x >= sala.x && jogador.x <= sala.x + sala.largura &&
-    jogador.y >= sala.y && jogador.y <= sala.y + sala.altura
-  ) || null;
+  return salas.find(sala => sala.nome === localFisico?.sala) ?? null;
 }
 
 function desenharCena() {
   const nivelDetalhe = obterNivelDetalhe(camera.zoom);
   contexto.clearRect(0, 0, canvas.width, canvas.height);
-  contexto.fillStyle = '#181410';
+  contexto.fillStyle = '#0c1216';
   contexto.fillRect(0, 0, canvas.width, canvas.height);
 
   contexto.save();
@@ -457,30 +607,122 @@ function desenharCena() {
   contexto.translate(camera.x ? -camera.x : 0, camera.y ? -camera.y : 0);
   const tempoAmbiente = preferenciaMovimento.matches ? 0 : tempoCena;
   desenharFundo(contexto, cenario, tempoAmbiente);
+  desenharPisosRegioes(nivelDetalhe);
+  desenharGalerias(contexto, passagensExploracao, camera.zoom);
   desenharCorredores();
   desenharDecoracoes(contexto, cenario, tempoAmbiente);
   salas.forEach(sala => desenharSala(sala, nivelDetalhe));
+  desenharPortas();
   desenharPassos(contexto, jogador);
   desenharParticulas(contexto, particulas);
   desenharPersonagem(contexto, jogador, preferenciaMovimento.matches);
+  desenharTitulosRegioes(nivelDetalhe);
   contexto.restore();
   desenharEtiquetas(nivelDetalhe);
 }
 
+function corDaRegiao(regiao) {
+  if (regiao.cor) return regiao.cor;
+  if (regiao.tipo === 'entrada') return PALETA.ouro;
+  if (regiao.tipo === 'hub') return PALETA.pergaminho;
+  return PALETA.pergaminhoFraco;
+}
+
+function regiaoEstaVisivel(regiao) {
+  const direitaVisivel = camera.x + canvas.width / camera.zoom;
+  const baseVisivel = camera.y + canvas.height / camera.zoom;
+  return !(regiao.x > direitaVisivel ||
+    regiao.x + regiao.largura < camera.x ||
+    regiao.y > baseVisivel ||
+    regiao.y + regiao.altura < camera.y);
+}
+
+function desenharPisosRegioes() {
+  const tempo = preferenciaMovimento.matches ? 0 : tempoCena;
+  for (const regiao of regioesVisuais) {
+    if (!regiaoEstaVisivel(regiao) || !regiao.membros.length) continue;
+    desenharTerritorio(contexto, regiao, corDaRegiao(regiao), camera.zoom, tempo, segmentosNavegaveis);
+  }
+}
+
+function desenharTitulosRegioes() {
+  for (const regiao of regioesVisuais) {
+    if (!regiaoEstaVisivel(regiao) || !regiao.ancora) continue;
+    desenharPlacaRegiao(contexto, regiao, corDaRegiao(regiao), camera.zoom);
+  }
+}
+
 function desenharCorredores() {
   contexto.save();
-  contexto.strokeStyle = '#332a1f';
-  contexto.lineWidth = 10;
-  segmentosDeCorredores.forEach(segmento => {
-    if (contextoTopologico) {
-      contexto.globalAlpha = contextoTopologico.arestas.get(segmento.origem)?.has(segmento.destino)
-        ? 1 : 0.25;
+  contexto.lineCap = 'square';
+  contexto.lineJoin = 'miter';
+
+  // A navegação continua usando cada trecho físico separadamente.
+  // Para renderização, porém, todos os trechos da mesma chamada
+  // formam um único caminho visual.
+  const caminhos = new Map();
+
+  for (const segmento of segmentosDeCorredores) {
+    const chave = `${segmento.origem}\0${segmento.destino}`;
+
+    if (!caminhos.has(chave)) {
+      caminhos.set(chave, []);
     }
-    contexto.beginPath();
-    contexto.moveTo(segmento.inicio.x, segmento.inicio.y);
-    contexto.lineTo(segmento.fim.x, segmento.fim.y);
-    contexto.stroke();
-  });
+
+    caminhos.get(chave).push(segmento);
+  }
+
+  for (const [largura, cor] of [
+    [LARGURA_CORREDOR + 16, '#080d10'],
+    [LARGURA_CORREDOR + 10, '#354245'],
+    [LARGURA_CORREDOR, '#807963'],
+  ]) {
+    if (largura === LARGURA_CORREDOR) {
+      desenharAcabamentoCorredores(contexto, segmentosDeCorredores,
+        cruzamentosCorredores, camera.zoom, contextoTopologico, true);
+    }
+    contexto.lineWidth = largura;
+    contexto.strokeStyle = cor;
+
+    for (const segmentos of caminhos.values()) {
+      if (!segmentos.length) continue;
+
+      const primeiro = segmentos[0];
+      const tipo = tiposVisuaisCorredores.get(chaveDoCorredor(primeiro.origem, primeiro.destino));
+      // Caminhos entre alas ficam em pedra fria; caminhos locais em pedra quente.
+      contexto.strokeStyle = largura === LARGURA_CORREDOR && tipo === 'entre-regioes'
+        ? '#535e60' : cor;
+
+      contexto.globalAlpha =
+        contextoTopologico &&
+        !contextoTopologico.arestas.get(primeiro.origem)?.has(primeiro.destino)
+          ? 0.25
+          : !contextoTopologico && camera.zoom < 0.55 && tipo === 'entre-regioes' ? 0.65 : 1;
+
+      contexto.beginPath();
+      contexto.moveTo(primeiro.inicio.x, primeiro.inicio.y);
+
+      let ultimo = primeiro.inicio;
+
+      for (const segmento of segmentos) {
+        if (
+          ultimo.x !== segmento.inicio.x ||
+          ultimo.y !== segmento.inicio.y
+        ) {
+          contexto.moveTo(segmento.inicio.x, segmento.inicio.y);
+        }
+
+        contexto.lineTo(segmento.fim.x, segmento.fim.y);
+        ultimo = segmento.fim;
+      }
+
+      contexto.stroke();
+    }
+  }
+
+  desenharAcabamentoCorredores(contexto, segmentosDeCorredores,
+    cruzamentosCorredores, camera.zoom, contextoTopologico);
+
   contexto.restore();
 }
 
@@ -494,13 +736,7 @@ function desenharSala(sala, nivelDetalhe) {
   contexto.fillStyle = estilo.corBase;
   contexto.globalAlpha = (ativa ? 1 : 0.85) * atenuacao;
   contexto.fillRect(x, y, sala.largura, sala.altura);
-  if (nivelDetalhe === 'proxima') {
-    contexto.globalAlpha = 0.13 * atenuacao;
-    contexto.fillStyle = PALETA.pedraEscura;
-    for (let linha = 4; linha < sala.altura - 4; linha += 12) {
-      contexto.fillRect(x + 4, y + linha, sala.largura - 8, 1);
-    }
-  }
+  desenharAlvenariaSala(contexto, sala, estilo.corBase, camera.zoom >= 0.4);
   contexto.globalAlpha = atenuacao;
   contexto.strokeStyle = '#00000055';
   contexto.lineWidth = 2;
@@ -532,12 +768,42 @@ function desenharSala(sala, nivelDetalhe) {
     }
     contexto.fillText(nome, x + sala.largura / 2, y + 15);
   }
-  if (nivelDetalhe === 'proxima' && estilo.exibirCriatura) {
+  const criaturaLegivel = nivelDetalhe === 'proxima' ||
+    Math.min(sala.largura, sala.altura) * camera.zoom >= 48;
+  if (criaturaLegivel && estilo.exibirCriatura) {
     desenharCriatura(contexto, sala.complexidade, x + sala.largura / 2,
       y + sala.altura - 20, 2, preferenciaMovimento.matches ? 0 : tempoCena + sala.x / 100);
   }
   if (nivelDetalhe === 'proxima')
     desenharMarcadoresDaSala(sala, x, y, estilo.destacarMarcadores);
+  contexto.restore();
+}
+
+function desenharPortas() {
+  contexto.save();
+  const desenhadas = new Set();
+  const destacadas = new Set(segmentosNavegaveis.filter(trecho =>
+    trecho.tipo === 'exploracao' || !contextoTopologico || contextoTopologico.arestas.get(trecho.origem)?.has(trecho.destino))
+    .flatMap(trecho => [
+      `${trecho.origem}:${trecho.inicio.x}:${trecho.inicio.y}`,
+      `${trecho.destino}:${trecho.fim.x}:${trecho.fim.y}`,
+    ]));
+  for (const segmento of segmentosNavegaveis) {
+    for (const [nome, ponto] of [[segmento.origem, segmento.inicio],
+      [segmento.destino, segmento.fim]]) {
+      const sala = salas.find(item => item.nome === nome);
+      if (!sala) continue;
+      const vertical = ponto.x === sala.x || ponto.x === sala.x + sala.largura;
+      const horizontal = ponto.y === sala.y || ponto.y === sala.y + sala.altura;
+      if (!vertical && !horizontal) continue;
+      const chave = `${nome}:${ponto.x}:${ponto.y}`;
+      if (desenhadas.has(chave)) continue;
+      desenhadas.add(chave);
+      contexto.globalAlpha = destacadas.has(chave) ? 1 : 0.25;
+      desenharPortalSala(contexto, ponto, vertical,
+        preferenciaMovimento.matches ? 0 : tempoCena, camera.zoom >= 0.7, segmento.tipo === 'exploracao');
+    }
+  }
   contexto.restore();
 }
 

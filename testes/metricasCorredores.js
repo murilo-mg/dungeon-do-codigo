@@ -1,4 +1,4 @@
-// Diagnóstico da geometria atual: segmentos retos entre centros das salas.
+// Diagnóstico dos trechos geométricos, independentes do algoritmo de roteamento.
 const EPSILON = 1e-9;
 
 function orientacao(a, b, c) {

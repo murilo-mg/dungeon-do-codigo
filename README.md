@@ -1,128 +1,140 @@
 # Dungeon do Código
 
-O **Dungeon do Código** transforma um código em C em uma dungeon explorável no navegador.
+O **Dungeon do Código** transforma código C em uma dungeon explorável no navegador.
 
-Cada função vira uma sala. As chamadas entre funções formam caminhos, a estrutura do programa influencia a organização do mapa e as métricas do código aparecem de forma visual durante a exploração.
+Cada função encontrada vira uma sala. Chamadas entre funções conhecidas formam corredores semânticos, a estrutura do programa influencia a organização da dungeon e informações do código aparecem durante a exploração.
 
-A ideia do projeto é juntar **leitura de código, visualização de software e uma interface inspirada em jogos**, sem deixar o mapa inventar informações que não estejam no programa analisado.
+A proposta combina:
 
-## Ideia do projeto
+- leitura de código;
+- visualização de software;
+- exploração espacial;
+- uma interface inspirada em jogos.
 
-Ler um código maior pode ficar confuso quando é preciso entender rapidamente:
+A regra principal do projeto é simples:
 
-- onde o programa começa;
-- quais funções chamam quais;
-- quais funções são mais complexas;
-- quais partes estão conectadas;
-- quais funções estão isoladas;
-- onde existem ciclos ou recursão.
+> **A dungeon pode interpretar a estrutura do programa, mas não deve inventar informações sobre ele.**
 
-O Dungeon do Código tenta representar essas relações de uma forma espacial.
+O projeto é uma ferramenta de visualização e exploração. Ele **não compila nem executa** o código C.
 
-Em vez de enxergar apenas um arquivo de texto, o usuário pode caminhar por uma representação do programa e inspecionar suas funções como salas de uma dungeon.
+---
 
-> O projeto é uma ferramenta de visualização e exploração. Ele não compila nem executa o código C.
+## Visão geral
+
+Um programa C passa aproximadamente por este fluxo:
+
+```text
+Código C
+   ↓
+Análise léxica
+   ↓
+Extração de funções e métricas
+   ↓
+Grafo de chamadas
+   ├───────────────┐
+   ↓               ↓
+Regiões        Layout regional
+   └───────┬───────┘
+           ↓
+        Dungeon
+           ↓
+ ┌─────────┴──────────┐
+ ↓                    ↓
+Corredores        Galerias
+semânticos        de exploração
+ └─────────┬──────────┘
+           ↓
+     Área caminhável
+           ↓
+ Exploração no Canvas
+```
+
+Os dois tipos de caminho possuem papéis diferentes:
+
+- **corredores semânticos** representam chamadas reais entre funções;
+- **galerias de exploração** existem apenas para melhorar a circulação física pela dungeon.
+
+Uma galeria não cria uma chamada, não altera callers ou callees e não muda o grafo do programa.
 
 ---
 
 ## O que já funciona
 
-Atualmente o projeto permite:
+### Entrada de código
 
-- digitar ou colar código C diretamente no editor;
-- abrir um arquivo `.c` local;
-- gerar uma dungeon a partir das funções encontradas;
-- transformar cada função em uma sala;
-- identificar chamadas entre funções conhecidas;
-- criar um grafo de chamadas;
-- usar `main` como entrada quando ela existe;
-- usar a primeira função encontrada quando não existe `main`;
-- calcular profundidade a partir da entrada;
-- distinguir funções alcançáveis e inalcançáveis;
-- detectar recursão direta;
-- detectar participação em ciclos de chamadas;
-- organizar as salas em um mundo que cresce conforme o programa;
-- explorar a dungeon com teclado;
-- selecionar salas com o mouse;
-- navegar automaticamente até uma sala conectada;
-- pesquisar funções pelo nome;
-- navegar por callers e callees;
-- destacar o contexto de chamadas de uma função;
-- inspecionar métricas e o trecho de código de cada função;
-- usar câmera, zoom e visão geral;
-- adaptar o nível de detalhes das salas de acordo com o zoom;
-- alternar entre os modos **Complexidade** e **Estrutura**;
-- visualizar marcadores estruturais nas salas;
-- classificar semanticamente partes da dungeon em regiões.
+É possível:
 
-O projeto continua em desenvolvimento.
+- digitar ou colar código C;
+- abrir um arquivo `.c`;
+- arrastar um arquivo válido para a área de entrada;
+- editar o conteúdo antes da geração;
+- gerar a dungeon somente quando o usuário desejar.
 
----
-
-## Como o código vira uma dungeon
-
-O fluxo atual pode ser resumido assim:
+A importação aceita atualmente:
 
 ```text
-Código C
-   ↓
-Análise léxica e estrutural
-   ↓
-Funções e métricas
-   ↓
-Grafo de chamadas
-   ↓
-Layout das salas
-   ↓
-Classificação das regiões
-   ↓
-Masmorra
-   ↓
-Corredores
-   ↓
-Exploração no Canvas
+1 arquivo por vez
+extensão .c
+até 512 KiB
 ```
 
-### Funções
+Todo o processamento acontece localmente no navegador.
 
-Cada função encontrada no arquivo C vira uma sala.
+### Análise estrutural
 
-O analisador identifica informações como:
+O projeto possui uma etapa léxica que diferencia:
 
+- código;
+- comentários;
+- strings;
+- caracteres.
+
+Isso evita interpretar conteúdo textual como estrutura real.
+
+Por exemplo:
+
+```c
+printf("if while }");
+```
+
+não deve produzir um `if`, um `while` ou encerrar uma função.
+
+O analisador extrai informações como:
+
+- funções;
+- trechos originais;
 - quantidade de linhas;
 - `if`;
 - `for`;
 - `while`;
 - `switch`;
 - `case`;
-- chamadas para outras funções conhecidas;
-- recursão;
-- participação em ciclos.
+- métrica de complexidade atual;
+- chamadas para outras funções conhecidas.
 
-Comentários, strings e caracteres são tratados separadamente durante a análise estrutural para evitar que palavras como `if` dentro de uma string sejam interpretadas como código real.
+---
 
-### Grafo de chamadas
+## Grafo de chamadas
 
-As chamadas entre funções conhecidas formam um grafo direcionado.
+As relações entre funções conhecidas formam um grafo direcionado.
 
 Por exemplo:
 
 ```c
-int carregar() {
-    return 1;
+void carregar(void) {
 }
 
-void executar() {
+void executar(void) {
     carregar();
 }
 
-int main() {
+int main(void) {
     executar();
     return 0;
 }
 ```
 
-A relação estrutural é:
+produz estruturalmente:
 
 ```text
 main
@@ -132,79 +144,101 @@ executar
 carregar
 ```
 
-Essas relações são usadas pelo layout, pelo inspector, pelo foco contextual e pela navegação da dungeon.
+O grafo mantém informações como:
+
+- função de entrada;
+- callers;
+- callees;
+- profundidade mínima;
+- alcançabilidade;
+- caminho desde a entrada;
+- recursão direta;
+- participação em ciclos.
+
+Quando existe `main`, ela é usada como entrada.
+
+Caso contrário, a primeira função encontrada assume esse papel.
+
+Chamadas para funções externas que não possuem implementação no código analisado não viram salas atualmente.
 
 ---
 
-## Organização do mapa
+## Salas
 
-A dungeon não usa mais um mapa circular fixo.
+Cada função encontrada vira uma sala.
 
-As funções alcançáveis são distribuídas principalmente de acordo com sua profundidade no grafo de chamadas.
+O tamanho e a aparência podem representar informações extraídas do código.
 
-Funções mais profundas avançam pelo mapa, enquanto funções no mesmo nível são distribuídas verticalmente.
+As salas também podem exibir marcadores estruturais:
 
-O mundo lógico pode ficar maior que o Canvas. Nesse caso, a câmera permite navegar pela dungeon sem comprimir todas as salas dentro de uma única tela.
+```text
+I → if
+F → for
+W → while
+S → switch
+R → recursão direta
+C → participação em ciclo
+```
 
-Funções que não podem ser alcançadas a partir da entrada continuam representadas, mas ficam separadas da parte principal da exploração.
+A visualização possui dois modos principais.
+
+### Complexidade
+
+Prioriza:
+
+- cores;
+- criaturas;
+- diferença visual de perigo.
+
+### Estrutura
+
+Prioriza:
+
+- marcadores;
+- relações;
+- leitura estrutural.
+
+A troca de modo não altera o grafo ou a geometria da dungeon.
 
 ---
 
-## Regiões semânticas
+## Regiões da dungeon
 
-A dungeon já possui uma camada de classificação semântica das funções.
+As funções também podem ser organizadas em regiões semânticas.
 
-Atualmente existem quatro tipos principais:
+Atualmente existem quatro categorias principais.
 
 ### Entrada da Dungeon
 
 Representa a função inicial do programa.
 
-Quando existe `main`, ela é usada como entrada. Caso contrário, o projeto usa a primeira função encontrada.
-
 ### Salão Central
 
-Representa funções alcançáveis que funcionam como pontos compartilhados do grafo.
+Pode representar uma função alcançável que recebe chamadas de pelo menos três callers alcançáveis distintos.
 
-Atualmente uma função pode entrar no Salão Central quando possui pelo menos três callers alcançáveis distintos.
-
-A classificação depende das relações reais do grafo, e não do nome da função.
+A classificação depende do grafo, não do nome da função.
 
 ### Alas
 
-Grupos de funções podem receber nomes derivados do próprio código quando existe um prefixo técnico comum confiável.
+Funções podem formar alas.
 
-Exemplos:
+Quando existe um prefixo técnico comum considerado confiável, ele pode ajudar a nomear a região.
+
+Por exemplo:
 
 ```text
-parse_expression
 parse_primary
+parse_expression
 parse_unary
 ```
 
-podem formar:
+pode produzir:
 
 ```text
 Ala Parser
 ```
 
-Outro exemplo:
-
-```text
-vm_push
-vm_pop
-vm_execute
-```
-
-pode formar:
-
-```text
-Ala VM
-```
-
-Prefixos operacionais genéricos como `get`, `set`, `create`, `delete`, `read` e `write` não são usados como significado arquitetural.
-
-Quando não existe um nome confiável, o projeto usa nomes neutros:
+Quando não existe evidência suficiente para um nome semântico, são usados nomes neutros:
 
 ```text
 Ala 1
@@ -214,25 +248,107 @@ Ala 3
 
 ### Criptas Isoladas
 
-Toda função que não pode ser alcançada a partir da entrada pertence às **Criptas Isoladas**.
+Funções sem caminho a partir da entrada pertencem às **Criptas Isoladas**.
 
-Mesmo que várias funções de um componente desconectado chamem outra função desse mesmo componente, elas continuam isoladas da dungeon principal.
+Elas continuam semanticamente inalcançáveis mesmo quando uma passagem física permite visitá-las durante a exploração.
 
-### Estado visual das regiões
+---
 
-A classificação das regiões já existe nos dados da masmorra, mas **a representação visual dessas regiões no Canvas ainda está em desenvolvimento**.
+## Layout regional
 
-Esse é um dos próximos passos do projeto.
+A dungeon possui uma camada de layout regional separada do grafo.
+
+Ela organiza:
+
+- regiões;
+- salas dentro das regiões;
+- dimensões dos territórios;
+- espaço para placas;
+- distribuição da dungeon no mundo lógico.
+
+A composição procura manter o resultado determinístico.
+
+O mesmo código deve produzir a mesma estrutura.
+
+O mundo lógico pode ser maior que o Canvas, permitindo representar programas grandes sem obrigar todas as salas a caberem em uma única tela.
+
+---
+
+## Corredores semânticos
+
+Uma chamada real entre funções pode produzir um corredor físico.
+
+Os corredores:
+
+- ligam as salas corretas;
+- usam trechos ortogonais quando possível;
+- procuram evitar outras salas;
+- possuem portas nas extremidades;
+- preservam a identidade da relação mesmo quando possuem vários segmentos.
+
+Um cruzamento visual entre dois percursos **não significa que eles estão conectados**.
+
+A topologia continua explícita.
+
+---
+
+## Galerias de exploração
+
+Além dos corredores de chamadas, a dungeon possui **galerias de exploração**.
+
+Elas foram adicionadas para evitar que o personagem precise sempre retornar à função de entrada para trocar de ramo.
+
+Exemplo conceitual:
+
+```text
+Ala A
+  │
+  ├── corredor semântico
+  │
+  └──── galeria física ──── Ala B
+```
+
+A galeria:
+
+- melhora a circulação;
+- não cria arestas no grafo;
+- não aparece como caller ou callee;
+- não altera alcançabilidade;
+- não altera foco topológico;
+- possui identidade física própria.
+
+Funções isoladas podem ser visitadas fisicamente sem deixar de ser isoladas no código.
+
+Quando não existe um caminho geométrico seguro, uma galeria não é forçada através de obstáculos.
+
+---
+
+## Área caminhável e colisão
+
+O personagem não pode caminhar livremente pelo vazio.
+
+A área caminhável é formada por:
+
+- interior das salas;
+- portas;
+- corredores semânticos;
+- galerias de exploração.
+
+A colisão considera também uma margem para a base do personagem.
+
+Isso permite:
+
+- bloquear paredes;
+- impedir cortes diagonais por quinas;
+- atravessar portas corretamente;
+- preservar a identidade de percursos em cruzamentos;
+- usar a mesma física no movimento manual e automático.
 
 ---
 
 ## Exploração
 
-Depois de gerar a dungeon, o Canvas pode ser ativado com um clique.
-
-### Movimento
-
-Use:
+O personagem pode ser controlado com:
 
 ```text
 W A S D
@@ -244,24 +360,59 @@ ou:
 ↑ ← ↓ →
 ```
 
-para mover o personagem.
+O Canvas precisa estar com a exploração ativa.
 
-O teclado só controla o personagem quando o mapa está ativo.
+O foco do Canvas também pode ativar os controles.
 
-Pressionar `Esc` libera os controles da exploração.
+`Esc` libera o teclado.
 
-### Seleção de salas
+Perder o foco interrompe o movimento.
 
-Um clique em uma sala:
+---
 
-- seleciona a função;
+## Câmera e zoom
+
+A câmera é separada das coordenadas físicas do mundo.
+
+O projeto possui:
+
+- zoom discreto;
+- visão geral;
+- botão **Encaixar**;
+- foco em sala selecionada;
+- câmera livre pela roda do mouse.
+
+A roda desloca verticalmente a câmera.
+
+```text
+Shift + roda
+```
+
+desloca horizontalmente.
+
+Mover a câmera não move o personagem.
+
+O zoom também altera o nível de detalhe apresentado no Canvas, mas não altera a geometria real da dungeon.
+
+---
+
+## Seleção e navegação
+
+### Clique simples
+
+Seleciona uma sala e:
+
 - atualiza o inspector;
-- destaca seu contexto no grafo;
-- permite visualizar suas relações.
+- ativa o foco contextual;
+- mantém o personagem onde está.
 
-Um duplo clique pode iniciar a navegação automática até a sala quando existe uma rota pelos corredores atuais.
+### Duplo clique
 
-Qualquer movimento manual cancela essa navegação.
+Pode iniciar navegação automática até a sala selecionada quando existe uma rota física válida.
+
+A navegação utiliza corredores e galerias existentes.
+
+Movimento manual cancela a rota automática.
 
 ---
 
@@ -269,18 +420,17 @@ Qualquer movimento manual cancela essa navegação.
 
 Durante a exploração é possível pesquisar funções pelo nome.
 
-O inspector mostra informações da função selecionada, incluindo:
+O inspector pode mostrar:
 
 - nome;
 - métricas;
-- nível de perigo;
-- trecho do código;
+- trecho original do código;
 - callers;
 - callees;
-- caminho mínimo desde a entrada;
+- caminho estrutural desde a entrada;
 - estruturas de controle;
-- recursão direta;
-- participação em ciclos.
+- recursão;
+- ciclos.
 
 Callers e callees também podem ser usados para navegar entre funções relacionadas.
 
@@ -288,127 +438,66 @@ Callers e callees também podem ser usados para navegar entre funções relacion
 
 ## Foco contextual
 
-Ao selecionar uma função, o Dungeon pode destacar as cadeias de chamadas relevantes entre a entrada e aquela função.
+Selecionar uma função pode destacar as cadeias de chamadas estruturalmente relevantes até ela.
 
-As salas que fazem parte do contexto continuam em destaque.
+Funções e relações fora desse contexto continuam visíveis com menor destaque.
 
-As demais permanecem visíveis com menor opacidade.
+Galerias de exploração não participam desse cálculo.
 
-Isso permite estudar uma parte do programa sem apagar o restante da dungeon.
-
-Funções inalcançáveis não recebem um caminho artificial a partir da entrada.
+Uma função isolada também não recebe um caminho estrutural artificial apenas porque pode ser visitada fisicamente.
 
 ---
 
-## Zoom
+## Visual da dungeon
 
-O mapa possui controles de zoom e uma opção para encaixar a dungeon inteira na tela.
+A versão atual possui elementos como:
 
-O zoom não altera a posição física das salas ou do personagem. Ele muda apenas a forma como o mundo é visualizado.
+- territórios por região;
+- paredes e alvenaria;
+- pisos;
+- placas;
+- portais;
+- corredores de pedra;
+- galerias visualmente distintas;
+- tochas;
+- rochas;
+- musgo;
+- pilares;
+- criaturas;
+- efeitos;
+- detalhes que simplificam conforme o zoom.
 
-O nível de detalhes também muda conforme a aproximação.
+Esses elementos pertencem à apresentação.
 
-### Visão distante
-
-Prioriza a estrutura geral do mapa.
-
-Detalhes pequenos das salas são ocultados.
-
-### Visão intermediária
-
-Mostra principalmente a identificação das funções.
-
-### Visão próxima
-
-Exibe os detalhes completos das salas, incluindo elementos visuais e marcadores.
-
-O hover pode mostrar o nome completo de uma função sem selecioná-la.
-
----
-
-## Modos visuais
-
-Existem dois modos principais de visualização.
-
-### Complexidade
-
-Mantém a representação visual baseada na complexidade da função, incluindo cores e criaturas.
-
-### Estrutura
-
-Usa uma aparência mais neutra e dá mais destaque às características estruturais do código.
-
-Trocar de modo não altera:
-
-- o grafo;
-- a geometria;
-- a posição do personagem;
-- a câmera;
-- a função selecionada.
-
----
-
-## Marcadores estruturais
-
-As salas podem mostrar pequenos marcadores para indicar estruturas encontradas na função.
-
-```text
-I → if
-F → for
-W → while
-S → switch
-R → recursão direta
-C → ciclo de chamadas
-```
-
-Esses marcadores representam presença estrutural e não substituem as métricas completas mostradas no inspector.
-
----
-
-## Abrindo um arquivo `.c`
-
-Além de colar código no editor, é possível carregar um arquivo C local.
-
-No estado atual:
-
-- apenas um arquivo é carregado por vez;
-- a extensão deve ser `.c`;
-- o limite atual é de 512 KiB;
-- o conteúdo é tratado como texto;
-- o código não é executado.
-
-O arquivo só substitui o conteúdo do editor depois de uma leitura válida.
+Eles não devem alterar a análise do programa.
 
 ---
 
 ## Privacidade
 
-A análise do código acontece localmente no navegador.
+Atualmente:
 
-O projeto atualmente:
-
-- não possui backend;
-- não envia o arquivo C para um servidor próprio;
-- não compila o código;
-- não executa o código;
-- não precisa de conta ou login para funcionar localmente.
-
-A arquitetura de publicação ainda será revisada antes da primeira versão pública, principalmente em relação a segurança, headers HTTP e proteção contra entradas maliciosas.
+- não existe backend da aplicação;
+- o código é analisado no navegador;
+- arquivos não são enviados para um servidor próprio;
+- o código não é compilado;
+- o código não é executado;
+- não existe conta ou login.
 
 ---
 
 ## Tecnologias
 
-O projeto foi feito principalmente com:
+O projeto usa:
 
 - HTML;
 - CSS;
 - JavaScript;
 - ES Modules;
 - Canvas 2D;
-- Node.js para a suíte de testes;
+- Node.js para testes;
 - `node:test`;
-- GitHub Actions para executar os testes automaticamente.
+- GitHub Actions.
 
 Até o momento não foi necessário usar framework frontend ou motor de jogos.
 
@@ -426,16 +515,19 @@ dungeon-do-codigo/
 │   ├── analisadorC.js
 │   ├── lexicoC.js
 │   ├── grafoC.js
-│   ├── layoutMasmorra.js
 │   ├── regioesMasmorra.js
+│   ├── layoutMasmorra.js
+│   ├── layoutRegioes.js
 │   ├── masmorra.js
 │   ├── corredores.js
+│   ├── circulacaoDungeon.js
+│   ├── areaCaminhavel.js
 │   ├── navegacaoMasmorra.js
 │   ├── camera.js
 │   ├── semanticaVisual.js
-│   ├── zoomDiscreto.js
-│   ├── personagem.js
+│   ├── desenhoMasmorra.js
 │   ├── cenario.js
+│   ├── personagem.js
 │   ├── criaturas.js
 │   ├── efeitos.js
 │   ├── interface.js
@@ -446,7 +538,6 @@ dungeon-do-codigo/
 ├── docs/
 ├── .github/
 │   └── workflows/
-│       └── testes.yml
 │
 ├── EVOLUCAO.md
 ├── CORRECOES.md
@@ -454,35 +545,38 @@ dungeon-do-codigo/
 └── README.md
 ```
 
-Alguns módulos importantes:
+Alguns módulos centrais:
 
 | Arquivo | Responsabilidade |
 | --- | --- |
-| `lexicoC.js` | Diferencia código, comentários e literais durante a análise |
-| `analisadorC.js` | Extrai funções e métricas do código C |
-| `grafoC.js` | Cria o grafo de chamadas e calcula relações estruturais |
-| `layoutMasmorra.js` | Calcula posições, dimensões e tamanho do mundo |
-| `regioesMasmorra.js` | Classifica entrada, hubs, alas e funções isoladas |
-| `masmorra.js` | Monta os dados finais das salas e regiões |
-| `corredores.js` | Converte relações do grafo em corredores geométricos |
-| `navegacaoMasmorra.js` | Calcula rotas sobre os corredores existentes |
-| `camera.js` | Controla a visualização do mundo |
-| `semanticaVisual.js` | Define o nível de detalhes conforme o zoom |
-| `personagem.js` | Controla o movimento do personagem |
-| `jogo.js` | Coordena renderização, exploração e interação no Canvas |
-| `interface.js` | Controla os elementos da interface fora do Canvas |
-| `principal.js` | Integra análise, grafo, dungeon, interface e jogo |
+| `lexicoC.js` | Separa código, comentários e literais |
+| `analisadorC.js` | Extrai funções e métricas |
+| `grafoC.js` | Representa chamadas e relações estruturais |
+| `regioesMasmorra.js` | Classifica as regiões semânticas |
+| `layoutMasmorra.js` | Mantém o layout geométrico base |
+| `layoutRegioes.js` | Organiza regiões e salas na composição regional |
+| `masmorra.js` | Monta a dungeon a partir dos dados estruturais |
+| `corredores.js` | Calcula os caminhos físicos das chamadas reais |
+| `circulacaoDungeon.js` | Cria galerias físicas sem modificar o grafo |
+| `areaCaminhavel.js` | Resolve colisão e identidade física dos percursos |
+| `navegacaoMasmorra.js` | Calcula rotas pela rede física existente |
+| `camera.js` | Controla viewport, zoom e deslocamento |
+| `desenhoMasmorra.js` | Desenha arquitetura e acabamentos da dungeon |
+| `personagem.js` | Estado e animação do personagem |
+| `jogo.js` | Coordena renderização, interação e física |
+| `interface.js` | Controla a interface fora do Canvas |
+| `principal.js` | Orquestra análise, dungeon, interface e jogo |
 
 ---
 
 ## Como executar
 
-Como o projeto usa ES Modules, o ideal é servir a pasta por HTTP em vez de abrir o `index.html` diretamente.
+Como o projeto usa ES Modules, sirva a pasta por HTTP.
 
 Na raiz do projeto:
 
 ```bash
-python3 -m http.server
+python3 -m http.server 8000
 ```
 
 Depois abra:
@@ -497,79 +591,71 @@ Não é necessário instalar dependências para abrir a aplicação.
 
 ## Testes
 
-Os testes usam o próprio test runner do Node.js.
+A suíte utiliza o test runner do Node.js.
 
-Na pasta que contém o `package.json`, execute:
+Na pasta que contém `package.json`:
 
 ```bash
 npm test
 ```
 
-A suíte cobre diferentes partes do projeto, incluindo:
+No estado auditado desta baseline candidata:
 
-- análise de C;
-- léxico;
-- grafo;
-- ciclos e recursão;
-- layout;
-- regiões semânticas;
-- corredores;
-- câmera e zoom;
-- navegação;
-- física;
-- busca;
-- inspector;
-- importação de arquivos;
-- segurança de texto no DOM;
-- integração entre os módulos.
+```text
+328 testes
+328 passando
+0 falhando
+```
 
-Também existe um workflow do GitHub Actions que executa `npm test` em pushes e pull requests.
+Também existe um workflow do GitHub Actions que executa a suíte automaticamente em pushes e pull requests.
 
 ---
 
 ## Limitações atuais
 
-O analisador foi construído para um subconjunto simples de C.
+O analisador trabalha com um subconjunto de C.
 
-Ele ainda não pretende substituir um compilador ou parser completo da linguagem.
+Ele não pretende substituir um compilador ou parser completo.
 
-Alguns casos avançados podem não ser interpretados corretamente, principalmente:
+Construções avançadas podem ser reconhecidas parcialmente ou não serem compreendidas corretamente, principalmente:
 
 - macros complexas;
 - pré-processamento condicional;
-- declarações avançadas;
 - ponteiros de função;
-- construções pouco comuns da gramática de C.
+- declarações avançadas;
+- formas pouco comuns da gramática de C.
 
-O grafo atual representa principalmente chamadas entre funções conhecidas no código analisado. Funções externas, como as de bibliotecas, não viram salas da dungeon.
+Chamadas externas, como funções de bibliotecas, não viram salas no grafo atual.
 
-Os corredores atuais ainda são segmentos diretos entre salas. Em alguns cenários densos, principalmente com muitas funções no mesmo nível, um corredor pode atravessar visualmente outra sala.
+A circulação física também possui limites geométricos:
 
-A classificação das regiões já existe, mas elas ainda não são desenhadas no mapa.
+- uma galeria não é criada quando não existe desvio considerado seguro;
+- alguns encontros de percursos podem continuar visualmente densos;
+- a parte superior do sprite pode se projetar visualmente sobre uma parede mesmo quando sua base continua corretamente bloqueada.
 
-O movimento manual também ainda não representa colisão completa com paredes de uma dungeon.
-
-Esses pontos fazem parte da evolução do projeto.
+Essas limitações não devem ser escondidas da interface ou da documentação.
 
 ---
 
 ## Próximos passos
 
-Os próximos ciclos estão sendo organizados nesta ordem:
+Com a estrutura principal da dungeon estabilizada, os próximos ciclos passam a priorizar:
 
-1. representar visualmente as regiões semânticas no Canvas;
-2. melhorar o roteamento e a aparência dos corredores;
-3. aumentar a explicação e a confiabilidade das métricas mostradas ao usuário;
-4. melhorar pequenos pontos de UX e acessibilidade;
-5. fazer o hardening de segurança para publicação;
-6. publicar uma primeira versão acessível fora do ambiente local.
+1. aumentar a confiabilidade e a explicação da análise;
+2. tornar a métrica de complexidade mais transparente;
+3. melhorar avisos para construções de C parcialmente suportadas;
+4. apresentar chamadas externas como informação complementar;
+5. adicionar exemplos prontos de programas C;
+6. continuar melhorias de UX e acessibilidade;
+7. revisar segurança e publicação;
+8. preparar a primeira versão pública estável.
 
-Depois da primeira versão pública, algumas ideias previstas são:
+Ideias posteriores incluem:
 
-- comparação antes/depois de uma refatoração;
 - exportação do mapa e do grafo;
+- comparação antes/depois de uma refatoração;
 - visão textual alternativa ao Canvas;
-- missões de leitura de código;
+- atividades de leitura de código;
 - suporte futuro a outros analisadores ou linguagens.
 
 ---
@@ -578,21 +664,19 @@ Depois da primeira versão pública, algumas ideias previstas são:
 
 A documentação técnica está separada por objetivo:
 
-- [`docs/ESTADO_ATUAL.md`](docs/ESTADO_ATUAL.md) — retrato técnico do projeto no estado atual;
-- [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) — organização dos módulos e fluxo de dados;
-- [`docs/DECISOES.md`](docs/DECISOES.md) — decisões tomadas durante o desenvolvimento;
-- [`docs/PLANO_TECNICO.md`](docs/PLANO_TECNICO.md) — próximos ciclos e melhorias planejadas;
-- [`EVOLUCAO.md`](EVOLUCAO.md) — histórico e direção de evolução do projeto;
-- [`CORRECOES.md`](CORRECOES.md) — registro de uma revisão anterior de bugs e correções.
+- [`docs/ESTADO_ATUAL.md`](docs/ESTADO_ATUAL.md) — fotografia técnica do comportamento atual;
+- [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) — módulos, responsabilidades e fluxo dos dados;
+- [`docs/DECISOES.md`](docs/DECISOES.md) — decisões arquiteturais adotadas;
+- [`docs/PLANO_TECNICO.md`](docs/PLANO_TECNICO.md) — trabalho que ainda está planejado;
+- [`EVOLUCAO.md`](EVOLUCAO.md) — histórico dos principais marcos;
+- [`CORRECOES.md`](CORRECOES.md) — registro de uma revisão anterior de bugs.
 
 ---
 
 ## Princípio do projeto
 
-O Dungeon do Código pode usar uma linguagem visual de jogo, mas as informações apresentadas precisam continuar ligadas ao código real.
+A linguagem de dungeon é uma forma de visualizar o programa.
 
-A regra que guia essa evolução é:
+Ela não substitui os dados reais do código.
 
-> **Se um significado visual não puder ser justificado por dados reais do código, ele não deve ser apresentado como fato.**
-
-A dungeon deve ajudar a entender o programa — não inventar uma história sobre ele.
+> **Se um significado visual não puder ser justificado pelos dados analisados, ele não deve ser apresentado como fato.**

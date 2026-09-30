@@ -1,94 +1,87 @@
 # Caminho de evolução
 
-O Dungeon do Código está evoluindo de uma experiência visual simples para uma ferramenta de exploração e leitura de programas.
+Este documento registra os principais marcos já concluídos do **Dungeon do Código**.
 
-A ideia central continua sendo:
+Ele funciona como histórico de evolução.
+
+O estado atual está em `docs/ESTADO_ATUAL.md`.
+
+O trabalho ainda planejado está em `docs/PLANO_TECNICO.md`.
+
+A ideia central do projeto permanece:
 
 > transformar a estrutura real de um código em uma dungeon que ajude o usuário a compreender o programa.
 
-A parte visual pode usar referências de jogos, mas o mapa não deve inventar significado.
-
-Sempre que uma sala, região, marcador ou relação comunicar algo sobre o programa, essa informação precisa estar ligada a dados reais extraídos do código.
+A linguagem visual pode usar referências de jogos, mas o mapa não deve inventar significado.
 
 ---
 
-# Objetivo do projeto
+# 1. Base visual inicial
 
-O objetivo não é criar apenas um jogo baseado em código.
+O projeto começou como uma experiência simples em Canvas.
 
-O Dungeon deve ajudar o usuário a responder perguntas como:
-
-- onde o programa começa?
-- quais funções estão conectadas?
-- quem chama determinada função?
-- quais funções ela chama?
-- quais partes são mais profundas no fluxo?
-- onde há recursão?
-- onde existem ciclos?
-- quais funções não são alcançadas pela entrada?
-- quais partes parecem estruturalmente importantes?
-- onde vale concentrar a leitura?
-
-A dungeon funciona como outra forma de observar essas relações.
-
----
-
-# Evolução já concluída
-
-## Base visual
-
-O projeto começou com uma representação simples em Canvas.
-
-Ao longo do desenvolvimento foram adicionados:
+As primeiras versões estabeleceram:
 
 - personagem;
 - salas;
 - cenário;
 - criaturas;
 - efeitos;
-- painel lateral;
 - movimentação com teclado;
+- painel lateral;
 - controle de foco da exploração.
 
-Esses elementos formaram a base da experiência.
+Nesse estágio, a prioridade era provar que código poderia ser apresentado como um espaço explorável.
 
 ---
 
-## Análise estrutural mais segura
+# 2. Análise estrutural mais segura
 
-O analisador passou a separar:
+A análise de C ganhou uma etapa léxica separada.
+
+Passou a distinguir:
 
 - código;
 - comentários;
 - strings;
 - caracteres.
 
-Isso evita interpretar conteúdo textual como estrutura C.
+Isso corrigiu problemas como interpretar:
 
-Também foram adicionados tratamentos para:
+```c
+printf("if while }");
+```
 
-- entradas incompletas;
-- comentários não terminados;
-- strings não terminadas;
-- chaves inconsistentes.
+como estruturas reais da linguagem.
 
-As correções dessa etapa estão registradas em `CORRECOES.md`.
+Também foram tratados casos como:
+
+- strings incompletas;
+- comentários incompletos;
+- chaves inconsistentes;
+- palavras reservadas dentro de literais;
+- marcadores de comentário dentro de strings.
+
+Essa revisão está documentada em `CORRECOES.md`.
+
+A partir daí, cada bug importante do analisador passou a ser candidato a caso de regressão automatizado.
 
 ---
 
-## Grafo real de chamadas
+# 3. Grafo real de chamadas
 
-As chamadas entre funções conhecidas passaram a ser representadas explicitamente.
+As relações entre funções conhecidas passaram a ser representadas explicitamente.
 
-O grafo atual registra:
+O grafo passou a manter:
 
 - nós;
 - arestas;
 - função de entrada;
 - callers;
 - callees;
-- alcance;
+- alcançabilidade;
 - profundidade mínima;
+- caminho estrutural;
 - recursão direta;
 - participação em ciclos.
 
@@ -96,9 +89,11 @@ Quando existe `main`, ela é usada como entrada.
 
 Caso contrário, a primeira função encontrada assume esse papel.
 
+Esse marco transformou a dungeon de uma visualização apenas decorativa em uma representação estrutural do programa.
+
 ---
 
-## Layout baseado no grafo
+# 4. Layout guiado pelo grafo
 
 O mapa deixou de depender de uma disposição circular fixa.
 
@@ -107,90 +102,116 @@ As salas passaram a ser organizadas considerando principalmente:
 - profundidade no grafo;
 - callers;
 - ordem estrutural;
-- tamanho da função;
-- funções inalcançáveis.
+- tamanho das funções;
+- separação das funções inalcançáveis.
 
-O mundo lógico cresce de acordo com a necessidade.
+O mundo lógico passou a crescer de acordo com a necessidade.
 
-Isso permitiu representar programas maiores sem obrigar todas as salas a caber dentro de um único viewport.
+Isso permitiu representar programas maiores sem obrigar todas as salas a caberem em uma única tela.
+
+O layout também passou a ser tratado como uma camada separada do grafo.
 
 ---
 
-## Câmera e mundo expansível
+# 5. Câmera e mundo expansível
 
-Foi adicionada uma câmera para permitir que o jogador explore mundos maiores que o Canvas.
+Com o crescimento do mapa, foi adicionada uma câmera.
 
-A posição física das salas continua no sistema de coordenadas do mundo.
+A posição das salas continuou no sistema de coordenadas do mundo.
 
-A câmera altera apenas o que é mostrado ao usuário.
+A câmera passou a controlar apenas a visualização.
 
-Também foram adicionados:
+Foram adicionados:
 
 - zoom;
 - visão geral;
-- encaixe da dungeon;
-- foco manual em uma sala.
+- Encaixar;
+- foco em sala;
+- acompanhamento do personagem.
+
+Mais tarde, a câmera também ganhou modo livre por rolagem.
+
+A roda move verticalmente a câmera e `Shift + roda` move horizontalmente.
+
+Mover a câmera não altera a posição do personagem.
 
 ---
 
-## Busca e leitura estrutural
+# 6. Busca e leitura estrutural
 
-A exploração passou a oferecer busca de funções.
+O projeto passou a oferecer busca de funções.
 
-O inspector permite navegar pelas relações estruturais da função selecionada.
+O inspector foi ampliado para apresentar:
 
-Atualmente é possível consultar:
-
+- nome;
+- métricas;
+- código;
 - callers;
 - callees;
-- caminho mínimo desde a entrada;
+- caminho desde a entrada;
 - estruturas de controle;
 - recursão;
-- ciclos;
-- métricas;
-- trecho do código.
+- ciclos.
 
-Busca, clique e botões de relações usam a mesma seleção.
+Busca, clique e relações do inspector passaram a convergir para uma seleção unificada.
 
 ---
 
-## Foco contextual
+# 7. Foco contextual
 
-Selecionar uma função pode destacar as cadeias de chamadas relevantes até ela.
+Selecionar uma função passou a destacar as cadeias estruturais relevantes até ela.
 
-As funções fora do contexto permanecem no mapa, mas recebem menos destaque.
+Funções fora do contexto continuam visíveis com menor destaque.
 
-Isso permite estudar uma região do programa sem esconder a estrutura completa.
+Esse recurso permite estudar uma parte do programa sem apagar o restante da dungeon.
 
----
-
-## Interação direta com as salas
-
-As salas podem ser selecionadas diretamente no Canvas.
-
-Um clique seleciona a função.
-
-Um duplo clique pode iniciar uma navegação automática até ela quando existe uma rota pelos corredores atuais.
-
-A navegação automática usa a geometria existente da dungeon.
-
-O movimento manual continua separado dessa seleção.
+Funções inalcançáveis não recebem caminhos artificiais a partir da entrada.
 
 ---
 
-## Modos de visualização
+# 8. Interação direta com as salas
 
-Foram criados dois modos principais:
+As salas passaram a aceitar interação direta no Canvas.
 
-### Complexidade
+Clique simples:
+
+```text
+seleciona
+↓
+atualiza inspector
+↓
+ativa foco contextual
+```
+
+Duplo clique:
+
+```text
+seleciona
+↓
+calcula rota
+↓
+inicia navegação automática
+```
+
+A seleção foi mantida separada da posição física do personagem.
+
+Selecionar uma função não significa mover o personagem até ela.
+
+---
+
+# 9. Modos de visualização
+
+Foram criados dois modos principais.
+
+## Complexidade
 
 Mantém:
 
 - cores;
 - criaturas;
-- identidade visual ligada ao nível de complexidade.
+- identidade visual baseada na complexidade.
 
-### Estrutura
+## Estrutura
 
 Prioriza:
 
@@ -198,13 +219,19 @@ Prioriza:
 - relações;
 - leitura estrutural.
 
-A troca de modo não modifica o grafo ou a geometria.
+Trocar de modo não altera:
+
+- grafo;
+- geometria;
+- câmera;
+- personagem;
+- seleção.
 
 ---
 
-## Marcadores estruturais
+# 10. Marcadores estruturais
 
-As salas podem indicar visualmente a presença de:
+As salas passaram a poder mostrar:
 
 ```text
 I → if
@@ -212,82 +239,92 @@ F → for
 W → while
 S → switch
 R → recursão direta
-C → ciclo
+C → participação em ciclo
 ```
 
 Esses marcadores complementam o inspector.
 
----
-
-## Importação de arquivos C
-
-O projeto passou a permitir carregar um arquivo `.c` local.
-
-O arquivo:
-
-- é lido no navegador;
-- não é executado;
-- não precisa ser enviado a um backend;
-- respeita limite de tamanho;
-- só substitui o editor depois de uma leitura válida.
+Eles não substituem as métricas completas.
 
 ---
 
-## Zoom semântico
+# 11. Importação de arquivos C
 
-O nível de detalhe das salas agora depende da aproximação.
+O projeto passou a aceitar arquivos `.c` locais.
 
-A representação possui níveis diferentes para:
+A importação atual:
 
-- visão geral do mapa;
-- identificação das funções;
-- detalhes completos.
+- acontece no navegador;
+- aceita um arquivo por vez;
+- possui limite de tamanho;
+- não executa o conteúdo;
+- só substitui o editor depois de uma leitura válida;
+- não gera a dungeon automaticamente.
 
-Assim, mapas grandes continuam legíveis quando vistos de longe.
-
-Hover e seleção permitem consultar nomes completos mesmo quando o desenho interno está simplificado.
+Esse fluxo manteve o usuário no controle do momento da análise.
 
 ---
 
-# Último marco concluído: regiões semânticas
+# 12. Zoom semântico
 
-A dungeon agora possui uma camada de classificação semântica separada da geometria.
+O nível de detalhe da dungeon passou a depender da aproximação.
 
-Essa classificação existe como dados.
+Em visão distante, a prioridade é a estrutura geral.
 
-Ela ainda não altera o posicionamento das salas e ainda não é desenhada visualmente no Canvas.
+Em níveis intermediários, nomes e identificação ganham importância.
 
-Existem quatro categorias principais.
+Em visão próxima, aparecem mais detalhes como:
+
+- marcadores;
+- criaturas;
+- texturas;
+- alvenaria;
+- acabamentos.
+
+Hover e seleção permitem consultar nomes completos quando o conteúdo interno está simplificado.
+
+---
+
+# 13. Regiões semânticas
+
+Foi adicionada uma camada de classificação semântica separada da geometria.
+
+As categorias principais passaram a ser:
+
+```text
+Entrada da Dungeon
+Salão Central
+Alas
+Criptas Isoladas
+```
+
+A classificação passou a seguir dados reais do grafo.
 
 ---
 
 ## Entrada da Dungeon
 
-A função de entrada é tratada separadamente.
+A função inicial ganhou uma região própria.
 
-Ela não vira uma ala normal.
+Ela deixou de ser tratada como uma ala comum.
 
 ---
 
 ## Salão Central
 
-Funções alcançáveis podem ser classificadas como hubs.
+Funções alcançáveis podem ser classificadas como hubs quando possuem quantidade suficiente de callers alcançáveis distintos.
 
-Atualmente uma função precisa receber chamadas de pelo menos três callers alcançáveis distintos para poder entrar no Salão Central.
-
-O nome da função não decide isso.
-
-A decisão vem da estrutura do grafo.
+O nome da função não define esse papel.
 
 ---
 
 ## Alas
 
-Funções podem ser agrupadas em alas.
+Funções alcançáveis podem ser agrupadas.
 
-Quando existe um prefixo técnico comum confiável, ele pode ser usado no nome.
+Quando existe prefixo técnico comum confiável, ele pode ser usado no título.
 
-Exemplos:
+Exemplo:
 
 ```text
 parse_expression
@@ -295,47 +332,13 @@ parse_primary
 parse_unary
 ```
 
-podem gerar:
+pode gerar:
 
 ```text
 Ala Parser
 ```
 
-e:
-
-```text
-vm_push
-vm_pop
-vm_execute
-```
-
-podem gerar:
-
-```text
-Ala VM
-```
-
-Prefixos operacionais genéricos não são interpretados como domínio.
-
-Exemplos:
-
-```text
-get_
-set_
-create_
-delete_
-read_
-write_
-```
-
-não devem gerar significados como:
-
-```text
-Ala Get
-Ala Create
-```
-
-Quando não existe um nome confiável, o fallback é neutro:
+Quando não existe evidência suficiente, são usados nomes neutros:
 
 ```text
 Ala 1
@@ -347,704 +350,408 @@ Ala 3
 
 ## Criptas Isoladas
 
-Toda função inalcançável a partir da entrada pertence às Criptas Isoladas.
+Toda função sem caminho a partir da entrada pertence às Criptas Isoladas.
 
-Uma função desconectada não vira Salão Central apenas porque recebe chamadas de outras funções também desconectadas.
+Uma função desconectada não vira Salão Central apenas por receber chamadas de outras funções também desconectadas.
 
-Alcançabilidade tem prioridade sobre a classificação de hub.
-
----
-
-# Princípio de confiança no mapa
-
-A evolução do projeto deve seguir uma regra:
-
-> **Se um significado visual não puder ser justificado por dados reais do código, ele não deve ser apresentado como fato.**
-
-Isso vale para:
-
-- nomes de regiões;
-- descrições;
-- dificuldade;
-- importância;
-- agrupamentos;
-- destaques;
-- futuras mecânicas.
-
-O Dungeon pode interpretar a estrutura.
-
-Ele não deve inventar arquitetura.
+Alcançabilidade passou a ter prioridade sobre classificação de hub.
 
 ---
 
-# Próximo ciclo: representação visual das regiões
+# 14. Representação visual das regiões
 
-A classificação já existe.
+As regiões deixaram de existir apenas como dados.
 
-Agora o próximo passo é mostrar essas regiões no mapa.
+A dungeon passou a mostrar:
 
-A primeira versão visual deve representar:
-
-```text
-Entrada da Dungeon
-Salão Central
-Alas
-Criptas Isoladas
-```
-
-sem destruir a geometria existente.
-
-O objetivo inicial não é redesenhar toda a dungeon.
-
-Primeiro queremos criar uma camada visual que permita perceber os agrupamentos.
-
-Possíveis elementos:
-
-- limites visuais discretos;
-- chão ou textura diferente;
+- territórios;
 - placas;
-- títulos;
-- separação espacial leve;
-- cores secundárias;
-- identificação no zoom distante.
+- cores regionais;
+- contornos;
+- alvenaria;
+- diferenciação visual entre setores.
 
-As regiões precisam continuar sendo derivadas dos dados já existentes.
+A representação visual passou a consumir a classificação já existente.
 
----
+Ela não recalcula regiões no Canvas.
 
-# Depois: Corredores 2.0
-
-Os corredores atuais representam relações reais, mas ainda são segmentos geométricos simples.
-
-Nos casos mais densos, principalmente quando muitas funções ocupam o mesmo nível, alguns corredores podem atravessar outras salas.
-
-O próximo ciclo estrutural depois das regiões deve tratar isso.
-
----
-
-## Objetivos
-
-Criar corredores mais parecidos com caminhos de dungeon.
-
-O roteamento deve tentar:
-
-1. ligar as salas corretas;
-2. evitar atravessar outras salas;
-3. manter trajetos legíveis;
-4. preservar as relações reais do grafo;
-5. não criar conexões físicas falsas.
-
----
-
-## Possível estratégia
-
-O roteamento pode seguir uma sequência como:
+Esse marco eliminou a antiga diferença entre:
 
 ```text
-rota direta
-    ↓
-testa colisão com outras salas
-    ↓
-se necessário, cria desvio
-    ↓
-transforma o caminho em segmentos
+região semântica existente nos dados
 ```
 
-Os corredores podem evoluir para formatos:
+e:
 
 ```text
-┌───────┐
-│       │
-└───┐   │
-    │   │
-    └───┘
+região visível no mapa
 ```
-
-em vez de apenas uma linha entre centros.
 
 ---
 
-## Regra física importante
+# 15. Layout regional
 
-Dois corredores podem se cruzar visualmente sem necessariamente possuir conexão entre eles.
+Foi introduzida uma composição regional própria.
 
-Portanto:
+`layoutRegioes.js` passou a organizar:
+
+- regiões;
+- salas dentro das regiões;
+- espaço para placas;
+- dimensões dos territórios;
+- posição relativa dos setores.
+
+A composição considera:
+
+- ocupação;
+- proporção;
+- distância entre regiões ligadas por chamadas reais;
+- determinismo.
+
+A Entrada, o Salão Central e as Criptas mantêm papéis espaciais próprios.
+
+Esse layout não altera o agrupamento semântico.
+
+---
+
+# 16. Corredores 2.0
+
+Os corredores deixaram de ser apenas segmentos diretos entre centros de salas.
+
+O roteamento passou a:
+
+- usar vários segmentos;
+- priorizar caminhos ortogonais;
+- evitar terceiras salas;
+- considerar folga;
+- recortar caminhos nas paredes;
+- preservar a identidade da chamada;
+- criar portas coerentes com a geometria.
+
+Esse ciclo aproximou a rede de chamadas da linguagem visual de uma dungeon.
+
+---
+
+# 17. Cruzamentos e pontes visuais
+
+O sistema passou a distinguir:
 
 ```text
 cruzamento geométrico
 ```
 
-não pode automaticamente significar:
+de:
 
 ```text
-interseção navegável
+conexão física
 ```
 
-A topologia precisa continuar explícita.
+Percursos independentes podem cruzar sem permitir troca de rota.
+
+Alguns cruzamentos recebem uma ponte gráfica para ajudar a leitura.
+
+Essa ponte é apenas visual.
+
+Ela não cria altura física, novo nó ou entroncamento.
 
 ---
 
-# Confiança na análise
+# 18. Arquitetura visual da dungeon
 
-Depois das regiões e dos corredores, a prioridade passa a ser explicar melhor o que o Dungeon está mostrando.
+O mapa recebeu uma camada visual mais rica.
 
-Não basta exibir uma métrica.
+Foram adicionados e refinados elementos como:
 
-O usuário precisa conseguir entender de onde ela veio.
+- piso regional;
+- paredes;
+- alvenaria;
+- portais;
+- tochas;
+- pedras;
+- musgo;
+- placas;
+- acabamentos dos corredores;
+- diferenciação de regiões.
+
+A decoração passou a respeitar melhor as áreas ocupadas pela estrutura principal.
+
+Essa camada continuou separada da colisão e da semântica.
 
 ---
 
-## Explicar a complexidade
+# 19. Área caminhável
 
-Se uma função recebe uma determinada pontuação, o inspector deve conseguir justificar esse valor.
+A exploração deixou de usar apenas os limites retangulares do mundo.
 
-Exemplo conceitual:
+`areaCaminhavel.js` passou a definir onde o personagem pode andar.
+
+A área física passou a ser formada por:
+
+- salas;
+- portas;
+- corredores.
+
+O sistema preserva a identidade do percurso.
+
+Isso evita que cruzamentos criem atalhos falsos.
+
+---
+
+# 20. Colisão corporal
+
+A colisão passou a considerar a base do personagem.
+
+Antes, apenas a posição central era relevante.
+
+Agora existe uma margem física.
+
+Com isso:
+
+- paredes bloqueiam corretamente;
+- quinas não podem ser cortadas diagonalmente;
+- portas precisam ter espaço suficiente;
+- navegação manual e automática usam a mesma física.
+
+A parte superior do sprite ainda pode se projetar visualmente sobre paredes, porque a colisão representa principalmente o contato da base com o piso.
+
+---
+
+# 21. Correção de portas e aproximações
+
+O roteamento passou a validar melhor a posição das portas.
+
+Entradas próximas demais das quinas podem ser reposicionadas.
+
+A navegação interna das salas também passou a alinhar a aproximação com a abertura.
+
+Isso corrigiu situações em que o personagem chegava diagonalmente e ficava preso próximo à porta.
+
+---
+
+# 22. Controle de teclado por foco
+
+O Canvas passou a ativar a exploração quando recebe foco.
+
+Não é mais obrigatório um clique adicional apenas para liberar o teclado.
+
+Perder o foco interrompe os controles.
+
+`Esc` continua liberando a exploração.
+
+---
+
+# 23. Galerias de exploração
+
+Foi adicionada uma camada física separada das chamadas C.
+
+`circulacaoDungeon.js` passou a criar galerias para evitar que toda troca de ramo exija voltar pela função de entrada.
+
+As galerias:
+
+- ficam em `passagensExploracao`;
+- possuem identidade própria;
+- podem ser usadas manualmente;
+- podem ser usadas pela navegação automática;
+- não entram no grafo;
+- não alteram callers;
+- não alteram callees;
+- não alteram alcançabilidade;
+- não alteram foco topológico;
+- não mudam a classificação das regiões.
+
+Funções isoladas podem ser visitadas fisicamente sem deixar de ser isoladas no programa.
+
+Esse marco consolidou uma separação importante:
 
 ```text
-Complexidade: 12
-
-2 if
-1 switch
-3 níveis de aninhamento
-...
+estrutura do código
+        ≠
+circulação da dungeon
 ```
-
-A fórmula atual deve ser documentada antes de qualquer mudança de métrica.
-
-Uma possível evolução futura é avaliar métricas conhecidas, como complexidade ciclomática.
-
-Essa troca não deve acontecer sem estudo, porque ela afetaria:
-
-- cores;
-- tamanhos;
-- criaturas;
-- comparação com versões anteriores.
 
 ---
 
-## Chamadas externas
+# 24. Galerias como linguagem visual própria
 
-Atualmente o grafo se concentra em funções conhecidas do próprio código analisado.
+As galerias receberam aparência própria.
 
-Uma evolução útil seria mostrar chamadas para funções externas como informação complementar.
+Entre os elementos usados estão:
 
-Exemplos:
+- piso distinto;
+- marcas quadradas;
+- juntas;
+- pedras laterais;
+- simplificação de detalhes conforme o zoom.
+
+A intenção é comunicar que:
 
 ```text
-printf
-malloc
-strlen
-fopen
+passagem física
 ```
 
-Essas funções não precisam virar salas.
-
-Podem aparecer no inspector como:
+não significa necessariamente:
 
 ```text
-Chamadas externas
+chamada de função
 ```
-
-Isso melhora a leitura sem inventar nós internos.
 
 ---
 
-## Avisos de análise incompleta
+# 25. Navegação física unificada
 
-O analisador não cobre toda a gramática de C.
+A navegação automática passou a considerar a mesma rede física usada pelo movimento manual.
 
-Algumas construções podem ser reconhecidas parcialmente.
+Corredores e galerias podem participar da rota.
 
-Exemplos:
+O estado físico atual do personagem também é considerado.
 
-- macros complexas;
-- ponteiros de função;
-- pré-processamento condicional;
-- declarações avançadas.
+Se o personagem está dentro de uma galeria, a navegação sabe em qual percurso ele está.
 
-Quando for possível detectar uma situação suspeita, o projeto pode mostrar algo como:
-
-```text
-Esta análise pode estar incompleta.
-```
-
-É preferível assumir uma limitação do que apresentar um mapa incorreto com aparência de certeza.
+Isso evita trocar de caminho por uma simples sobreposição geométrica.
 
 ---
 
-## Descrições de funções
+# 26. Estabilização atual
 
-O Dungeon não deve gerar descrições arbitrárias apenas pelo nome de uma função.
+O estado atual consolidou:
 
-Uma fonte possível de descrição é o próprio comentário associado à função.
-
-Por exemplo:
-
-```c
-// Calcula o caminho mínimo do grafo.
-int calcular_caminho(...) {
-```
-
-poderia alimentar uma descrição no inspector.
-
-Sem fonte no código, não deve ser inventada uma explicação.
-
----
-
-# Melhorias pequenas de alto retorno
-
-Antes da primeira publicação, algumas melhorias podem trazer muito valor sem mudar a arquitetura.
-
----
-
-## Exemplos prontos
-
-Um botão de exemplos permitiria experimentar o projeto sem precisar procurar um arquivo C.
-
-Podem existir programas pequenos demonstrando:
-
-- cadeia simples;
-- recursão;
-- ciclo;
-- função isolada;
-- programa com mais funções.
-
-Esses exemplos também ajudam em apresentações do portfólio.
-
----
-
-## Justificativa das regiões
-
-A interface pode explicar por que uma região existe.
-
-Exemplos:
-
-```text
-Ala Parser
-Prefixo comum: parse_
-```
-
-```text
-Salão Central
-Função chamada por 4 funções alcançáveis
-```
-
-```text
-Criptas Isoladas
-Funções sem caminho desde a entrada
-```
-
-Isso fortalece o princípio de confiança no mapa.
-
----
-
-## Acessibilidade
-
-O Canvas não deve ser a única forma possível de compreender a dungeon no futuro.
-
-Uma visão textual pode representar:
-
-- funções;
-- profundidade;
-- callers;
-- callees;
+- análise;
+- grafo;
+- layout;
 - regiões;
-- métricas.
-
-Essa versão também pode ajudar usuários que preferem navegação por teclado.
-
----
-
-# Segurança antes da publicação
-
-O Dungeon atualmente funciona como frontend estático.
-
-Isso reduz bastante a arquitetura necessária, mas não elimina riscos.
-
-Antes da primeira versão pública, haverá um ciclo dedicado a segurança.
-
----
-
-## Objetivos
-
-Revisar:
-
-- conteúdo vindo do usuário;
-- DOM;
-- limites de processamento;
-- arquivos grandes;
-- códigos construídos para consumir CPU;
-- comportamento do parser;
-- dependências;
-- política de rede;
-- deploy.
-
----
-
-## Privacidade
-
-A intenção é manter:
-
-```text
-análise local no navegador
-```
-
-sem enviar o código do usuário para servidores.
-
-Essa característica precisa continuar verificável.
-
-Não devem ser introduzidos silenciosamente:
-
-- analytics que capturem conteúdo;
-- gravação de sessão;
-- error tracking contendo trechos de código;
-- scripts externos desnecessários;
-- fontes externas desnecessárias.
-
----
-
-## Entradas hostis
-
-A suíte deve crescer para cobrir entradas como:
-
-```text
-__proto__
-constructor
-toString
-```
-
-além de:
-
-- HTML dentro de comentários;
-- strings maliciosas;
-- nomes gigantes;
-- Unicode incomum;
-- NUL;
-- aninhamento extremo;
-- muitas funções;
-- grafos densos;
-- ciclos grandes.
-
-O objetivo não é apenas evitar XSS.
-
-Também é evitar travamento e consumo excessivo de recursos.
-
----
-
-## Limites
-
-O limite de arquivo em bytes é apenas uma primeira proteção.
-
-Outros limites podem ser necessários, como:
-
-- número de linhas;
-- tamanho máximo de linha;
-- número de funções;
-- quantidade de arestas;
-- profundidade;
-- custo da análise.
-
----
-
-## Web Worker
-
-Mover a análise para um Web Worker pode ser considerado se medições mostrarem risco de congelamento da interface.
-
-Isso permitiria interromper uma análise muito pesada sem travar toda a página.
-
-Não é obrigatório enquanto o problema não estiver demonstrado.
-
----
-
-## CSP e headers
-
-Antes do deploy público, será estudada uma Content Security Policy adequada.
-
-Também serão avaliados headers como:
-
-```text
-Content-Security-Policy
-X-Content-Type-Options
-Referrer-Policy
-Permissions-Policy
-```
-
-Eles só devem ser adicionados depois de verificar que não quebram funcionalidades legítimas.
-
----
-
-# Publicação
-
-O projeto ainda não depende de backend para cumprir seu objetivo atual.
-
-A primeira versão pública deve continuar simples.
-
-O plano é:
-
-```text
-testes verdes
-    ↓
-hardening
-    ↓
-deploy de teste
-    ↓
-verificação manual
-    ↓
-publicação
-```
-
-No deploy de teste devem ser conferidos:
-
-- Console do navegador;
-- aba Network;
-- comportamento da importação;
-- geração da dungeon;
-- zoom;
+- visual regional;
+- corredores;
+- galerias;
+- colisão;
+- câmera;
+- navegação;
+- inspector;
 - busca;
-- interação;
-- ausência de envio do código.
+- foco contextual.
 
-A plataforma de hospedagem ainda não está definida definitivamente.
+Na auditoria que antecede a baseline candidata, a suíte chegou a:
 
-Ela será escolhida quando chegarmos nessa etapa.
+```text
+328 testes
+328 passando
+0 falhando
+```
 
----
-
-# CI
-
-O projeto já possui GitHub Actions executando:
+Também foi verificado:
 
 ```bash
-npm test
+git diff --check
 ```
 
-em pushes e pull requests.
+sem problemas reportados.
 
-A publicação futura deve respeitar essa disciplina:
+Esse estado ainda está sendo preparado para virar uma baseline oficial.
 
-> código com testes falhando não deve ser publicado como versão estável.
+A etapa atual não é adicionar novas funcionalidades grandes.
 
----
-
-# Depois da primeira versão pública
-
-Algumas funcionalidades maiores ficam melhores depois de termos usuários reais experimentando o projeto.
-
----
-
-## Comparação antes e depois
-
-Uma das evoluções mais interessantes é permitir comparar duas versões do mesmo código.
-
-Exemplo:
+É:
 
 ```text
-ANTES
-funcaoA → complexidade 12
-
-DEPOIS
-funcaoA → complexidade 7
+organizar
+↓
+documentar
+↓
+validar
+↓
+versionar
+↓
+congelar uma referência estável
 ```
 
-O objetivo não deve ser produzir uma pontuação única de "código melhor".
+---
 
-A interface deve mostrar diferenças concretas:
+# Linha resumida de evolução
 
-- complexidade;
-- profundidade;
+```text
+Canvas simples
+    ↓
+análise léxica segura
+    ↓
+grafo real
+    ↓
+layout estrutural
+    ↓
+câmera e zoom
+    ↓
+busca e inspector
+    ↓
+foco contextual
+    ↓
+interação direta
+    ↓
+regiões semânticas
+    ↓
+regiões visuais
+    ↓
+layout regional
+    ↓
+corredores ortogonais
+    ↓
+arquitetura visual
+    ↓
+área caminhável
+    ↓
+colisão corporal
+    ↓
+galerias de exploração
+    ↓
+baseline candidata
+```
+
+---
+
+# Princípio preservado durante a evolução
+
+O projeto cresceu visualmente e tecnicamente.
+
+Mas a regra central continua a mesma:
+
+> **Se um significado visual não puder ser justificado pelos dados reais do programa, ele não deve ser apresentado como fato.**
+
+Isso vale para:
+
 - chamadas;
-- estruturas;
-- funções adicionadas;
-- funções removidas.
+- regiões;
+- importância;
+- navegação estrutural;
+- métricas;
+- descrições;
+- futuras mecânicas.
+
+A evolução do Dungeon do Código deve aumentar a capacidade de compreender o programa sem transformar a visualização em uma interpretação arbitrária.
 
 ---
 
-## Exportação
+# Como registrar próximos marcos
 
-Possibilidades futuras:
+Este arquivo deve registrar apenas etapas realmente concluídas.
 
-- imagem PNG da dungeon;
-- JSON do grafo;
-- JSON da análise;
-- Mermaid do grafo de chamadas.
+Quando uma nova funcionalidade importante for finalizada:
 
-Isso pode ajudar em:
-
-- trabalhos acadêmicos;
-- documentação;
-- apresentações.
-
----
-
-## Missões de leitura
-
-A própria estrutura do grafo pode gerar desafios.
-
-Exemplos:
-
-```text
-Encontre a função mais profunda.
-```
-
-```text
-Qual função participa de um ciclo?
-```
-
-```text
-Qual função não é alcançada por main?
-```
-
-As respostas devem vir dos dados reais.
-
----
-
-## Outras linguagens
-
-A longo prazo, o mapa pode deixar de depender exclusivamente de C.
-
-A ideia seria manter a parte visual separada do analisador.
+1. confirmar que ela está validada;
+2. registrar o marco aqui;
+3. atualizar `ESTADO_ATUAL.md` se o comportamento atual mudar;
+4. atualizar `ARQUITETURA.md` se responsabilidades mudarem;
+5. atualizar `DECISOES.md` se surgir uma nova regra arquitetural;
+6. remover a etapa correspondente de `PLANO_TECNICO.md` quando deixar de ser trabalho futuro.
 
 Assim:
 
 ```text
-Analisador C
-      ↓
-estrutura comum
-      ↓
-Dungeon
+EVOLUCAO.md
 ```
 
-poderia futuramente coexistir com:
+permanece histórico,
+
+enquanto:
 
 ```text
-Analisador JavaScript
-Analisador Go
-Analisador Java
+PLANO_TECNICO.md
 ```
 
-Essa expansão não é prioridade agora.
-
----
-
-## Parser C mais completo
-
-Um parser mais completo só deve ser adotado se as limitações atuais passarem a impedir o objetivo do projeto.
-
-Possibilidades como Tree-sitter podem ser estudadas em um ciclo próprio.
-
-Isso traria benefícios, mas também:
-
-- dependências;
-- maior complexidade;
-- custo de manutenção;
-- impacto na segurança;
-- impacto no tamanho do projeto.
-
-Não deve ser adotado apenas porque existe.
-
----
-
-# Validação com usuários
-
-Quando existir uma versão pública estável, o projeto deve ser testado com outras pessoas.
-
-Algumas tarefas simples podem ser usadas:
-
-1. encontrar a função mais complexa;
-2. identificar quem chama determinada função;
-3. encontrar uma função isolada;
-4. explicar um caminho desde `main`.
-
-Podemos observar:
-
-- tempo;
-- erros;
-- dúvidas;
-- partes do mapa que confundem;
-- partes que realmente ajudam.
-
-Isso não serve para provar eficácia pedagógica com poucas pessoas.
-
-Serve para orientar as próximas decisões.
-
----
-
-# Direção arquitetural
-
-Enquanto o projeto continuar cabendo bem em:
-
-```text
-HTML
-CSS
-JavaScript
-Canvas
-```
-
-não há necessidade de adicionar framework frontend ou motor de jogos.
-
-Novas tecnologias devem entrar para resolver problemas concretos.
-
-A mesma regra vale para:
-
-- backend;
-- banco de dados;
-- autenticação;
-- motor de jogos;
-- bibliotecas de layout;
-- parser externo.
-
-Complexidade técnica não deve ser confundida com evolução do produto.
-
----
-
-# Ordem atual
-
-A sequência planejada é:
-
-```text
-1. Regiões semânticas como dados
-   CONCLUÍDO
-
-2. Representação visual das regiões
-   PRÓXIMO
-
-3. Corredores 2.0
-
-4. Confiança na análise
-
-5. Pequenas melhorias de UX e acessibilidade
-
-6. Hardening de segurança
-
-7. Publicação da primeira versão
-
-8. Uso real e feedback
-
-9. Funcionalidades maiores pós-publicação
-```
-
-Essa ordem pode mudar quando novas medições ou testes mostrarem uma necessidade mais importante.
-
----
-
-# Disciplina de evolução
-
-Cada mudança deve responder pelo menos uma destas perguntas:
-
-```text
-Isso ajuda a entender o código?
-Isso melhora a confiabilidade?
-Isso melhora a navegação?
-Isso melhora a segurança?
-Isso resolve um problema medido?
-```
-
-Se a resposta for não, a funcionalidade provavelmente não é prioridade.
-
-Correções do analisador devem possuir exemplos C que reproduzam o problema.
-
-Mudanças de layout devem possuir casos determinísticos.
-
-Mudanças visuais importantes devem ser testadas manualmente no navegador.
-
-E nenhuma informação visual deve ser tratada como verdade se não puder ser explicada pelos dados reais do programa.
+permanece futuro.

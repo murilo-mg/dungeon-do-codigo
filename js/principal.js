@@ -185,7 +185,11 @@ function aoClicarEmGerar(entradaCodigo) {
   }
 
   const grafo = criarGrafo(funcoes);
-  const masmorra = construirMasmorra(funcoes, grafo);
+  const masmorra = construirMasmorra(
+    funcoes,
+    grafo,
+    { layoutRegional: true }
+  );
 
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);

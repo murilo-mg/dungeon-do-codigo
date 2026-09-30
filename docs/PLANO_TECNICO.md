@@ -1,493 +1,189 @@
 # Plano técnico
 
-Este documento organiza os próximos passos técnicos do Dungeon do Código.
+Este documento organiza o trabalho que **ainda falta** no Dungeon do Código.
 
-Ele separa claramente:
+O estado funcional atual está em `ESTADO_ATUAL.md`.
 
-```text
-o que já existe
-o que vem agora
-o que vem depois
-o que é necessário antes da publicação
-o que fica para depois da primeira versão pública
-```
+A organização dos módulos está em `ARQUITETURA.md`.
 
-O estado funcional atual está documentado em `ESTADO_ATUAL.md`.
+As decisões que devem ser preservadas estão em `DECISOES.md`.
 
-As decisões arquiteturais estão em `DECISOES.md`.
+Este arquivo não deve repetir funcionalidades já concluídas como se ainda fossem trabalho futuro.
 
 ---
 
-# Objetivo
+# Objetivo atual
 
-O Dungeon do Código transforma a estrutura de um código C em uma dungeon explorável.
+O projeto já possui uma base funcional ampla:
 
-Cada função vira uma sala.
-
-As relações entre funções ajudam a formar:
-
-- grafo;
-- corredores;
-- contexto;
-- organização;
-- regiões.
-
-A experiência deve combinar:
-
-```text
-leitura de código
-+
-visualização estrutural
-+
-exploração
-```
-
-sem inventar informações sobre o programa.
-
----
-
-# Princípio do plano
-
-Toda nova funcionalidade deve responder pelo menos uma destas perguntas:
-
-```text
-Ajuda a entender o código?
-Melhora a confiabilidade da análise?
-Melhora a legibilidade da dungeon?
-Melhora a navegação?
-Melhora a acessibilidade?
-Melhora a segurança?
-Resolve um problema medido?
-```
-
-Se não responder a nenhuma delas, provavelmente não é prioridade.
-
----
-
-# Base atual concluída
-
-## Análise de C
-
-Já existe:
-
-- entrada de código;
-- separação léxica básica;
-- extração de funções;
-- contagem de linhas;
-- estruturas de controle;
-- métrica de complexidade atual;
-- chamadas entre funções conhecidas;
-- tratamento de entradas incompletas suportadas.
-
----
-
-## Grafo
-
-Já existe:
-
-- função de entrada;
-- nós;
-- arestas direcionadas;
-- callers;
-- callees;
-- profundidade;
-- alcance;
-- caminho mínimo;
-- recursão direta;
-- ciclos;
-- contexto topológico.
-
----
-
-## Layout
-
-Já existe:
-
-- layout separado do grafo;
-- colunas por profundidade;
-- distribuição vertical;
-- ordenação por callers;
-- mundo lógico dinâmico;
-- separação das funções inalcançáveis;
-- comportamento determinístico;
-- testes contra sobreposição.
-
----
-
-## Masmorra
-
-Já existe:
-
-- construção das salas;
-- tamanhos por complexidade;
-- cores;
-- perfil estrutural;
-- indicadores de recursão e ciclo;
-- dimensões do mundo;
-- regiões semânticas.
-
----
-
-## Regiões semânticas
-
-Já existe como dados:
-
-```text
-Entrada da Dungeon
-Salão Central
-Alas
-Criptas Isoladas
-```
-
-Também estão definidas as regras para:
-
-- hubs;
-- funções inalcançáveis;
-- prefixos confiáveis;
-- prefixos operacionais;
-- fallback `Ala N`.
-
----
-
-## Corredores
-
-Já existe:
-
-- transformação de arestas reais em segmentos;
-- remoção de duplicatas;
-- exclusão de autoarestas no desenho;
-- uso compartilhado pelo jogo e cenário;
-- métricas de legibilidade.
-
----
-
-## Exploração
-
-Já existe:
-
-- WASD;
-- setas;
-- ativação dos controles pelo Canvas;
-- `Esc` para liberar;
-- personagem;
-- câmera;
-- mundo maior que o viewport;
-- clique;
-- hover;
-- duplo clique;
-- navegação automática.
-
----
-
-## Leitura estrutural
-
-Já existe:
-
-- inspector;
-- callers;
-- callees;
-- caminho mínimo;
-- perfil de estruturas;
-- recursão;
-- ciclos;
-- busca;
-- seleção unificada;
-- foco contextual.
-
----
-
-## Visualização
-
-Já existe:
-
-- modo Complexidade;
-- modo Estrutura;
-- marcadores I/F/W/S;
-- marcadores R/C;
+- análise de código C;
+- grafo de chamadas;
+- regiões semânticas;
+- layout regional;
+- corredores semânticos;
+- galerias físicas;
+- área caminhável;
+- colisão;
 - câmera;
 - zoom;
-- Encaixar;
-- zoom semântico.
+- busca;
+- inspector;
+- foco contextual;
+- navegação manual e automática;
+- visual completo de dungeon.
+
+O objetivo agora é transformar esse estado em uma **baseline organizada, reproduzível e segura**, para depois continuar evoluindo sem perder um ponto estável.
 
 ---
 
-## Arquivos
+# Etapa 0 — Fechar a baseline
 
-Já existe:
+Esta é a prioridade imediata.
 
-- seletor de `.c`;
-- drop;
-- limite de 512 KiB;
-- leitura local;
-- tratamento de erros;
-- geração explícita após a leitura.
+## 0.1 Documentação
+
+Atualizar e alinhar:
+
+- `README.md`;
+- `docs/ESTADO_ATUAL.md`;
+- `docs/ARQUITETURA.md`;
+- `docs/DECISOES.md`;
+- `docs/PLANO_TECNICO.md`;
+- `EVOLUCAO.md`;
+- `CORRECOES.md`, apenas se houver inconsistência histórica.
+
+Critério de conclusão:
+
+- nenhum documento deve descrever como futuro algo que já existe;
+- limitações atuais precisam ser reais;
+- arquitetura e comportamento devem contar a mesma história;
+- os documentos devem evitar repetição desnecessária.
 
 ---
 
-## Testes
+## 0.2 Limpeza pequena de código
 
-Já existe uma suíte automatizada executada com:
+Antes da baseline:
+
+- corrigir comentários desatualizados;
+- corrigir espaços e formatação quebrados por edições automáticas;
+- remover comentários que contradizem o comportamento atual;
+- evitar refatorações grandes.
+
+Exemplos já identificados:
+
+- comentários em `navegacaoMasmorra.js` que ainda falam apenas em corredores;
+- pequenas palavras coladas em comentários de `corredores.js`.
+
+A regra desta etapa é:
+
+> limpar sem alterar arquitetura.
+
+---
+
+## 0.3 Validação automatizada
+
+Executar:
 
 ```bash
 npm test
+git diff --check
 ```
 
-Também existe GitHub Actions para executar a suíte em pushes e pull requests.
-
----
-
-# Próximo ciclo: regiões visuais
-
-A classificação semântica já está pronta.
-
-O próximo passo é representar as regiões no Canvas.
-
----
-
-## Objetivo
-
-Permitir que o usuário perceba visualmente:
+Estado auditado antes da reorganização documental:
 
 ```text
-onde começa a dungeon
-quais salas pertencem a uma ala
-onde fica o Salão Central
-quais funções estão isoladas
+328 testes
+328 passando
+0 falhando
 ```
 
----
-
-## Regra principal
-
-A camada visual deve consumir:
-
-```text
-masmorra.regioes
-```
-
-Ela não deve recalcular:
-
-- prefixos;
-- hubs;
-- alcançabilidade;
-- agrupamentos.
-
-A classificação já possui uma fonte de verdade.
+A baseline só pode ser congelada se a suíte continuar totalmente verde.
 
 ---
 
-## Primeira versão
-
-Representar:
-
-### Entrada da Dungeon
-
-A região da função inicial.
-
----
-
-### Salão Central
-
-A área destinada aos hubs estruturais.
-
----
-
-### Alas
-
-Grupos normais com títulos como:
-
-```text
-Ala Parser
-Ala VM
-Ala RBT
-Ala 1
-Ala 2
-```
-
----
-
-### Criptas Isoladas
-
-Representação separada das funções inalcançáveis.
-
----
-
-## Aparência possível
-
-A primeira versão pode experimentar:
-
-- contorno de região;
-- chão diferenciado;
-- textura;
-- placa;
-- título;
-- fundo discreto;
-- separação visual.
-
-A escolha precisa continuar legível nos diferentes níveis de zoom.
-
----
-
-## Zoom semântico das regiões
-
-Na visão distante, os nomes das regiões podem se tornar mais importantes que os nomes de cada função.
-
-Exemplo conceitual:
-
-```text
-zoom distante
-→ Entrada
-→ Ala Parser
-→ Salão Central
-→ Criptas Isoladas
-```
-
-Ao aproximar:
-
-```text
-região
-→ salas
-→ função
-→ detalhes
-```
-
-Isso deve ser testado visualmente antes de virar comportamento definitivo.
-
----
-
-## Critério de conclusão
-
-A etapa estará concluída quando:
-
-- todas as regiões corretas puderem ser identificadas visualmente;
-- funções não aparecerem na região errada;
-- o layout continuar determinístico;
-- zoom continuar funcionando;
-- clique e hover continuarem funcionando;
-- foco contextual continuar funcionando;
-- personagem continuar funcionando;
-- nenhuma regra de classificação for duplicada na renderização;
-- a suíte permanecer verde.
-
----
-
-# Depois: Corredores 2.0
-
-Os corredores atuais já representam relações reais, mas sua geometria ainda é simples.
-
-Esse será o próximo grande ciclo estrutural depois das regiões.
-
----
-
-## Problema principal
-
-Nos casos densos, um segmento pode atravessar outra sala.
-
-Isso reduz a legibilidade e enfraquece a aparência de dungeon.
-
----
-
-## Objetivo
-
-Criar rotas de corredor que:
-
-1. conectem as salas corretas;
-2. evitem atravessar outras salas;
-3. sejam fáceis de seguir visualmente;
-4. preservem o grafo;
-5. não criem passagens físicas falsas.
-
----
-
-## Estratégia inicial
-
-Uma abordagem possível:
-
-```text
-origem
-  ↓
-tenta rota direta
-  ↓
-detecta colisões
-  ↓
-se necessário procura desvio
-  ↓
-gera segmentos finais
-```
-
-O algoritmo deve continuar separado do grafo.
-
----
-
-## Corredores ortogonais
-
-Pode ser testada uma representação baseada em trechos horizontais e verticais.
-
-Exemplo:
-
-```text
-sala ───┐
-        │
-        └──── sala
-```
-
-Isso tende a se aproximar mais da linguagem visual de dungeon.
-
----
-
-## Portas
-
-Quando o sistema de corredores estiver estável, entradas e saídas das salas podem receber representação de porta.
-
-A porta deve ser consequência da conexão real.
-
-Não deve ser apenas uma decoração aleatória.
-
----
-
-## Interseções
-
-Uma regra importante:
-
-```text
-duas rotas cruzarem geometricamente
-```
-
-não significa automaticamente:
-
-```text
-elas estão conectadas
-```
-
-O sistema de navegação deve continuar baseado na topologia explícita.
-
----
-
-## Métricas
-
-Continuar medindo:
-
-- travessias de salas;
+## 0.4 Validação manual final
+
+Revalidar pelo menos:
+
+- código C pequeno;
+- código C com muitas funções;
+- arquivo `.c`;
+- colar código;
+- programa sem `main`;
+- função isolada;
+- recursão;
+- ciclo;
+- busca;
+- inspector;
+- callers e callees;
+- foco contextual;
+- clique;
+- duplo clique;
+- navegação automática;
+- WASD;
+- setas;
+- portas;
+- colisão;
 - cruzamentos;
-- comprimento total.
-
-Novas métricas só devem ser adicionadas quando ajudarem a avaliar problemas concretos.
+- galerias;
+- Criptas;
+- zoom;
+- Encaixar;
+- câmera livre;
+- viewport pequeno;
+- troca de modo visual;
+- gerar uma nova dungeon depois da anterior.
 
 ---
 
-# Ciclo de confiança na análise
+## 0.5 Definir versão
 
-Depois da organização visual e dos corredores, o foco passa a ser tornar as informações mais explicáveis.
+Somente depois da validação final escolher o número da baseline.
+
+Possibilidades a avaliar:
+
+```text
+v0.1.0
+```
+
+ou:
+
+```text
+v1.0.0-beta.1
+```
+
+A escolha deve refletir o grau de maturidade pública do projeto.
+
+Não definir a versão apenas por aparência.
 
 ---
 
-## Explicar a complexidade
+## 0.6 Congelamento
 
-O usuário deve conseguir entender de onde vem a métrica apresentada.
+Depois de documentação, testes e validação:
 
-Hoje a interface mostra o resultado.
+1. revisar `git status`;
+2. revisar arquivos novos;
+3. fazer commit de estabilização;
+4. criar tag;
+5. fazer push somente com autorização explícita.
 
-Uma evolução importante é mostrar sua composição.
+A baseline deve ser um ponto fácil de recuperar no futuro.
+
+---
+
+# Etapa 1 — Confiança na análise
+
+Depois da baseline, o próximo foco técnico deve ser aumentar a confiança no que o Dungeon afirma sobre o código.
+
+---
+
+## 1.1 Explicar a métrica de complexidade
+
+Hoje a interface mostra uma pontuação.
+
+O usuário deve conseguir entender de onde ela veio.
 
 Exemplo conceitual:
 
@@ -498,34 +194,50 @@ if: 3
 for: 1
 while: 0
 switch: 1
+case: 2
 ...
 ```
 
-A fórmula atual deve ser documentada e explicada antes de ser substituída.
+Antes de mudar a fórmula atual:
+
+- documentá-la;
+- explicar seus componentes;
+- criar testes específicos;
+- avaliar impacto na representação visual.
 
 ---
 
-## Avaliar métricas conhecidas
+## 1.2 Detectar situações potencialmente não suportadas
 
-Uma possível evolução é estudar complexidade ciclomática ou outras métricas conhecidas.
+O analisador trabalha com um subconjunto de C.
 
-Isso ainda não é uma decisão.
+Quando possível, detectar construções que podem tornar a análise incompleta.
 
-Antes de mudar a fórmula, avaliar impacto sobre:
+Casos de interesse:
 
-- tamanho das salas;
-- cores;
-- criaturas;
-- documentação;
-- comparações futuras.
+- macros complexas;
+- pré-processamento condicional;
+- ponteiros de função;
+- declarações incomuns;
+- formas avançadas da gramática.
+
+A interface pode apresentar um aviso como:
+
+```text
+Esta análise pode estar incompleta.
+```
+
+O aviso deve ser usado quando houver evidência, não como mensagem genérica em todos os casos.
 
 ---
 
-## Chamadas externas
+## 1.3 Chamadas externas
 
-Atualmente apenas funções conhecidas entram no grafo interno.
+Hoje apenas funções internas conhecidas entram no grafo.
 
-Uma melhoria futura é preservar também chamadas como:
+Uma evolução útil é registrar chamadas externas como informação complementar.
+
+Exemplos:
 
 ```text
 printf
@@ -535,922 +247,445 @@ strlen
 fopen
 ```
 
-Elas podem aparecer como informação no inspector sem virar salas.
+Essas chamadas:
 
----
+- não viram salas;
+- não viram nós internos;
+- podem aparecer no inspector.
 
-## Limitações detectáveis
-
-Quando a análise encontrar construções potencialmente não suportadas, pode mostrar um aviso.
-
-Exemplo:
+Objetivo:
 
 ```text
-Esta análise pode estar incompleta.
+mais informação
+sem inventar arquitetura interna
 ```
-
-Casos possíveis:
-
-- ponteiro de função;
-- macro complexa;
-- pré-processamento condicional;
-- declaração incomum.
-
-O objetivo é evitar comunicar certeza quando o analisador não possui evidência suficiente.
 
 ---
 
-## Descrições de função
+## 1.4 Descrições de função com fonte real
 
-Não gerar descrição sem fonte.
+Não gerar descrições arbitrárias a partir apenas do nome da função.
 
-Uma possível origem legítima é um comentário diretamente associado à função.
+Uma fonte aceitável pode ser:
+
+- comentário associado à função;
+- documentação explicitamente presente no código.
 
 Exemplo:
 
 ```c
 // Calcula o menor caminho entre dois pontos.
-int caminho(...) {
+int calcular_caminho(...) {
 ```
 
-pode alimentar uma descrição.
-
-Sem comentário ou outra fonte explícita, não inventar texto sobre o objetivo da função.
+Sem fonte explícita, não inventar a finalidade da função.
 
 ---
 
-# Pequenas melhorias de UX
-
-Depois da confiança básica da análise, algumas melhorias possuem alto retorno.
-
----
-
-## Exemplos prontos
+# Etapa 2 — Exemplos prontos
 
 Adicionar programas C de demonstração.
 
-Possíveis exemplos:
+Objetivos:
 
-- cadeia;
-- ramificação;
-- recursão;
-- ciclo;
-- função isolada;
-- programa maior.
+- permitir testar o projeto imediatamente;
+- facilitar apresentações;
+- mostrar diferentes estruturas;
+- fornecer casos estáveis para validação manual.
 
-Isso ajuda:
-
-- novos usuários;
-- apresentações;
-- testes manuais;
-- portfólio.
-
----
-
-## Justificativa da região
-
-Permitir que o usuário descubra por que uma classificação foi usada.
-
-Exemplo:
+Conjunto inicial sugerido:
 
 ```text
-Ala Parser
-prefixo comum: parse_
+1. cadeia simples
+2. ramificações
+3. recursão
+4. ciclo
+5. funções isoladas
+6. programa maior
 ```
+
+Cada exemplo deve ser curto o suficiente para ser compreendido.
+
+---
+
+# Etapa 3 — UX e acessibilidade
+
+Depois da confiança básica da análise, melhorar pequenos pontos de alto retorno.
+
+---
+
+## 3.1 Primeira tela
+
+A primeira tela pode receber refinamento visual para ficar mais coerente com a dungeon.
+
+Regras:
+
+- preservar a estrutura atual;
+- editor continua sendo o foco;
+- não transformar a página em dashboard;
+- não adicionar informação desnecessária;
+- usar decoração leve;
+- manter boa responsividade.
+
+Possíveis melhorias:
+
+- moldura arquitetônica discreta;
+- detalhes de pedra;
+- brilho leve;
+- tochas ou partículas sutis;
+- melhor integração visual com a tela de exploração.
+
+---
+
+## 3.2 Mensagens de erro
+
+Tornar erros mais úteis.
+
+Separar claramente:
 
 ```text
-Salão Central
-4 callers alcançáveis
+entrada C inválida
 ```
+
+de:
 
 ```text
-Criptas Isoladas
-sem caminho desde a entrada
+defeito interno da aplicação
 ```
 
----
+Quando possível mostrar:
 
-## Destaque da origem das métricas
-
-No inspector, permitir relacionar métricas a trechos concretos do código.
-
-Exemplo:
-
-```text
-clicar em "3 if"
-→ destacar os 3 if no trecho
-```
-
-Isso pode melhorar bastante o valor didático.
+- linha;
+- tipo do problema;
+- sugestão objetiva.
 
 ---
 
-# Acessibilidade
-
-A acessibilidade deve continuar evoluindo junto da experiência.
-
----
-
-## Manter o DOM como fonte textual
-
-Informações críticas não devem existir apenas como pixels no Canvas.
-
-O inspector continuará sendo importante para:
-
-- texto;
-- foco;
-- navegação por teclado;
-- leitores de tela.
-
----
-
-## Modo lista futuro
-
-Uma possível visualização alternativa pode listar a estrutura como:
-
-```text
-main
-├── parser
-│   ├── parse_expression
-│   └── parse_primary
-└── util
-```
-
-Isso ainda não está implementado.
-
----
-
-## Contraste
+## 3.3 Acessibilidade
 
 Revisar:
 
-- nomes das salas;
-- placas;
-- marcadores;
-- textos pequenos;
-- foco.
-
-A informação não deve depender apenas de cor.
-
----
-
-## Toque e telas menores
-
-Controles de toque e layout responsivo completo ainda ficam para um ciclo posterior.
+- foco por teclado;
+- ordem de tabulação;
+- nomes acessíveis;
+- contraste;
+- mensagens de estado;
+- redução de movimento;
+- uso sem mouse sempre que possível.
 
 ---
 
-# Segurança antes da publicação
+## 3.4 Viewport pequeno
 
-Antes de tornar o projeto público na web, haverá uma etapa específica de hardening.
+Continuar validando:
 
-Essa etapa não deve ser misturada com melhorias puramente visuais.
+- notebooks menores;
+- janelas estreitas;
+- zoom do navegador;
+- inspector e controles sem sobreposição.
+
+Detalhes decorativos podem ser reduzidos quando o espaço for pequeno.
 
 ---
 
-## Objetivo
+# Etapa 4 — Exportação
 
-Garantir que um código C hostil ou estranho:
+Depois da baseline e da confiança da análise, adicionar formas de exportar resultados.
+
+---
+
+## 4.1 Exportar imagem
+
+Possibilidade inicial:
 
 ```text
-não execute código
-não vire HTML
-não cause comportamento inesperado
-não trave facilmente a aplicação
-não seja enviado para terceiros sem intenção
+PNG da dungeon
 ```
+
+Cuidados:
+
+- incluir apenas a área desejada;
+- respeitar escala;
+- evitar depender do viewport atual quando houver modo de exportação completa.
 
 ---
 
-# Testes de entradas hostis
+## 4.2 Exportar dados estruturais
 
-Adicionar casos específicos para:
+Possível formato:
 
 ```text
-__proto__
-constructor
-toString
-hasOwnProperty
-```
-
-e também:
-
-- comentários com HTML;
-- strings com `<script>`;
-- nomes estranhos;
-- Unicode;
-- caracteres invisíveis;
-- NUL;
-- linhas gigantes;
-- aninhamento profundo;
-- muitas funções;
-- grafos densos;
-- ciclos grandes.
-
----
-
-# Prototype pollution
-
-Estruturas indexadas por nomes de função devem continuar usando mecanismos seguros como:
-
-```text
-Map
-Set
-```
-
-quando aplicável.
-
-Nomes fornecidos pelo usuário não podem alterar comportamento interno apenas por coincidirem com propriedades especiais de JavaScript.
-
----
-
-# DOM
-
-Continuar tratando o conteúdo do código como texto.
-
-Auditar usos de:
-
-```text
-innerHTML
-outerHTML
-insertAdjacentHTML
-document.write
-eval
-new Function
-```
-
-Conteúdo do usuário não deve chegar a sinks perigosos.
-
----
-
-# Limites de processamento
-
-O limite de 512 KiB não resolve todos os casos de consumo excessivo.
-
-Avaliar também limites para:
-
-- linhas;
-- tamanho de uma linha;
-- funções;
-- arestas;
-- profundidade;
-- quantidade de trabalho.
-
-Os limites devem ser baseados em testes e medições.
-
----
-
-# Web Worker
-
-Considerar mover a análise para um Worker caso os testes mostrem risco real de congelamento da interface.
-
-Benefício esperado:
-
-```text
-análise pesada
-→ Worker
-
-interface
-→ continua responsiva
-```
-
-Também permitiria encerrar uma análise excessiva.
-
-Ainda não é requisito implementado.
-
----
-
-# Fuzzing simples
-
-Uma evolução útil da suíte pode gerar entradas aleatórias determinísticas.
-
-Objetivo:
-
-```text
-muitas entradas
-+
-mesma semente
-+
-resultado reproduzível
-```
-
-O teste pode verificar principalmente:
-
-- ausência de travamento;
-- ausência de exceção não tratada;
-- tempo razoável.
-
----
-
-# Privacidade da versão pública
-
-A versão publicada deve preservar a proposta de processamento local.
-
-O comportamento desejado é:
-
-```text
-código do usuário
-→ navegador
-→ análise local
-```
-
-e não:
-
-```text
-código do usuário
-→ servidor externo
-```
-
-Qualquer mudança dessa arquitetura precisa ser explícita.
-
----
-
-## Recursos externos
-
-Evitar sem necessidade:
-
-- analytics;
-- gravação de sessão;
-- error tracking;
-- scripts externos;
-- fontes externas;
-- CDN de bibliotecas.
-
-Cada recurso externo deve ser analisado em relação à privacidade e à CSP.
-
----
-
-# CSP e headers
-
-Antes do deploy público, estudar e testar uma Content Security Policy compatível com o projeto.
-
-Também avaliar:
-
-```text
-X-Content-Type-Options
-Referrer-Policy
-Permissions-Policy
-Cross-Origin-Opener-Policy
-HSTS
-```
-
-Não copiar configurações sem verificar impacto na aplicação.
-
----
-
-# Rede
-
-No deploy de teste, verificar a aba:
-
-```text
-Network
-```
-
-durante:
-
-- abertura da página;
-- importação de `.c`;
-- geração da dungeon;
-- exploração.
-
-O conteúdo do código não deve aparecer em requisições inesperadas.
-
----
-
-# Console
-
-Também verificar:
-
-```text
-Console
-```
-
-para:
-
-- violações de CSP;
-- erros;
-- warnings relevantes;
-- comportamentos inesperados.
-
----
-
-# CI
-
-GitHub Actions já executa:
-
-```bash
-npm test
-```
-
-em push e pull request.
-
-Antes de automatizar deploy, a publicação deve depender de uma suíte verde.
-
----
-
-# Hospedagem
-
-A plataforma final ainda não foi escolhida.
-
-Opções serão avaliadas perto da publicação considerando:
-
-- site estático;
-- HTTPS;
-- headers;
-- CSP;
-- integração Git;
-- plano gratuito;
-- domínio;
-- privacidade;
-- possibilidade de migração.
-
-Não existe decisão definitiva por Cloudflare Pages, GitHub Pages, Netlify ou Vercel neste momento.
-
----
-
-# Deploy de teste
-
-Antes da publicação principal:
-
-```text
-build/arquivos finais
-      ↓
-deploy de teste
-      ↓
-Network
-      ↓
-Console
-      ↓
-fluxo completo
-      ↓
-testes em navegadores
-```
-
-Validar pelo menos:
-
-- abrir `.c`;
-- gerar;
-- mover;
-- buscar;
-- clicar;
-- navegar;
-- zoom;
-- Encaixar;
-- modos visuais;
-- regiões quando estiverem implementadas.
-
----
-
-# Primeira versão pública
-
-A primeira versão não precisa ter todas as ideias futuras.
-
-Ela precisa ser:
-
-- funcional;
-- compreensível;
-- estável;
-- honesta sobre limitações;
-- segura para seu escopo;
-- utilizável fora do localhost.
-
----
-
-# Depois da publicação
-
-A partir daí, funcionalidades maiores podem ser guiadas por uso real.
-
----
-
-## Comparação antes e depois
-
-Permitir comparar duas versões do código.
-
-Mostrar diferenças concretas em vez de produzir uma nota única.
-
-Exemplos:
-
-- função adicionada;
-- função removida;
-- complexidade alterada;
-- chamadas alteradas;
-- profundidade alterada;
-- região alterada.
-
----
-
-## Exportação
-
-Possíveis formatos:
-
-```text
-PNG
 JSON
-Mermaid
 ```
 
-A exportação pode ajudar em:
+Dados úteis:
 
-- trabalhos;
-- documentação;
-- compartilhamento;
-- apresentação.
+- funções;
+- métricas;
+- arestas;
+- callers;
+- callees;
+- regiões;
+- posição das salas.
 
-Deve continuar explícita e preferencialmente local.
+Galerias físicas devem ser identificadas como circulação, não chamadas.
 
 ---
 
-## Missões de leitura
+# Etapa 5 — Segurança e publicação
 
-Desafios derivados do próprio grafo.
-
-Exemplos:
-
-```text
-Qual função está mais profunda?
-```
-
-```text
-Encontre uma função em ciclo.
-```
-
-```text
-Qual função não é alcançada pela entrada?
-```
-
-A resposta precisa continuar vindo dos dados reais.
+Antes de disponibilizar a primeira versão pública, fazer uma revisão específica.
 
 ---
 
-## Modo lista
+## 5.1 Entrada do usuário
 
-Criar uma representação textual alternativa ao mapa.
+Revisar:
 
-Pode melhorar:
+- tratamento de texto;
+- tamanho máximo;
+- importação de arquivo;
+- nomes de funções;
+- conteúdo exibido no inspector;
+- mensagens de erro.
 
-- acessibilidade;
-- navegação por teclado;
-- leitura rápida;
-- uso sem Canvas.
+Conteúdo do usuário não deve ser interpretado como HTML.
 
 ---
 
-## Outras linguagens
+## 5.2 Dependências e recursos externos
 
-A arquitetura poderá receber outros analisadores no futuro.
+Confirmar:
+
+- quais recursos externos existem;
+- se são realmente necessários;
+- se há risco de carregamento remoto inesperado;
+- se a aplicação continua funcional como frontend estático.
+
+---
+
+## 5.3 Política de privacidade técnica
+
+A documentação pública deve deixar claro:
+
+- análise local;
+- ausência de backend próprio;
+- ausência de execução de C;
+- ausência de compilação;
+- comportamento da importação de arquivos.
+
+---
+
+## 5.4 Deploy
+
+Depois da revisão de segurança:
+
+- escolher hospedagem estática;
+- validar caminhos relativos;
+- validar cache;
+- validar carregamento de módulos;
+- testar em navegadores comuns;
+- testar versão publicada.
+
+---
+
+# Etapa 6 — Refinamentos estruturais posteriores
+
+Esses itens não são necessários para fechar a baseline.
+
+---
+
+## 6.1 Melhorar encontros de percursos
+
+Ainda podem existir situações visualmente densas próximas de:
+
+- portas;
+- curvas;
+- sobreposições;
+- regiões compactas.
+
+Futuras melhorias devem preservar:
+
+- identidade do percurso;
+- ausência de conexões falsas;
+- área caminhável;
+- determinismo.
+
+---
+
+## 6.2 Entradas arquitetônicas de região
+
+Hoje galerias podem conectar salas escolhidas geometricamente.
+
+Uma evolução futura pode estudar acessos mais arquitetônicos entre regiões.
 
 Exemplo conceitual:
 
 ```text
-Analisador C ───────┐
-Analisador Java ────┼→ modelo estrutural → dungeon
-Analisador Go ──────┘
+Ala A
+  ↓
+acesso da região
+  ↓
+galeria
+  ↓
+acesso da região
+  ↓
+Ala B
 ```
 
-Isso não é prioridade da primeira versão.
+Isso só deve ser implementado se melhorar significativamente a leitura da dungeon.
+
+Não é requisito da primeira baseline.
 
 ---
 
-## Parser C mais completo
+## 6.3 Refinar densidade visual
 
-Avaliar soluções como Tree-sitter somente se o analisador atual se tornar uma limitação real.
+Avaliar:
 
-Uma mudança desse tipo deve considerar:
+- quantidade de tochas;
+- pedras;
+- musgo;
+- placas;
+- detalhes de alvenaria;
+- criaturas em mapas densos.
 
-- dependências;
-- tamanho;
-- segurança;
-- CSP;
-- manutenção;
-- benefício real.
-
----
-
-# Casos de referência em C
-
-Manter programas pequenos que representem comportamentos importantes.
+O objetivo é manter o mapa legível sem perder identidade visual.
 
 ---
 
-## Cadeia
+# Etapa 7 — Recursos para versões posteriores
 
-```c
-void c(void) {}
+Itens para depois da primeira versão pública estável.
 
-void b(void) {
-    c();
-}
+---
 
-int main(void) {
-    b();
-    return 0;
-}
-```
+## Comparação antes/depois
 
-Esperado:
+Permitir comparar duas versões do mesmo código.
+
+Possíveis perguntas:
+
+- quais funções surgiram?
+- quais desapareceram?
+- quais relações mudaram?
+- quais métricas mudaram?
+- como a estrutura espacial mudou?
+
+---
+
+## Visão textual alternativa
+
+Criar uma alternativa ao Canvas para:
+
+- acessibilidade;
+- leitura rápida;
+- compartilhamento;
+- testes.
+
+Pode apresentar uma árvore ou lista estrutural.
+
+---
+
+## Atividades de leitura de código
+
+Possível camada educacional:
+
+- encontre a função mais chamada;
+- encontre uma função isolada;
+- encontre um ciclo;
+- siga o caminho até uma função;
+- identifique recursão.
+
+Essa camada deve ser adicionada sem transformar o mapa em uma narrativa que invente significado.
+
+---
+
+## Outros analisadores ou linguagens
+
+O projeto pode futuramente separar ainda mais:
 
 ```text
-main → b → c
+analisador
+    ↓
+modelo estrutural comum
+    ↓
+dungeon
 ```
+
+Isso permitiria estudar suporte a outras linguagens.
+
+Não é prioridade atual.
 
 ---
 
-## Ramificação
+# O que não é prioridade agora
 
-```c
-void esquerda(void) {}
-void direita(void) {}
+Não é objetivo imediato:
 
-int main(void) {
-    esquerda();
-    direita();
-    return 0;
-}
-```
+- migrar para React;
+- usar Three.js;
+- usar WebGL;
+- adicionar motor de jogos;
+- implementar multiplayer;
+- executar código C;
+- compilar código C;
+- criar backend sem necessidade;
+- substituir o analisador por um parser completo sem problema concreto;
+- adicionar funcionalidades apenas para parecer mais sofisticado.
 
-Esperado:
+---
+
+# Ordem recomendada
+
+A ordem de trabalho depois desta reorganização é:
 
 ```text
-       ┌→ esquerda
-main ──┤
-       └→ direita
+1. fechar baseline
+2. confiar e explicar melhor a análise
+3. adicionar exemplos prontos
+4. melhorar UX e acessibilidade
+5. adicionar exportação
+6. revisar segurança
+7. publicar
+8. iniciar recursos de versões posteriores
 ```
 
 ---
 
-## Múltiplos callers
+# Critério de prioridade
 
-```c
-void comum(void) {}
-
-void a(void) {
-    comum();
-}
-
-void b(void) {
-    comum();
-}
-
-int main(void) {
-    a();
-    b();
-    return 0;
-}
-```
-
----
-
-## Função isolada
-
-```c
-void isolada(void) {}
-
-int main(void) {
-    return 0;
-}
-```
-
-Esperado:
+Toda nova funcionalidade deve responder pelo menos uma destas perguntas:
 
 ```text
-main
+Ajuda a entender o código?
+
+Melhora a confiabilidade da análise?
+
+Melhora a legibilidade da dungeon?
+
+Melhora a navegação?
+
+Melhora a acessibilidade?
+
+Melhora a segurança?
+
+Resolve um problema observado?
 ```
 
-e:
-
-```text
-isolada → inalcançável
-```
+Se não responder a nenhuma delas, provavelmente não é prioridade.
 
 ---
 
-## Recursão
+# Regra do plano
 
-```c
-int fatorial(int n) {
-    if (n <= 1) return 1;
-    return n * fatorial(n - 1);
-}
+Este documento deve conter apenas trabalho ainda relevante.
 
-int main(void) {
-    return fatorial(3);
-}
-```
+Quando uma etapa for concluída:
 
----
+- remover sua descrição de “próximo passo”;
+- registrar o marco em `EVOLUCAO.md`;
+- atualizar `ESTADO_ATUAL.md` se o comportamento do produto mudar;
+- atualizar `ARQUITETURA.md` ou `DECISOES.md` quando houver mudança estrutural.
 
-## Ciclo
-
-```c
-void b(void);
-
-void a(void) {
-    b();
-}
-
-void b(void) {
-    a();
-}
-
-int main(void) {
-    a();
-    return 0;
-}
-```
-
-Esperado:
-
-```text
-main → a ↔ b
-```
-
-com:
-
-```text
-a e b em ciclo
-```
-
----
-
-## Hub
-
-```c
-void comum(void) {}
-
-void a(void) {
-    comum();
-}
-
-void b(void) {
-    comum();
-}
-
-void c(void) {
-    comum();
-}
-
-int main(void) {
-    a();
-    b();
-    c();
-    return 0;
-}
-```
-
-`comum` pode ser classificada como hub porque possui três callers alcançáveis distintos.
-
----
-
-## Prefixo de ala
-
-```c
-void parse_primary(void) {}
-void parse_expression(void) {}
-void parse_unary(void) {}
-
-int main(void) {
-    parse_primary();
-    parse_expression();
-    parse_unary();
-    return 0;
-}
-```
-
-Esperado:
-
-```text
-Ala Parser
-```
-
----
-
-## Prefixo operacional
-
-```c
-void get_usuario(void) {}
-void get_config(void) {}
-void get_tempo(void) {}
-
-int main(void) {
-    get_usuario();
-    get_config();
-    get_tempo();
-    return 0;
-}
-```
-
-Não deve gerar:
-
-```text
-Ala Get
-```
-
----
-
-# Validação manual
-
-Mudanças visuais importantes devem continuar sendo testadas no navegador.
-
-Principalmente:
-
-- layout;
-- regiões;
-- corredores;
-- câmera;
-- zoom;
-- movimento;
-- foco;
-- clique;
-- navegação;
-- modos.
-
-Testes automatizados não substituem completamente a inspeção visual de uma interface em Canvas.
-
----
-
-# Performance
-
-A regra continua sendo:
-
-```text
-medir antes de otimizar
-```
-
-Possíveis otimizações futuras:
-
-- culling;
-- renderização apenas quando necessário;
-- cache de partes estáticas;
-- Worker;
-- redução de detalhes em mapas grandes.
-
-Nenhuma deve ser adicionada sem necessidade demonstrada.
-
----
-
-# Ordem atual do desenvolvimento
-
-```text
-1. Base estrutural
-   CONCLUÍDA
-
-2. Regiões semânticas como dados
-   CONCLUÍDA
-
-3. Representação visual das regiões
-   PRÓXIMA
-
-4. Corredores 2.0
-
-5. Confiança e explicação da análise
-
-6. Melhorias pequenas de UX e acessibilidade
-
-7. Hardening de segurança
-
-8. Deploy de teste
-
-9. Primeira versão pública
-
-10. Feedback de usuários
-
-11. Funcionalidades maiores pós-publicação
-```
-
----
-
-# Regra de mudança de prioridade
-
-Esse plano não é imutável.
-
-A ordem pode mudar quando:
-
-- um bug sério aparecer;
-- um teste revelar uma regressão;
-- uma medição mostrar um gargalo;
-- usuários mostrarem uma dificuldade importante;
-- uma decisão de segurança exigir mudança anterior.
-
-O plano existe para orientar o desenvolvimento, não para impedir correções necessárias.
-
----
-
-# Critério para a v1 pública
-
-A primeira versão pública estará pronta quando, no mínimo:
-
-- o fluxo principal estiver estável;
-- a dungeon puder ser usada fora do localhost;
-- regiões estiverem compreensíveis;
-- corredores não comprometerem a leitura;
-- limitações estiverem documentadas;
-- análise continuar local;
-- entradas hostis principais estiverem cobertas;
-- segurança de DOM estiver revisada;
-- política de rede estiver revisada;
-- testes estiverem verdes;
-- deploy de teste tiver sido validado manualmente.
-
-Não é necessário esperar pelas funcionalidades pós-publicação.
-
-A v1 deve ser pequena, confiável e explicável.
+Assim, o plano continua sendo um roteiro real, e não um histórico acumulado.

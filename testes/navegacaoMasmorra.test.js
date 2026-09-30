@@ -66,3 +66,58 @@ test('ciclos e chamadas em sentidos opostos terminam sem alterar o grafo físico
   ]);
   assert.deepEqual(corredores, antes);
 });
+
+const salasComCurvas = [
+  { nome: 'origem', x: 20, y: 20, largura: 20, altura: 20 },
+  { nome: 'destino', x: 220, y: 120, largura: 20, altura: 20 },
+];
+const corredoresComCurvas = criarSegmentosDeCorredores(salasComCurvas,
+  [{ origem: 'origem', destino: 'destino' }]);
+
+test('navegação percorre todos os cotovelos da mesma relação em ambos os sentidos', () => {
+  const caminho = [
+    { x: 30, y: 30 }, { x: 130, y: 30 }, { x: 130, y: 130 }, { x: 230, y: 130 },
+  ];
+  assert.deepEqual(calcularRotaCaminhavel(salasComCurvas, corredoresComCurvas,
+    caminho[0], 'destino'), caminho);
+  assert.deepEqual(calcularRotaCaminhavel(salasComCurvas, corredoresComCurvas,
+    caminho.at(-1), 'origem'), [...caminho].reverse());
+});
+
+test('partida no trecho intermediário mantém as curvas restantes até qualquer ponta', () => {
+  assert.deepEqual(calcularRotaCaminhavel(salasComCurvas, corredoresComCurvas,
+    { x: 133, y: 80 }, 'destino'), [
+    { x: 130, y: 80 }, { x: 130, y: 130 }, { x: 230, y: 130 },
+  ]);
+  assert.deepEqual(calcularRotaCaminhavel(salasComCurvas, corredoresComCurvas,
+    { x: 133, y: 80 }, 'origem'), [
+    { x: 130, y: 80 }, { x: 130, y: 30 }, { x: 30, y: 30 },
+  ]);
+});
+
+test('custo da rota considera o caminho inteiro em vez do menor trecho da aresta', () => {
+  const salas = ['a', 'b', 'c'].map((nome, indice) =>
+    ({ nome, x: 10 + indice * 100, y: 10, largura: 20, altura: 20 }));
+  const segmentos = [
+    { origem: 'a', destino: 'c', inicio: { x: 20, y: 20 }, fim: { x: 20, y: 420 } },
+    { origem: 'a', destino: 'c', inicio: { x: 20, y: 420 }, fim: { x: 220, y: 420 } },
+    { origem: 'a', destino: 'c', inicio: { x: 220, y: 420 }, fim: { x: 220, y: 20 } },
+    { origem: 'a', destino: 'b', inicio: { x: 20, y: 20 }, fim: { x: 120, y: 20 } },
+    { origem: 'b', destino: 'c', inicio: { x: 120, y: 20 }, fim: { x: 220, y: 20 } },
+  ];
+  assert.deepEqual(calcularRotaCaminhavel(salas, segmentos, { x: 20, y: 20 }, 'c'),
+    [{ x: 20, y: 20 }, { x: 220, y: 20 }]);
+});
+
+test('cruzamento ortogonal não conecta componentes independentes', () => {
+  const salas = [
+    { nome: 'a', x: 90, y: 190, largura: 20, altura: 20 },
+    { nome: 'b', x: 290, y: 190, largura: 20, altura: 20 },
+    { nome: 'c', x: 190, y: 90, largura: 20, altura: 20 },
+    { nome: 'd', x: 190, y: 290, largura: 20, altura: 20 },
+  ];
+  const segmentos = criarSegmentosDeCorredores(salas,
+    [{ origem: 'a', destino: 'b' }, { origem: 'c', destino: 'd' }]);
+  assert.equal(calcularRotaCaminhavel(salas, segmentos, { x: 100, y: 200 }, 'd'), null);
+  assert.equal(calcularRotaCaminhavel(salas, segmentos, { x: 150, y: 200 }, 'd'), null);
+});

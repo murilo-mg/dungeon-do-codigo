@@ -150,11 +150,17 @@ test('duplo clique conserva o alvo quando o primeiro clique desloca a câmera', 
     });
   const canvas = ambiente.elementos.get('canvas-jogo');
   ambiente.avancar();
-  clicarNoMapa(ambiente, 430, 100, 1);
+  // PointerEvent.detail é zero no navegador, inclusive no segundo pressionamento.
+  const dados = { clientX: 430, clientY: 100, button: 0 };
+  ambiente.documento.emitir('pointerdown', { ...dados, type: 'pointerdown', detail: 0,
+    timeStamp: 100, composedPath: () => [canvas] });
+  canvas.emitir('click', { ...dados, detail: 1, timeStamp: 110 });
   ambiente.avancar();
   assert.ok(canvas.translacoes.at(-1).x < 0);
-  clicarNoMapa(ambiente, 430, 100, 2);
-  canvas.emitir('dblclick', { clientX: 430, clientY: 100, button: 0, detail: 2 });
+  ambiente.documento.emitir('pointerdown', { ...dados, type: 'pointerdown', detail: 0,
+    timeStamp: 200, composedPath: () => [canvas] });
+  canvas.emitir('click', { ...dados, detail: 2, timeStamp: 210 });
+  canvas.emitir('dblclick', { ...dados, detail: 2 });
   assert.deepEqual(selecoes, ['longe']);
   ambiente.avancar(140);
   assert.deepEqual(canvas.posicoesPersonagem.at(-1), { x: 430, y: 100 });
@@ -226,12 +232,13 @@ test('teclado cancela navegação e sala desconectada só é selecionada', () =>
   ambiente.janela.emitir('keydown', { key: 'ArrowDown' });
   ambiente.avancar(50);
   ambiente.janela.emitir('keyup', { key: 'ArrowDown' });
+  assert.ok(canvas.posicoesPersonagem.at(-1).y <= 140);
   clicarNoMapa(ambiente, 200, 100, 1);
   clicarNoMapa(ambiente, 200, 100, 2);
   canvas.emitir('dblclick', { clientX: 200, clientY: 100, button: 0, detail: 2 });
-  const foraDaRede = canvas.posicoesPersonagem.at(-1);
-  ambiente.avancar(30);
-  assert.deepEqual(canvas.posicoesPersonagem.at(-1), foraDaRede);
+  // A parede impede sair da rede; a sala conectada continua acessível.
+  ambiente.avancar(120);
+  assert.deepEqual(canvas.posicoesPersonagem.at(-1), { x: 200, y: 100 });
   assert.equal(selecoes.at(-1), 'A');
   pararJogo();
 });
@@ -443,7 +450,7 @@ test('usa os limites do mundo para alcançar salas além do viewport', () => {
   const masmorraGrande = {
     salas: [
       { nome: 'main', complexidade: 0, x: 700, y: 200, largura: 90, altura: 80, ehSalaInicial: true },
-      { nome: 'longe', complexidade: 0, x: 900, y: 200, largura: 60, altura: 60 },
+      { nome: 'longe', complexidade: 0, x: 900, y: 210, largura: 60, altura: 60 },
     ],
     larguraMundo: 1200,
     alturaMundo: 480,
@@ -659,7 +666,11 @@ test('Encaixar mostra o mundo inteiro e permanece ativo entre quadros', () => {
   const canvas = ambiente.elementos.get('canvas-jogo');
   assert.equal(encaixarMasmorra(), 560 / 2400);
   ambiente.avancar(4);
-  assert.deepEqual(canvas.translacoes.slice(-4), Array(4).fill({ x: 0, y: 0 }));
+  const translacao = canvas.translacoes.at(-1);
+  const zoom = canvas.escalas.at(-1).x;
+  assert.deepEqual(canvas.translacoes.slice(-4), Array(4).fill(translacao));
+  assert.ok(Math.abs((2400 / 2 + translacao.x) * zoom - canvas.width / 2) < 1e-6);
+  assert.ok(Math.abs((1000 / 2 + translacao.y) * zoom - canvas.height / 2) < 1e-6);
   assert.deepEqual(canvas.escalas.at(-1), { x: 560 / 2400, y: 560 / 2400 });
   assert.ok(2400 * canvas.escalas.at(-1).x <= canvas.width);
   assert.ok(1000 * canvas.escalas.at(-1).y <= canvas.height);
@@ -956,7 +967,9 @@ test('clique e duplo clique continuam usando salas reais no zoom distante', () =
   encaixarMasmorra();
   ambiente.avancar();
   const escala = canvas.escalas.at(-1).x;
-  const dados = { clientX: 430 * escala, clientY: 130 * escala, button: 0, detail: 1 };
+  const projecao = canvas.translacoes.at(-1);
+  const dados = { clientX: (430 + projecao.x) * escala,
+    clientY: (130 + projecao.y) * escala, button: 0, detail: 1 };
   ambiente.documento.emitir('pointerdown', { ...dados, composedPath: () => [canvas] });
   canvas.emitir('click', dados);
   assert.deepEqual(selecoes, ['destino']);
@@ -1091,4 +1104,123 @@ test('nova dungeon e retorno ao editor reiniciam o modo visual', () => {
   pararJogo();
   assert.equal(selecionarModoVisual('inválido'), 'complexidade');
   assert.equal(ambiente.pendentes.size, 0);
+});
+
+test('regiões existentes aparecem atrás das conexões e salas em todos os níveis de zoom', () => {
+  const ambiente = criarAmbiente();
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  const contexto = canvas.getContext();
+  const ordem = [];
+  canvas.getContext = () => contexto;
+  for (const [metodo, tipo] of [['fillText', 'titulo'], ['stroke', 'corredor'],
+    ['fillRect', 'sala']]) {
+    const original = contexto[metodo];
+    contexto[metodo] = function(...argumentos) {
+      if (tipo !== 'sala' || (argumentos[0] === 40 && argumentos[1] === 160 &&
+        argumentos[2] === 80 && argumentos[3] === 80)) ordem.push({ tipo, valor: argumentos[0] });
+      return original.apply(this, argumentos);
+    };
+  }
+  const salasComRegioes = [
+    { nome: 'main', x: 40, y: 160, largura: 80, altura: 80, ehSalaInicial: true },
+    { nome: 'hub', x: 180, y: 160, largura: 80, altura: 80 },
+    { nome: 'ala', x: 320, y: 160, largura: 80, altura: 80 },
+    { nome: 'isolada', x: 460, y: 160, largura: 80, altura: 80 },
+  ].map(sala => ({ complexidade: 0, ...sala }));
+  const regioes = [
+    { id: 'entrada', tipo: 'entrada', titulo: 'Entrada da Dungeon', funcoes: ['main'] },
+    { id: 'hub', tipo: 'hub', titulo: 'Salão Central', funcoes: ['hub'] },
+    { id: 'ala:1', tipo: 'ala', titulo: 'Ala 1', funcoes: ['ala'] },
+    { id: 'isoladas', tipo: 'isoladas', titulo: 'Criptas Isoladas', funcoes: ['isolada'] },
+  ];
+  const territoriosRegioes = new Map(regioes.map((regiao, indice) => [regiao.id, {
+    x: salasComRegioes[indice].x - 25, y: 80, largura: 130, altura: 190,
+  }]));
+  const mundo = { salas: salasComRegioes, regioes, territoriosRegioes,
+    larguraMundo: 1000, alturaMundo: 480 };
+  const titulos = () => regioes.map(regiao => {
+    const territorio = territoriosRegioes.get(regiao.id);
+    return canvas.textos.filter(item => item.x === territorio.x + territorio.largura / 2 &&
+      item.y < 130 && !/^\d+ salas?$/.test(item.texto)).map(item => item.texto).join(' ');
+  });
+  const antes = structuredClone(mundo);
+  const grafo = criarGrafo([
+    { nome: 'main', chamadas: ['hub'] }, { nome: 'hub', chamadas: [] },
+    { nome: 'ala', chamadas: [] }, { nome: 'isolada', chamadas: [] },
+  ]);
+  const selecoes = [];
+  iniciarJogo(mundo, grafo.arestas, () => {},
+    undefined, undefined, nome => {
+      selecoes.push(nome);
+      return focarSala(nome, calcularContextoTopologico(grafo, nome));
+    });
+  ambiente.avancar();
+  assert.deepEqual(titulos(), regioes.map(regiao => regiao.titulo));
+  assert.ok(ordem.findIndex(item => item.tipo === 'corredor') <
+    ordem.findIndex(item => item.tipo === 'sala'));
+  assert.ok(ordem.findIndex(item => item.tipo === 'sala') <
+    ordem.findIndex(item => item.tipo === 'titulo'));
+  const placaProxima = canvas.textos.find(item => item.texto === 'Salão Central');
+  const pisosEntrada = canvas.preenchimentosSalas.filter(item =>
+    item.cor === PALETA.ouro &&
+    item.x < salasComRegioes[0].x &&
+    item.y < salasComRegioes[0].y &&
+    item.largura > salasComRegioes[0].largura &&
+    item.altura > salasComRegioes[0].altura
+  );
+  assert.equal(pisosEntrada.length, 1);
+  assert.ok(
+    pisosEntrada[0].x + pisosEntrada[0].largura >
+    salasComRegioes[0].x + salasComRegioes[0].largura
+  );
+
+  afastarCamera();
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.deepEqual(titulos(), regioes.map(regiao => regiao.titulo));
+  encaixarMasmorra();
+  canvas.textos = [];
+  ambiente.avancar();
+  const tituloDistante = canvas.textos.find(
+    item => item.texto === 'Salão Central');
+  assert.deepEqual(titulos(), regioes.map(regiao => regiao.titulo));
+  assert.equal(tituloDistante.x, placaProxima.x);
+  assert.equal(tituloDistante.opacidade, 1);
+  assert.ok(tituloDistante.y < salasComRegioes[1].y);
+  const projecao = canvas.translacoes.at(-1);
+  clicarNoMapa(ambiente, (80 + projecao.x) * canvas.escalas.at(-1).x,
+    (200 + projecao.y) * canvas.escalas.at(-1).x);
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.deepEqual(selecoes, ['main']);
+  assert.ok(canvas.contornos.some(item => item.cor === PALETA.ouro && item.x === 35));
+  assert.deepEqual(titulos(), regioes.map(regiao => regiao.titulo));
+  assert.deepEqual(mundo, antes);
+  iniciarJogo({ salas: [salasComRegioes[0]], larguraMundo: 560, alturaMundo: 480 },
+    [], () => {});
+  canvas.textos = [];
+  ambiente.avancar();
+  assert.equal(canvas.textos.some(item => regioes.some(regiao =>
+    regiao.titulo === item.texto)), false);
+  pararJogo();
+});
+
+test('título de região fora da câmera não aparece até Encaixar mostrar a região', () => {
+  const ambiente = criarAmbiente();
+  const distante = { nome: 'distante', x: 800, y: 160,
+    largura: 80, altura: 80, complexidade: 0 };
+  iniciarJogo({ salas: [salas[0], distante], larguraMundo: 1000, alturaMundo: 480,
+    regioes: [{ id: 'isoladas', tipo: 'isoladas', titulo: 'Criptas Isoladas',
+      funcoes: ['distante'] }] }, [], () => {});
+  const canvas = ambiente.elementos.get('canvas-jogo');
+  ambiente.avancar();
+  assert.equal(canvas.textos.some(item => item.texto.startsWith('Criptas')), false);
+  encaixarMasmorra();
+  canvas.textos = [];
+  ambiente.avancar();
+  const titulo = canvas.textos.find(item => item.texto.startsWith('Criptas'));
+  assert.ok(titulo);
+  assert.ok(titulo.texto.endsWith('…')); // O fallback tem espaço menor que um território regional.
+  assert.ok(titulo.x >= distante.x && titulo.x <= distante.x + distante.largura);
+  pararJogo();
 });

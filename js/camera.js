@@ -11,8 +11,8 @@ export function criarCamera({
     alturaViewport,
     larguraMundo,
     alturaMundo,
-    x: 0,
-    y: 0,
+    x: limitarEixo(0, larguraMundo, larguraViewport),
+    y: limitarEixo(0, alturaMundo, alturaViewport),
     zoom: 1,
   };
 }
@@ -37,8 +37,8 @@ export function definirZoom(camera, zoom) {
   return {
     ...camera,
     zoom: novoZoom,
-    x: limitar(camera.x, 0, Math.max(0, camera.larguraMundo - largura)),
-    y: limitar(camera.y, 0, Math.max(0, camera.alturaMundo - altura)),
+    x: limitarEixo(camera.x, camera.larguraMundo, largura),
+    y: limitarEixo(camera.y, camera.alturaMundo, altura),
   };
 }
 
@@ -47,19 +47,37 @@ export function alterarZoom(camera, passo) {
 }
 
 export function encaixarCamera(camera) {
-  return { ...camera, zoom: zoomParaEncaixar(camera), x: 0, y: 0 };
+  return atualizarCamera({ ...camera, zoom: zoomParaEncaixar(camera) }, {
+    x: camera.larguraMundo / 2,
+    y: camera.alturaMundo / 2,
+  });
 }
 
 export function atualizarCamera(camera, alvo) {
   const { largura, altura } = dimensoesVisiveis(camera);
-  const maximoX = Math.max(0, camera.larguraMundo - largura);
-  const maximoY = Math.max(0, camera.alturaMundo - altura);
+  return {
+    ...camera,
+    x: limitarEixo(alvo.x - largura / 2, camera.larguraMundo, largura),
+    y: limitarEixo(alvo.y - altura / 2, camera.alturaMundo, altura),
+  };
+}
+
+export function deslocarCamera(camera, deslocamento = {}) {
+  const { largura, altura } = dimensoesVisiveis(camera);
+  const x = Number.isFinite(deslocamento.x) ? deslocamento.x : 0;
+  const y = Number.isFinite(deslocamento.y) ? deslocamento.y : 0;
 
   return {
     ...camera,
-    x: limitar(alvo.x - largura / 2, 0, maximoX),
-    y: limitar(alvo.y - altura / 2, 0, maximoY),
+    x: limitarEixo(camera.x + x, camera.larguraMundo, largura),
+    y: limitarEixo(camera.y + y, camera.alturaMundo, altura),
   };
+}
+
+function limitarEixo(posicao, tamanhoMundo, tamanhoVisivel) {
+  // A margem existe apenas na projeção; o mundo mantém suas coordenadas.
+  if (tamanhoMundo <= tamanhoVisivel) return (tamanhoMundo - tamanhoVisivel) / 2;
+  return limitar(posicao, 0, tamanhoMundo - tamanhoVisivel);
 }
 
 function limitar(valor, minimo, maximo) {

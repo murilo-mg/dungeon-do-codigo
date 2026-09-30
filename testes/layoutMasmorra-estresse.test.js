@@ -6,19 +6,22 @@ import { criarSegmentosDeCorredores } from '../js/corredores.js';
 import { medirCorredores } from './metricasCorredores.js';
 
 const TAMANHOS = [5, 15, 30, 60];
+// Comprimento mede agora os caminhos externos entre bordas; trechos dentro
+// das salas não entram na conta. Folga de 18 acompanha o piso de 24 unidades;
+// plantas antigas muito apertadas usam o fallback sem folga do roteador.
 const BASE_CORREDORES = {
-  '5-cadeia': [0, 0, 400],
-  '5-mesmoNivel': [0, 2, 645.82],
-  '5-combinacao': [0, 0, 421.16],
-  '15-cadeia': [0, 0, 1405],
-  '15-mesmoNivel': [0, 10, 5375.69],
-  '15-combinacao': [0, 0, 958.06],
-  '30-cadeia': [0, 0, 2930],
-  '30-mesmoNivel': [0, 25, 21870.19],
-  '30-combinacao': [0, 0, 1648.06],
-  '60-cadeia': [0, 0, 5980],
-  '60-mesmoNivel': [0, 55, 89066.53],
-  '60-combinacao': [0, 0, 3173.06],
+  '5-cadeia': [0, 0, 80],
+  '5-mesmoNivel': [0, 0, 570],
+  '5-combinacao': [0, 0, 185],
+  '15-cadeia': [0, 0, 280],
+  '15-mesmoNivel': [0, 0, 5475],
+  '15-combinacao': [0, 0, 325],
+  '30-cadeia': [0, 0, 580],
+  '30-mesmoNivel': [0, 0, 22420],
+  '30-combinacao': [0, 0, 465],
+  '60-cadeia': [0, 0, 1180],
+  '60-mesmoNivel': [0, 0, 90620],
+  '60-combinacao': [0, 0, 765],
 };
 
 function criarFuncao(nome, chamadas = [], complexidade = 0) {
@@ -136,6 +139,13 @@ function medirCenario(funcoes, inicio) {
   const fim = performance.now();
   const salas = [...layout.salas].map(([nome, dimensoes]) => ({ nome, ...dimensoes }));
   const corredores = criarSegmentosDeCorredores(salas, grafo.arestas);
+  assert.deepEqual(corredores, criarSegmentosDeCorredores(salas, grafo.arestas));
+  assert.ok(corredores.every(segmento => !segmento.fallbackDireto &&
+    (segmento.inicio.x === segmento.fim.x || segmento.inicio.y === segmento.fim.y)));
+  assert.deepEqual(new Set(corredores.map(segmento =>
+    JSON.stringify([segmento.origem, segmento.destino]))),
+  new Set(grafo.arestas.filter(aresta => aresta.origem !== aresta.destino)
+    .map(aresta => JSON.stringify([aresta.origem, aresta.destino]))));
   const metricasCorredores = medirCorredores(salas, corredores);
   const foraDosLimites = [...layout.salas.values()].filter(dimensoes =>
     dimensoes.x < 0 || dimensoes.y < 0 ||
@@ -263,7 +273,8 @@ test('cenário denso mede ganho sem mudar níveis, arestas ou dimensões', () =>
   const novas = [cruzamentos, corredoresAtravessandoSalas,
     Number(comprimentoTotal.toFixed(2))];
   const anteriores = [59, 15, 6439.16];
-  assert.deepEqual(novas, [17, 8, 5307.77]);
+  // A margem nas portas elimina saídas pela quina; os desvios ficam maiores.
+  assert.deepEqual(novas, [16, 0, 6350]);
   novas.forEach((valor, indice) => assert.ok(valor < anteriores[indice]));
   console.log('Cenário denso antes/depois:', JSON.stringify({ anteriores, novas }));
 });

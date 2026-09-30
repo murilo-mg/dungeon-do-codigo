@@ -3,11 +3,17 @@
 
 import { criarGrafo } from './grafoC.js';
 import { calcularLayoutMasmorra } from './layoutMasmorra.js';
+import { calcularLayoutRegionalCompleto } from './layoutRegioes.js';
 import { criarRegioesMasmorra } from './regioesMasmorra.js';
+import { criarCirculacaoDungeon } from './circulacaoDungeon.js';
 
 export { tamanhoPorComplexidade } from './layoutMasmorra.js';
 
-export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
+export function construirMasmorra(
+  funcoes,
+  grafo = criarGrafo(funcoes),
+  opcoes = {}
+) {
   if (funcoes.length === 0) {
     return {
       salas: [],
@@ -18,7 +24,36 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
   }
 
   const funcaoPrincipal = grafo.nos.get(grafo.entrada).funcao;
-  const layout = calcularLayoutMasmorra(grafo, funcoes);
+  const regioes = criarRegioesMasmorra(grafo);
+  const layoutBase = calcularLayoutMasmorra(grafo, funcoes);
+  let layout = layoutBase;
+  let territoriosRegioes = null;
+
+  if (opcoes.layoutRegional) {
+    const salasBase = [...layoutBase.salas].map(
+      ([nome, dimensoes]) => ({
+        nome,
+        ...dimensoes,
+      })
+    );
+
+    const regional = calcularLayoutRegionalCompleto(
+      regioes,
+      grafo,
+      salasBase
+    );
+
+    if (regional.salas.size === funcoes.length) {
+      layout = {
+        salas: regional.salas,
+        larguraMundo: regional.larguraMundo,
+        alturaMundo: regional.alturaMundo,
+      };
+
+      territoriosRegioes = regional.territorios;
+    }
+  }
+
   const outrasFuncoes = funcoes.filter(funcao => funcao !== funcaoPrincipal);
   const salas = [
     criarSalaInicial(
@@ -41,7 +76,10 @@ export function construirMasmorra(funcoes, grafo = criarGrafo(funcoes)) {
 
   return {
     salas,
-    regioes: criarRegioesMasmorra(grafo),
+    regioes,
+    ...(territoriosRegioes
+      ? { territoriosRegioes, passagensExploracao: criarCirculacaoDungeon(salas, regioes, grafo.arestas) }
+      : {}),
     larguraMundo: layout.larguraMundo,
     alturaMundo: layout.alturaMundo,
   };

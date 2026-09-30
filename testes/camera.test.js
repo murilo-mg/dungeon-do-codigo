@@ -59,10 +59,14 @@ for (const [nome, larguraMundo, alturaMundo, esperado] of [
       larguraMundo, alturaMundo });
     const encaixada = encaixarCamera(camera);
     assert.equal(encaixada.zoom, esperado);
-    assert.deepEqual({ x: encaixada.x, y: encaixada.y }, { x: 0, y: 0 });
     const visivel = dimensoesVisiveis(encaixada);
     assert.ok(visivel.largura >= larguraMundo);
     assert.ok(visivel.altura >= alturaMundo);
+    // As margens opostas devem ter o mesmo tamanho na tela, mesmo em mundos estreitos.
+    assert.ok(Math.abs(-encaixada.x * encaixada.zoom -
+      (560 - (larguraMundo - encaixada.x) * encaixada.zoom)) < 1e-8);
+    assert.ok(Math.abs(-encaixada.y * encaixada.zoom -
+      (480 - (alturaMundo - encaixada.y) * encaixada.zoom)) < 1e-8);
   });
 }
 
@@ -141,7 +145,7 @@ test('mundo maior apenas verticalmente limita somente y', () => {
   assert.equal(atualizada.y, 420);
 });
 
-test('câmera nunca assume valores negativos ou ultrapassa o mundo', () => {
+test('câmera não ultrapassa bordas quando o mundo é maior que o viewport', () => {
   const camera = criarCameraGrande();
   for (const alvo of [
     { x: -100, y: -100 },
@@ -157,7 +161,7 @@ test('câmera nunca assume valores negativos ou ultrapassa o mundo', () => {
   }
 });
 
-test('mundo menor ou igual ao viewport permanece em 0,0', () => {
+test('mundo menor que o viewport permanece centralizado independentemente do alvo', () => {
   const camera = criarCamera({
     larguraViewport: 560,
     alturaViewport: 480,
@@ -167,9 +171,27 @@ test('mundo menor ou igual ao viewport permanece em 0,0', () => {
 
   assert.deepEqual(atualizarCamera(camera, { x: 1500, y: 1500 }), {
     ...camera,
-    x: 0,
-    y: 0,
+    x: -130,
+    y: -140,
   });
+  assert.equal(camera.x, -130);
+  assert.equal(camera.y, -140);
+  assert.deepEqual(atualizarCamera(camera, { x: 0, y: 0 }), camera);
+});
+
+test('trocar zoom centraliza somente o eixo que cabe e restaura os limites ao ampliar', () => {
+  const camera = criarCamera({ larguraViewport: 1000, alturaViewport: 600,
+    larguraMundo: 600, alturaMundo: 1000 });
+  const centralizada = atualizarCamera(camera, { x: 300, y: 800 });
+  assert.equal(centralizada.x, -200);
+  assert.equal(centralizada.y, 400);
+  const ampliada = definirZoom(centralizada, 2);
+  assert.equal(ampliada.x, 0);
+  assert.equal(ampliada.y, 400);
+  const encaixada = encaixarCamera(ampliada);
+  assert.equal(encaixada.zoom, 0.6);
+  assert.ok(Math.abs(encaixada.x + 533.3333333333334) < 1e-8);
+  assert.equal(encaixada.y, 0);
 });
 
 test('mesma entrada produz resultado determinístico', () => {

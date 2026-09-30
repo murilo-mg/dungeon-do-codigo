@@ -73,10 +73,21 @@ test('ao caminhar para outra sala, inspector recebe relações e caminho do graf
 
   const canvas = ambiente.elementos.get('canvas-jogo');
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
-  ambiente.janela.emitir('keydown', { key: 'ArrowRight' });
-  ambiente.avancar(30);
-  ambiente.janela.emitir('keyup', { key: 'ArrowRight' });
+  // A Entrada fica abaixo desta ala no layout regional atual.
+  ambiente.janela.emitir('keydown', { key: 'ArrowUp' });
 
+  let chegouEmA = false;
+  for (let i = 0; i < 240; i++) {
+    ambiente.avancar();
+    if (encontrar(painel, 'nome-funcao')?.textContent === 'a()') {
+      chegouEmA = true;
+      break;
+    }
+  }
+
+  ambiente.janela.emitir('keyup', { key: 'ArrowUp' });
+
+  assert.equal(chegouEmA, true);
   assert.equal(encontrar(painel, 'nome-funcao').textContent, 'a()');
   assert.deepEqual(secao('callers-funcao').filhos.map(filho => filho.filhos[0].textContent), ['main()']);
   assert.equal(secao('callees-funcao').textContent, 'Nenhuma função conhecida');
@@ -106,7 +117,13 @@ test('navegação pelo inspector troca a função e retoma a sala física ao cli
   botao.emitir('click');
   ambiente.avancar();
   assert.equal(encontrar(painel, 'nome-funcao').textContent, 'distante()');
-  assert.ok(canvas.translacoes.at(-1).y < cameraInicial.y);
+  assert.notDeepEqual(canvas.translacoes.at(-1), cameraInicial);
+  const salaDistante = canvas.preenchimentosSalas.slice(-10).at(-1);
+  const projecao = canvas.translacoes.at(-1);
+  assert.ok(salaDistante.x + salaDistante.largura / 2 + projecao.x >= 0);
+  assert.ok(salaDistante.x + salaDistante.largura / 2 + projecao.x <= canvas.width);
+  assert.ok(salaDistante.y + salaDistante.altura / 2 + projecao.y >= 0);
+  assert.ok(salaDistante.y + salaDistante.altura / 2 + projecao.y <= canvas.height);
 
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
   ambiente.avancar();
@@ -130,13 +147,18 @@ test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra 
   const painel = ambiente.elementos.get('info-sala');
   const canvas = ambiente.elementos.get('canvas-jogo');
   assert.equal(campo.value, '');
+  const cameraInicial = { ...canvas.translacoes.at(-1) };
   campo.value = 'ISOL';
   campo.emitir('input');
   assert.equal(resultados.filhos[0].filhos[0].filhos[0].textContent, 'isolada()');
   resultados.filhos[0].filhos[0].filhos[0].emitir('click');
   ambiente.avancar();
   assert.equal(encontrar(painel, 'nome-funcao').textContent, 'isolada()');
-  assert.ok(canvas.translacoes.at(-1).x < 0);
+  const cameraIsolada = canvas.translacoes.at(-1);
+  assert.ok(
+    cameraIsolada.x !== cameraInicial.x ||
+    cameraIsolada.y !== cameraInicial.y
+  );
   assert.equal(painel.filhos.find(filho => filho.className ===
     'secao-inspector caminho-funcao').filhos[1].textContent,
     'Não alcançável a partir da entrada');
@@ -144,7 +166,7 @@ test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra 
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
   ambiente.avancar();
   assert.equal(encontrar(painel, 'nome-funcao').textContent, 'main()');
-  assert.equal(canvas.translacoes.at(-1).x, 0);
+  assert.deepEqual(canvas.translacoes.at(-1), cameraInicial);
 
   ambiente.elementos.get('botao-voltar').emitir('click');
   assert.equal(campo.value, '');

@@ -1,16 +1,16 @@
 # Estado atual
 
-Este documento representa o estado funcional e técnico atual do Dungeon do Código.
+Este documento registra o estado funcional e técnico atual do **Dungeon do Código** no momento de preparação da baseline estável.
+
+Para entender a organização dos módulos, consulte `ARQUITETURA.md`.
 
 Para decisões arquiteturais, consulte `DECISOES.md`.
-
-Para detalhes de organização dos módulos, consulte `ARQUITETURA.md`.
 
 Para funcionalidades planejadas, consulte `PLANO_TECNICO.md`.
 
 ---
 
-# Repositório
+## Repositório
 
 Branch de desenvolvimento atual:
 
@@ -25,37 +25,54 @@ O projeto é um frontend estático feito com:
 - JavaScript ES Modules;
 - Canvas 2D.
 
-A suíte automatizada é executada com:
+A aplicação não possui backend no estado atual.
+
+Os testes são executados com:
 
 ```bash
 npm test
 ```
 
-O repositório também possui GitHub Actions executando os testes em pushes e pull requests.
+Também existe um workflow do GitHub Actions para executar a suíte automaticamente.
 
 ---
 
 # Estado geral
 
-O Dungeon do Código já possui uma experiência completa de entrada, geração e exploração.
+O Dungeon do Código já possui um fluxo completo de:
+
+```text
+entrada de código C
+        ↓
+análise
+        ↓
+grafo de chamadas
+        ↓
+classificação semântica
+        ↓
+layout
+        ↓
+construção da dungeon
+        ↓
+exploração
+        ↓
+inspeção das funções
+```
 
 O usuário pode:
 
-```text
-digitar código C
-       ou
-abrir um arquivo .c
-       ↓
-gerar a dungeon
-       ↓
-explorar o mapa
-       ↓
-selecionar funções
-       ↓
-consultar relações e métricas
-```
+- digitar ou colar código C;
+- abrir um arquivo `.c`;
+- gerar a dungeon;
+- explorar o mapa;
+- selecionar funções;
+- pesquisar funções;
+- consultar métricas;
+- navegar por callers e callees;
+- usar câmera, zoom e visão geral;
+- caminhar manualmente ou usar navegação automática.
 
-O código C é analisado como texto.
+O código é analisado como texto.
 
 Ele não é compilado nem executado.
 
@@ -63,14 +80,14 @@ Ele não é compilado nem executado.
 
 # Entrada de código
 
-A tela inicial possui um editor onde o usuário pode:
+A tela inicial permite:
 
 - digitar código;
 - colar código;
 - abrir um arquivo `.c`;
 - arrastar um arquivo válido para a área de entrada.
 
-A importação atual aceita:
+A importação aceita atualmente:
 
 ```text
 1 arquivo por vez
@@ -80,7 +97,7 @@ até 512 KiB
 
 O arquivo só substitui o conteúdo do editor depois de uma leitura válida.
 
-Importar o arquivo não gera automaticamente a dungeon.
+A importação não gera automaticamente a dungeon.
 
 O usuário continua decidindo quando iniciar a análise.
 
@@ -88,7 +105,7 @@ O usuário continua decidindo quando iniciar a análise.
 
 # Análise local
 
-A análise ocorre no navegador.
+A análise acontece no navegador.
 
 No estado atual:
 
@@ -96,8 +113,6 @@ No estado atual:
 - o código não é enviado para um servidor próprio;
 - o código não é compilado;
 - o código não é executado.
-
-A arquitetura de publicação ainda passará por uma revisão específica de segurança antes da primeira versão pública.
 
 ---
 
@@ -112,7 +127,7 @@ O módulo distingue:
 - strings;
 - caracteres.
 
-Isso evita erros como interpretar:
+Isso evita interpretar trechos como:
 
 ```c
 printf("if while }");
@@ -120,13 +135,7 @@ printf("if while }");
 
 como estruturas reais da linguagem.
 
-A representação mascarada preserva:
-
-- posições;
-- comprimento;
-- quebras de linha.
-
-Também existem tratamentos para entradas incompletas suportadas pela análise atual.
+A representação mascarada preserva posições, comprimento e quebras de linha para que a análise estrutural continue alinhada ao texto original.
 
 ---
 
@@ -137,8 +146,8 @@ Também existem tratamentos para entradas incompletas suportadas pela análise a
 Atualmente são considerados dados como:
 
 - nome da função;
-- corpo;
 - trecho original;
+- corpo estrutural;
 - quantidade de linhas;
 - `if`;
 - `for`;
@@ -167,196 +176,39 @@ O grafo contém:
 - callees;
 - profundidade mínima;
 - alcançabilidade;
+- caminho estrutural;
 - recursão direta;
 - participação em ciclos.
 
-Quando existe:
-
-```c
-main
-```
-
-ela é usada como entrada.
+Quando existe `main`, ela é usada como entrada.
 
 Quando não existe, a primeira função encontrada assume esse papel.
 
----
-
-# Callers e callees
-
-Para cada função, o grafo permite identificar:
-
-```text
-callers
-```
-
-funções que chamam a função selecionada;
-
-e:
-
-```text
-callees
-```
-
-funções chamadas pela função selecionada.
-
-Essas relações são reutilizadas pelo:
-
-- inspector;
-- foco contextual;
-- layout;
-- navegação da interface.
-
----
-
-# Caminho desde a entrada
-
-O grafo calcula um caminho mínimo desde a função de entrada até uma função alcançável.
-
-Esse caminho aparece no inspector.
-
-Quando a função não é alcançável, nenhum caminho artificial é criado.
-
----
-
-# Recursão
-
-Uma função que chama diretamente a si mesma é marcada como recursiva.
-
-Exemplo:
-
-```text
-fatorial → fatorial
-```
-
-Essa informação chega ao inspector e à representação visual.
-
----
-
-# Ciclos
-
-Também são detectados ciclos entre funções.
-
-Exemplo:
-
-```text
-a → b → c → a
-```
-
-Recursão direta e participação em ciclo são tratadas como informações diferentes.
-
----
-
-# Layout
-
-`layoutMasmorra.js` calcula a geometria das salas.
-
-O layout é separado do grafo.
-
-As funções alcançáveis são organizadas principalmente por profundidade.
-
-Exemplo:
-
-```text
-profundidade 0 → entrada
-profundidade 1 → funções chamadas pela entrada
-profundidade 2 → funções chamadas posteriormente
-...
-```
-
-Funções de uma mesma profundidade são distribuídas verticalmente.
-
-A posição média dos callers da coluna anterior ajuda na ordenação.
-
----
-
-# Mundo lógico
-
-A dungeon não precisa caber inteira dentro do Canvas.
-
-O mundo lógico pode crescer:
-
-- horizontalmente;
-- verticalmente.
-
-O viewport continua sendo uma janela sobre esse mundo.
-
-Isso permite representar programas maiores sem sobrepor as salas apenas para fazê-las caber na tela.
-
----
-
-# Sobreposição das salas
-
-Os cenários automatizados atuais verificam layouts com diferentes quantidades e formatos de grafo.
-
-Os casos de referência testados mantêm as salas sem sobreposição.
-
-A mesma entrada também deve continuar produzindo o mesmo layout.
-
----
-
-# Funções inalcançáveis
-
-Funções que não possuem caminho a partir da entrada continuam representadas.
-
-Na geometria atual elas ficam separadas das funções alcançáveis.
-
-Na classificação semântica pertencem às:
-
-```text
-Criptas Isoladas
-```
+Chamadas externas que não possuem implementação no código analisado não viram salas da dungeon.
 
 ---
 
 # Regiões semânticas
 
-A masmorra já possui regiões semânticas como dados.
+`regioesMasmorra.js` classifica as funções semanticamente.
 
-Essa classificação é feita por:
-
-```text
-js/regioesMasmorra.js
-```
-
-Cada região contém:
-
-```text
-id
-tipo
-titulo
-funcoes
-```
-
-As regiões ainda não são desenhadas no Canvas.
-
----
+Atualmente existem quatro categorias principais:
 
 ## Entrada da Dungeon
 
-A função de entrada possui sua própria região.
-
-Ela não é tratada como uma ala normal.
-
----
+Representa a função de entrada.
 
 ## Salão Central
 
-Uma função pode ser classificada como hub quando:
+Pode representar funções alcançáveis que recebem chamadas de pelo menos três callers alcançáveis distintos.
 
-```text
-é alcançável
-+
-possui pelo menos 3 callers alcançáveis distintos
-```
-
-A classificação não depende do nome da função.
-
----
+Essa classificação depende da estrutura do grafo, não do nome da função.
 
 ## Alas
 
-Grupos alcançáveis podem receber nomes derivados de prefixos técnicos confiáveis.
+Funções alcançáveis podem ser agrupadas.
+
+Quando existe um prefixo técnico confiável, ele pode ser usado no título da região.
 
 Exemplo:
 
@@ -366,76 +218,13 @@ parse_expression
 parse_unary
 ```
 
-pode gerar:
+pode formar:
 
 ```text
 Ala Parser
 ```
 
-Outro exemplo:
-
-```text
-vm_push
-vm_pop
-vm_execute
-```
-
-pode gerar:
-
-```text
-Ala VM
-```
-
----
-
-## Prefixos operacionais
-
-Prefixos genéricos de operação não são usados como domínio da ala.
-
-Entre eles estão:
-
-```text
-get
-set
-create
-delete
-remove
-add
-find
-init
-free
-read
-write
-load
-save
-update
-process
-handle
-make
-new
-```
-
-Assim:
-
-```text
-get_usuario
-get_config
-get_tempo
-```
-
-não gera:
-
-```text
-Ala Get
-```
-
----
-
-## Fallback neutro
-
-Quando não existe um nome confiável, o agrupamento recebe um título neutro.
-
-Exemplo:
+Quando não existe um nome confiável, são usados títulos neutros como:
 
 ```text
 Ala 1
@@ -443,93 +232,192 @@ Ala 2
 Ala 3
 ```
 
-A preferência é comunicar menos em vez de inventar uma interpretação.
-
----
-
 ## Criptas Isoladas
 
-Toda função inalcançável pertence às Criptas Isoladas.
+Toda função sem caminho a partir da entrada pertence às Criptas Isoladas.
 
-Essa regra possui prioridade sobre a detecção de hub.
-
-Mesmo que várias funções desconectadas chamem uma função comum, esse conjunto continua isolado da dungeon principal.
+Uma função pode ser fisicamente visitável sem deixar de ser semanticamente inalcançável no programa.
 
 ---
 
-# Construção da masmorra
+# Layout
 
-`masmorra.js` reúne:
+O projeto mantém duas camadas de layout relacionadas, mas separadas.
 
-- dados das funções;
-- dados do grafo;
-- geometria do layout;
-- regiões semânticas.
+`layoutMasmorra.js` fornece a geometria base das salas.
 
-A estrutura final inclui:
+`layoutRegioes.js` organiza a composição regional usada pela versão atual da dungeon.
+
+O layout regional considera:
+
+- regiões;
+- salas pertencentes a cada região;
+- espaço interno;
+- posição relativa de regiões relacionadas;
+- dimensões do mundo;
+- determinismo.
+
+A mesma entrada deve produzir a mesma estrutura.
+
+O mundo lógico pode ser maior que o Canvas.
+
+---
+
+# Territórios visuais
+
+As regiões possuem representação visual no Canvas.
+
+A apresentação inclui:
+
+- contornos arquitetônicos;
+- alvenaria;
+- placas;
+- pisos;
+- detalhes de região;
+- cores secundárias;
+- simplificação de detalhes de acordo com o zoom.
+
+A forma visual de uma região acompanha melhor a distribuição das salas e não precisa ser apenas um retângulo simples.
+
+Esses elementos são decorativos e não alteram o significado estrutural da região.
+
+---
+
+# Corredores semânticos
+
+`corredores.js` transforma arestas reais do grafo em percursos físicos.
+
+Uma chamada como:
 
 ```text
-salas
-regioes
-larguraMundo
-alturaMundo
+a → b
 ```
 
-O módulo não recalcula relações que pertencem ao grafo nem posições que pertencem ao layout.
+pode gerar um corredor entre as salas de `a` e `b`.
+
+Os corredores atuais:
+
+- preservam a identidade da chamada;
+- podem possuir vários trechos;
+- priorizam caminhos ortogonais;
+- procuram evitar outras salas;
+- utilizam portas nas extremidades;
+- mantêm uma largura física compartilhada com a colisão.
+
+Quando a geometria não permite um caminho seguro dentro das regras atuais, existe um fallback identificável para casos compatíveis com o layout legado.
+
+Um cruzamento visual não cria uma relação nova.
 
 ---
 
-# Corredores
+# Galerias de exploração
 
-`corredores.js` transforma:
+`circulacaoDungeon.js` cria passagens físicas adicionais para melhorar a circulação pela dungeon.
+
+Essas passagens ficam em:
 
 ```text
-salas + arestas
+passagensExploracao
 ```
 
-em segmentos geométricos.
+Elas são separadas das chamadas do programa.
 
-Os corredores atuais representam relações reais entre funções conhecidas.
+Uma galeria:
 
-São ignoradas para o desenho:
+- não cria aresta no grafo C;
+- não aparece como caller ou callee;
+- não altera alcançabilidade;
+- não altera regiões semânticas;
+- não participa do foco topológico;
+- possui identidade física própria;
+- pode ser usada por movimento manual e navegação automática.
 
-- autoarestas;
-- duplicatas;
-- referências a salas inexistentes.
+As galerias ajudam a conectar componentes físicos que, de outra forma, exigiriam retornar pela entrada.
 
----
+Quando não existe um desvio geométrico seguro, a passagem não é forçada através de obstáculos.
 
-# Limitação dos corredores atuais
-
-A geometria atual ainda usa segmentos diretos entre salas.
-
-Isso significa que, em alguns cenários densos, um corredor pode atravessar visualmente outra sala.
-
-Esse problema já possui métricas automatizadas para:
-
-- cruzamentos;
-- travessia de terceira sala;
-- comprimento total.
-
-O roteamento de corredores será tratado em uma etapa posterior.
+Funções isoladas continuam isoladas semanticamente mesmo quando seu espaço físico pode ser visitado.
 
 ---
 
-# Cenário
+# Área caminhável
 
-`cenario.js` desenha o fundo e as decorações.
+`areaCaminhavel.js` define a física da exploração a partir da geometria já calculada.
 
-Ele recebe as mesmas salas e corredores usados pela exploração.
+A área caminhável é composta por:
 
-Isso evita que o cenário ocupe regiões importantes da dungeon.
+- salas;
+- portas;
+- corredores semânticos;
+- galerias de exploração.
 
-O cenário não cria relações próprias.
+A física não lê o grafo para decidir significado.
+
+Ela trabalha apenas com os percursos físicos recebidos.
+
+O estado de movimento preserva a identidade do percurso.
+
+Isso impede que dois caminhos que apenas se cruzam visualmente passem a funcionar como um entroncamento.
+
+---
+
+# Colisão do personagem
+
+A colisão não considera apenas o ponto central do personagem.
+
+A base do personagem possui uma margem corporal.
+
+As amostras dessa base precisam caber na área física válida.
+
+Com isso:
+
+- paredes bloqueiam o movimento;
+- portas continuam atravessáveis;
+- quinas não podem ser cortadas diagonalmente;
+- a mesma lógica é usada no movimento manual e automático.
+
+A parte superior do sprite ainda pode se projetar visualmente sobre uma parede em alguns ângulos, porque a colisão representa principalmente a base física do personagem.
 
 ---
 
 # Personagem
 
-O personagem pode ser movimentado por:
+`personagem.js` mantém estado, direção, animação e velocidade.
+
+O módulo não conhece diretamente salas, grafo ou regiões.
+
+O jogo pode fornecer um resolvedor de movimento.
+
+A posição efetivamente permitida alimenta:
+
+- animação;
+- pegadas;
+- estado de caminhada.
+
+Empurrar continuamente contra uma parede não deve manter uma animação de deslocamento inexistente.
+
+---
+
+# Navegação automática
+
+`navegacaoMasmorra.js` calcula rotas sobre percursos físicos já existentes.
+
+A navegação pode usar:
+
+- corredores semânticos;
+- galerias de exploração.
+
+Ela preserva a identidade do percurso atual.
+
+Se o personagem estiver dentro de um corredor ou galeria, a rota parte apenas dos caminhos fisicamente compatíveis com sua localização atual.
+
+Um cruzamento independente não permite trocar de percurso.
+
+---
+
+# Movimento manual
+
+O personagem pode ser controlado por:
 
 ```text
 W A S D
@@ -541,376 +429,154 @@ ou:
 ↑ ← ↓ →
 ```
 
-O teclado só controla a dungeon depois que o mapa recebe foco.
+O Canvas precisa estar ativo para controlar a exploração.
 
----
+O foco do Canvas também ativa os controles sem exigir um clique anterior.
 
-# Controle de foco
+`Esc` libera o teclado.
 
-O Canvas não captura permanentemente o teclado.
-
-O comportamento atual é:
-
-```text
-clique no mapa
-→ controles ativos
-```
-
-e:
-
-```text
-Esc
-ou clique fora
-→ controles liberados
-```
-
-Campos de texto continuam podendo usar teclado normalmente.
-
----
-
-# Movimento manual
-
-O personagem possui:
-
-- posição;
-- direção;
-- velocidade;
-- limites do mundo;
-- passos.
-
-O movimento é calculado independentemente da taxa de atualização da tela.
-
-A preferência:
-
-```text
-prefers-reduced-motion
-```
-
-é respeitada nas animações relevantes.
-
----
-
-# Colisão atual
-
-O personagem respeita os limites do mundo lógico.
-
-Ainda não existe uma colisão completa com:
-
-- paredes;
-- salas;
-- corredores.
-
-O movimento manual ainda pode atravessar áreas que visualmente não seriam transitáveis em uma dungeon física completa.
-
----
-
-# Seleção de salas
-
-Uma sala pode ser selecionada diretamente no Canvas.
-
-Clique simples:
-
-```text
-seleciona a função
-atualiza o inspector
-ativa o foco contextual
-```
-
-Selecionar não move o personagem.
-
----
-
-# Sala física e sala selecionada
-
-O projeto mantém estados separados para:
-
-```text
-sala onde o personagem está
-```
-
-e:
-
-```text
-sala que está sendo inspecionada
-```
-
-Isso permite estudar uma função distante sem teleportar o personagem.
-
----
-
-# Hover
-
-Passar o mouse sobre uma sala pode mostrar o nome completo da função.
-
-O hover reutiliza a mesma transformação de coordenadas usada pela seleção.
-
-Ele não modifica:
-
-- seleção;
-- personagem;
-- câmera.
-
----
-
-# Navegação automática
-
-Um duplo clique em uma sala pode iniciar movimento automático até ela.
-
-A navegação usa:
-
-```text
-navegacaoMasmorra.js
-```
-
-e percorre a geometria atual dos corredores.
-
-Se não existe rota válida, nenhuma passagem fictícia é criada.
-
----
-
-# Cancelamento da navegação
-
-A navegação automática pode ser cancelada por:
-
-- movimento manual;
-- mudança de seleção;
-- perda de foco;
-- reinício da dungeon.
-
-O personagem continua usando sua velocidade normal.
-
----
-
-# Direção lógica e física
-
-Chamadas do programa continuam direcionadas.
-
-Exemplo:
-
-```text
-a → b
-```
-
-A navegação física pode atravessar um corredor nos dois sentidos.
-
-Isso não transforma o grafo lógico em um grafo bidirecional.
-
----
-
-# Busca
-
-A exploração possui busca por nome de função.
-
-A consulta:
-
-- ignora diferença entre maiúsculas e minúsculas;
-- preserva a ordem das funções;
-- não cria um sistema de seleção separado.
-
-Selecionar pela busca usa o mesmo fluxo de:
-
-- clique;
-- caller;
-- callee.
-
----
-
-# Inspector
-
-O inspector fica no DOM.
-
-Atualmente apresenta informações como:
-
-- nome da função;
-- perigo;
-- métricas;
-- trecho do código;
-- callers;
-- callees;
-- caminho desde a entrada;
-- quantidade de estruturas;
-- perfil estrutural;
-- recursão;
-- ciclo.
-
----
-
-# Navegação pelo inspector
-
-Callers e callees são interativos.
-
-Selecionar uma função por essas relações:
-
-- atualiza o inspector;
-- foca visualmente a sala;
-- não teleporta o personagem.
-
----
-
-# Foco contextual
-
-Selecionar uma função pode destacar todas as cadeias relevantes desde a entrada até ela.
-
-As salas e corredores do contexto permanecem com destaque normal.
-
-Os demais continuam visíveis com opacidade menor.
-
-O objetivo é:
-
-```text
-destacar
-```
-
-sem:
-
-```text
-apagar o contexto global
-```
-
----
-
-# Função inalcançável no foco
-
-Quando uma função selecionada não é alcançável:
-
-- apenas ela é destacada estruturalmente;
-- nenhum caminho falso até a entrada é criado.
+Perder o foco interrompe os controles.
 
 ---
 
 # Câmera
 
-A câmera trabalha sobre o mundo lógico.
+A câmera é separada das coordenadas físicas do mundo.
 
-Ela pode:
+O projeto possui:
 
-- seguir o personagem;
-- focar uma sala selecionada;
-- mostrar uma visão geral.
+- acompanhamento do personagem;
+- foco em sala selecionada;
+- visão geral;
+- modo livre;
+- zoom;
+- Encaixar.
 
-A posição física dos objetos não é modificada pela câmera.
+A roda do mouse desloca a câmera verticalmente.
+
+Com `Shift`, a roda desloca horizontalmente.
+
+Mover a câmera não move o personagem.
+
+O duplo clique em uma sala com rota válida retoma o acompanhamento do personagem.
 
 ---
 
-# Zoom
+# Viewport
 
-Os controles atuais permitem níveis discretos de zoom.
+O Canvas acompanha o espaço disponível na interface.
 
-Entre eles:
+Mudanças de tamanho atualizam o bitmap e a câmera sem reconstruir o mundo lógico.
+
+Quando disponível, `ResizeObserver` acompanha alterações do tamanho do Canvas.
+
+---
+
+# Seleção
+
+Clique simples em uma sala:
 
 ```text
-50%
-75%
-100%
-125%
-150%
-175%
-200%
+seleciona a função
+        ↓
+atualiza o inspector
+        ↓
+ativa o foco contextual
 ```
 
-O valor calculado por Encaixar pode entrar como nível mínimo quando necessário.
+Selecionar uma função não move o personagem.
 
----
-
-# Encaixar
-
-O comando:
+O projeto mantém separados:
 
 ```text
-Encaixar
+sala física
 ```
 
-calcula um zoom suficiente para mostrar a dungeon inteira.
+e:
 
-Ele não reposiciona as salas.
-
-Mundos menores também não são ampliados desnecessariamente acima de 100%.
-
----
-
-# Zoom semântico
-
-O nível de detalhes das salas muda conforme o zoom.
+```text
+sala selecionada
+```
 
 ---
 
-## Visão distante
+# Duplo clique
 
-Abaixo do limiar principal, o mapa prioriza:
+Duplo clique pode iniciar navegação automática até uma sala quando existe uma rota física válida.
 
-- forma das salas;
-- posição;
-- cor;
-- seleção;
-- contexto.
+A implementação preserva o alvo mesmo quando o primeiro clique altera a câmera.
 
-Detalhes internos são reduzidos.
+Movimento manual cancela a navegação automática.
 
 ---
 
-## Visão intermediária
+# Busca
 
-Os nomes das funções passam a ser priorizados.
+A exploração possui busca de funções.
 
-Elementos internos ainda permanecem simplificados.
+A busca:
+
+- ignora diferença entre maiúsculas e minúsculas;
+- permite consulta parcial;
+- mantém ordem previsível;
+- pode selecionar uma função encontrada;
+- é limpa ao trocar de dungeon ou voltar ao editor.
 
 ---
 
-## Visão próxima
+# Inspector
 
-A sala mantém sua representação completa.
+O inspector pode exibir:
 
-Podem aparecer:
+- nome;
+- código;
+- métricas;
+- callers;
+- callees;
+- caminho estrutural desde a entrada;
+- estruturas de controle;
+- recursão direta;
+- participação em ciclos.
 
-- textura;
-- criatura;
-- marcadores;
-- detalhes.
+Callers e callees também podem ser usados para selecionar outras funções.
+
+Conteúdo originado do código do usuário é inserido como texto, não interpretado como HTML.
+
+---
+
+# Foco contextual
+
+Ao selecionar uma função, o projeto pode destacar as cadeias estruturais relevantes até ela.
+
+Salas e chamadas fora do contexto recebem menor destaque.
+
+O foco utiliza apenas o grafo C.
+
+Galerias de exploração não criam relações no foco.
+
+Funções inalcançáveis continuam sem caminho artificial a partir da entrada.
 
 ---
 
 # Modos visuais
 
-Existem atualmente dois modos.
-
----
+Existem dois modos principais.
 
 ## Complexidade
 
-Preserva a identidade visual ligada à complexidade.
-
-Inclui:
-
-- cores;
-- criaturas;
-- marcadores discretos.
-
----
+Mantém uma leitura visual baseada na complexidade, incluindo cores e criaturas.
 
 ## Estrutura
 
-Prioriza informações estruturais.
+Prioriza a leitura estrutural e os marcadores.
 
-Utiliza:
-
-- base visual mais neutra;
-- maior destaque dos marcadores;
-- ausência das criaturas.
-
----
-
-## Troca de modo
-
-Trocar o modo visual não altera:
+Trocar de modo não altera:
 
 - grafo;
-- posições;
-- dimensões;
+- geometria;
 - personagem;
 - câmera;
 - seleção.
-
-Apenas a apresentação muda.
 
 ---
 
@@ -924,22 +590,73 @@ F → for
 W → while
 S → switch
 R → recursão direta
-C → ciclo
+C → participação em ciclo
 ```
 
-Esses marcadores indicam presença.
+Os marcadores complementam o inspector.
 
-Quantidades detalhadas continuam no inspector.
+Eles não substituem as métricas completas.
 
 ---
 
-# Segurança de conteúdo no DOM
+# Zoom semântico
 
-Conteúdo originado do código deve ser tratado como texto.
+O nível de detalhe depende da aproximação.
 
-A interface possui testes garantindo que nomes e trechos com aparência de HTML não sejam interpretados como marcação.
+Em visão distante, o mapa prioriza:
 
-A revisão de segurança completa para publicação ainda não foi realizada.
+- forma geral;
+- regiões;
+- conexões principais.
+
+Em níveis intermediários, nomes de funções ganham mais destaque.
+
+Em visão próxima, aparecem:
+
+- detalhes internos;
+- alvenaria;
+- criaturas;
+- marcadores;
+- acabamentos.
+
+Hover pode mostrar o nome completo de uma função sem selecioná-la.
+
+---
+
+# Cenário e decoração
+
+A versão atual possui elementos visuais como:
+
+- paredes de pedra;
+- pisos;
+- portais;
+- tochas;
+- rochas;
+- musgo;
+- pilares;
+- detalhes de alvenaria;
+- criaturas;
+- efeitos;
+- acabamento dos corredores;
+- acabamento das galerias.
+
+O cenário evita ocupar as áreas reservadas para os percursos físicos.
+
+Elementos decorativos não alteram o grafo nem a área caminhável.
+
+---
+
+# Cruzamentos
+
+Percursos podem cruzar geometricamente.
+
+Isso não significa que exista uma conexão entre eles.
+
+A identidade de cada caminho é preservada pela física e pela navegação.
+
+Alguns cruzamentos recebem acabamento visual específico para ajudar na leitura.
+
+Encontros muito próximos de portas, curvas ou trechos sobrepostos ainda podem ser visualmente ambíguos em casos específicos.
 
 ---
 
@@ -951,143 +668,125 @@ A suíte automatizada é executada com:
 npm test
 ```
 
-Ela cobre módulos individuais e fluxos integrados.
+No estado auditado desta baseline candidata:
 
-Entre as áreas cobertas estão:
+```text
+328 testes
+328 passando
+0 falhando
+```
 
-- entrada de arquivo;
-- léxico;
-- analisador;
+A suíte cobre, entre outros pontos:
+
+- análise léxica;
+- extração de funções;
+- entradas incompletas;
 - grafo;
-- caminhos;
+- profundidade;
+- callers e callees;
 - ciclos;
+- recursão;
 - layout;
-- métricas de corredores;
-- masmorra;
 - regiões;
+- corredores;
+- galerias;
+- área caminhável;
+- colisão;
+- cruzamentos;
+- navegação;
 - câmera;
 - zoom;
-- semântica visual;
-- personagem;
-- navegação;
-- interface;
+- Encaixar;
+- viewport;
 - busca;
 - inspector;
-- integração.
+- foco contextual;
+- clique;
+- duplo clique;
+- modos visuais;
+- importação de arquivos.
 
-O número exato de testes não é registrado neste documento porque muda durante o desenvolvimento.
-
----
-
-# GitHub Actions
-
-Existe um workflow em:
-
-```text
-.github/workflows/testes.yml
-```
-
-Ele executa:
+O estado atual também foi validado com:
 
 ```bash
-npm test
+git diff --check
 ```
 
-em pushes e pull requests.
-
-Ainda não existe pipeline de deploy público.
-
----
-
-# Último marco concluído
-
-O marco mais recente é:
-
-```text
-classificação semântica das regiões
-```
-
-A classificação já existe como dado.
-
-Ela não alterou:
-
-- layout;
-- posições;
-- dimensões;
-- Canvas;
-- corredores;
-- física.
-
----
-
-# Próximo marco
-
-O próximo passo planejado é:
-
-```text
-representar visualmente as regiões no Canvas
-```
-
-incluindo:
-
-- Entrada da Dungeon;
-- Salão Central;
-- Alas;
-- Criptas Isoladas.
-
-A representação deve consumir os dados existentes, sem duplicar a lógica de classificação.
+sem erros de whitespace reportados.
 
 ---
 
 # Limitações atuais
 
-Entre as principais limitações atuais estão:
+## Analisador
 
-- suporte apenas a um subconjunto de C;
-- macros complexas podem não ser compreendidas;
-- pré-processamento condicional não é completamente interpretado;
-- ponteiros de função não possuem suporte completo;
-- declarações avançadas podem confundir o analisador;
-- chamadas externas não viram salas;
-- regiões ainda não são desenhadas;
-- corredores ainda são segmentos diretos;
-- alguns corredores podem atravessar outras salas;
-- não existe minimapa;
-- não existe pan manual;
-- não existe drag do mapa;
-- não existe colisão completa com paredes;
-- não existe execução de C;
-- não existe backend;
-- não existe suporte a projetos C com vários arquivos.
+O analisador trabalha com um subconjunto de C.
+
+Construções avançadas podem ser reconhecidas parcialmente ou não serem compreendidas corretamente, principalmente:
+
+- macros complexas;
+- pré-processamento condicional;
+- ponteiros de função;
+- declarações avançadas;
+- formas pouco comuns da gramática.
+
+Chamadas externas ainda não viram nós internos do grafo.
+
+## Circulação
+
+Uma galeria não é criada quando não existe desvio geométrico seguro dentro das regras atuais.
+
+Alguns encontros de percursos podem continuar visualmente densos.
+
+## Personagem
+
+A base física respeita paredes e portas.
+
+A cabeça do sprite ainda pode se projetar visualmente sobre a parede em alguns casos.
+
+## Visual
+
+A linguagem visual da dungeon já está funcional, mas ainda pode receber refinamentos de:
+
+- acabamento;
+- legibilidade;
+- densidade de detalhes;
+- diferenciação arquitetônica;
+- leitura de grandes mapas.
+
+Esses refinamentos não devem alterar a semântica existente.
 
 ---
 
-# Privacidade
+# Princípios preservados
 
-A característica atual de processamento local é importante para o projeto.
+O estado atual mantém as seguintes regras:
 
-No estado atual, a aplicação não precisa receber o código em servidor próprio para gerar a dungeon.
-
-Essa arquitetura deve continuar sendo preservada enquanto fizer sentido.
-
-Antes da publicação, será feita uma auditoria específica para garantir que a versão hospedada não introduza comportamentos incompatíveis com essa proposta.
+1. o código analisado é a fonte de verdade;
+2. grafo e geometria são responsabilidades diferentes;
+3. regiões semânticas não devem ser inventadas pela renderização;
+4. corredores semânticos representam relações reais;
+5. galerias físicas não representam chamadas;
+6. cruzamento visual não implica conexão;
+7. zoom e câmera não alteram a geometria real;
+8. a mesma entrada deve produzir uma estrutura determinística;
+9. limitações do analisador devem ser comunicadas;
+10. bugs corrigidos devem ganhar casos de regressão.
 
 ---
 
-# Princípio de confiança
+# Situação da baseline
 
-O estado atual do projeto segue esta regra:
+Este estado é o candidato atual à baseline organizada da primeira versão pública.
 
-> Se um significado visual não puder ser justificado por dados reais do código, ele não deve ser apresentado como fato.
+Antes de congelar a baseline ainda devem ser concluídos:
 
-Isso já influencia:
+- revisão dos documentos;
+- limpeza de comentários e pequenos artefatos de código;
+- validação manual final;
+- definição do número da versão;
+- commit de estabilização;
+- criação da tag;
+- push, somente após autorização explícita.
 
-- Salão Central;
-- Alas;
-- Criptas Isoladas;
-- foco;
-- marcadores;
-- caminhos;
-- relações.
-
-Esse princípio deve continuar guiando as próximas etapas.
+Até essas etapas terminarem, o projeto continua em preparação para a baseline.

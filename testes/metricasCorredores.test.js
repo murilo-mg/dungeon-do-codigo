@@ -10,7 +10,13 @@ function sala(nome, centroX, centroY, largura = 2, altura = 2) {
 }
 
 function segmento(origem, destino, salas) {
-  return criarSegmentosDeCorredores(salas, [{ origem, destino }])[0];
+  // A métrica precisa continuar reconhecendo diagonais, mesmo que o roteamento
+  // atual prefira caminhos ortogonais e contorne esses obstáculos.
+  const centro = nome => {
+    const sala = salas.find(sala => sala.nome === nome);
+    return { x: sala.x + sala.largura / 2, y: sala.y + sala.altura / 2 };
+  };
+  return { origem, destino, inicio: centro(origem), fim: centro(destino) };
 }
 
 function medirFuncoes(funcoes) {
@@ -52,14 +58,14 @@ test('atravessamento exige trecho no interior aberto da terceira sala', () => {
     [segmento('c', 'd', diagonais)]).corredoresAtravessandoSalas, 0);
 });
 
-test('ciclo em sentidos contrários termina e mede os dois segmentos', () => {
+test('ciclo em sentidos contrários mede ambos os caminhos que contornam uma sala', () => {
   const salas = [sala('a', 0, 5), sala('b', 20, 5), sala('terceira', 10, 5)];
   const segmentos = criarSegmentosDeCorredores(salas, [
     { origem: 'a', destino: 'b' }, { origem: 'b', destino: 'a' },
     { origem: 'a', destino: 'a' },
   ]);
   assert.deepEqual(medirCorredores(salas, segmentos), {
-    cruzamentos: 0, corredoresAtravessandoSalas: 2, comprimentoTotal: 40,
+    cruzamentos: 0, corredoresAtravessandoSalas: 0, comprimentoTotal: 39,
   });
 });
 
@@ -70,7 +76,7 @@ test('trechos colineares sobrepostos não são cruzamentos transversais', () => 
     segmento('c', 'd', salas)]).cruzamentos, 0);
 });
 
-test('ordenação preserva as métricas simples e elimina o cruzamento evitável', () => {
+test('ordenação e caminhos entre bordas preservam cenários simples sem cruzamento', () => {
   const cenarios = {
     cadeia: [funcao('main', ['a']), funcao('a', ['b']), funcao('b', ['c']), funcao('c')],
     ramificacao: [funcao('main', ['a', 'b']), funcao('a', ['c']),
@@ -85,15 +91,17 @@ test('ordenação preserva as métricas simples e elimina o cruzamento evitável
     return [nome, { ...metricas,
       comprimentoTotal: Number(metricas.comprimentoTotal.toFixed(2)) }];
   }));
-  console.log('Métricas de corredores após ordenação:', JSON.stringify(resultados));
+  console.log('Métricas dos caminhos entre bordas:', JSON.stringify(resultados));
+  // Portas precisam caber na parede: rotas que antes saíam pela quina agora
+  // percorrem uma borda segura, aumentando o comprimento sem mudar relações.
   assert.deepEqual(resultados, {
-    cadeia: { cruzamentos: 0, corredoresAtravessandoSalas: 0, comprimentoTotal: 255 },
+    cadeia: { cruzamentos: 0, corredoresAtravessandoSalas: 0, comprimentoTotal: 60 },
     ramificacao: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 366.16 },
+      comprimentoTotal: 160 },
     callers: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 385.04 },
+      comprimentoTotal: 240 },
     cruzado: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 366.16 },
+      comprimentoTotal: 160 },
   });
   assert.ok(resultados.cruzado.cruzamentos < 1);
   assert.ok(resultados.cruzado.comprimentoTotal < 432.43);
