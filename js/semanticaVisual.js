@@ -31,6 +31,15 @@ export function obterNivelDetalhe(zoom) {
   return 'distante';
 }
 
+export function obterEstiloNomeSala(sala, zoom) {
+  // Salas grandes ainda comportam identificação em uma visão geral distante.
+  return {
+    visivel: zoom >= LIMIAR_IDENTIFICACAO ||
+      (sala.largura * zoom >= 48 && sala.altura * zoom >= 42),
+    fonte: Math.min(16, 10 / zoom),
+  };
+}
+
 // Geometria usada somente pelo desenho; a classificação continua em masmorra.regioes.
 export function calcularLimitesVisuaisRegioes(regioes, salas, margem = 20) {
   const salasPorNome = new Map(salas.map(sala => [sala.nome, sala]));

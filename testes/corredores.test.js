@@ -19,7 +19,7 @@ test('piso ampliado contorna terceira sala com toda a sua largura', () => {
   ];
   const trechos = criarSegmentosDeCorredores(mundo, [{ origem: 'a', destino: 'b' }]);
   const raio = LARGURA_CORREDOR / 2;
-  assert.equal(LARGURA_CORREDOR, 24);
+  assert.equal(LARGURA_CORREDOR, 32);
   assert.ok(trechos.length > 1);
   for (const trecho of trechos) {
     assert.ok(!trecho.fallbackDireto);

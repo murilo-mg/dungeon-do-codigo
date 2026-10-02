@@ -637,6 +637,17 @@ Ele considera folga em relação às salas.
 
 Quando uma aproximação levaria a uma porta muito próxima de uma quina, podem ser testadas portas centrais alternativas.
 
+Essas alternativas com folga são testadas antes de qualquer compatibilidade com
+intervalos estreitos do layout legado. A folga considera a largura do piso inteiro.
+
+`extrairPortasDosCorredores` produz os acessos a partir do primeiro e do último
+ponto de cada percurso, verificando a borda completa da sala. Física e desenho
+consomem essa mesma definição, evitando portais em curvas intermediárias.
+
+`calcularJuncoesCorredores` explicita áreas locais de chão compartilhado entre
+faixas paralelas sobrepostas e encontros em T. Um X transversal interior continua
+independente. As junções são geometria física e nunca voltam ao grafo C.
+
 Para compatibilidade com geometrias antigas específicas, corredores semânticos ainda podem usar um fallback identificável quando não existe outra rota.
 
 Esse fallback pertence à representação física da relação existente.
@@ -733,6 +744,9 @@ Durante o movimento, a identidade do percurso é preservada.
 
 Isso impede trocar para outro caminho apenas porque os pisos se cruzaram graficamente.
 
+Uma junção física permite incorporar outro percurso apenas dentro da área local
+compartilhada. Fora dela, a identidade volta a acompanhar os caminhos ocupados.
+
 ---
 
 ## Colisão corporal
@@ -775,6 +789,10 @@ O módulo:
 Se o personagem estiver no interior de um percurso, somente identidades compatíveis com seu estado físico podem servir como saída.
 
 O módulo não cria novos caminhos.
+
+As junções da geometria também entram na rede de navegação automática. Assim,
+uma passagem compartilhada disponível ao movimento manual não exige uma volta
+artificial pelas salas para ser usada pelo automático.
 
 ---
 
@@ -842,6 +860,34 @@ Pode considerar áreas ocupadas por:
 A decoração evita interferir visualmente nas estruturas principais.
 
 O cenário não cria relações nem altera colisões.
+
+As manchas do terreno são geradas uma vez, de forma determinística, com áreas
+reservadas para salas e percursos. Rocha, vegetação e tochas usam os materiais
+compartilhados de `desenhoMasmorra.js`; os detalhes menores acompanham o zoom.
+
+Caixas, baús, barris, crânios e bandeiras usam `aderecosDungeon.js`. A geração
+considera a silhueta completa de cada objeto, evitando salas, percursos e outros
+objetos. Esses adereços não acrescentam colisões ou significado estrutural.
+
+---
+
+## `js/aderecosDungeon.js`
+
+Define sprites, paletas e limites dos adereços decorativos. É compartilhado
+pelo cenário e pela página inicial; não depende do DOM, do grafo ou da navegação.
+
+---
+
+## `js/entradaDungeon.js`
+
+Desenha a parede de fundo e a ilustração da página inicial com os materiais
+compartilhados da dungeon. Ajusta o fundo ao viewport, sem animação contínua.
+Não lê o editor, não analisa C e não altera o mundo do jogo.
+
+O fundo acompanha o viewport por `ResizeObserver`, com o evento `resize` como
+alternativa quando a API não existe. A ausência desse recurso não interrompe
+a inicialização dos controles. `testes/entradaDungeon.test.js` cobre a página
+com os dois canvases presentes, o redimensionamento e o fluxo de gerar/voltar.
 
 ---
 
@@ -956,11 +1002,13 @@ A cena é construída aproximadamente assim:
 ```text
 fundo
 ↓
-territórios regionais
+territórios regionais (fundação rochosa)
 ↓
-galerias
+bordas de todos os percursos
 ↓
-corredores semânticos
+pisos de todos os percursos
+↓
+texturas e pontes
 ↓
 decoração
 ↓
@@ -976,6 +1024,10 @@ placas e etiquetas
 ```
 
 A ordem pode evoluir visualmente, mas não deve alterar a semântica.
+
+`desenharRedeCorredores` compõe chamadas e galerias nessas camadas, preservando
+seus materiais e o foco contextual. Os pisos são aplicados depois de todas as
+bordas para apagar pedras internas em passagens compartilhadas.
 
 ---
 

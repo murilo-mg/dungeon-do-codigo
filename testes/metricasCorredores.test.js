@@ -92,16 +92,17 @@ test('ordenação e caminhos entre bordas preservam cenários simples sem cruzam
       comprimentoTotal: Number(metricas.comprimentoTotal.toFixed(2)) }];
   }));
   console.log('Métricas dos caminhos entre bordas:', JSON.stringify(resultados));
-  // Portas precisam caber na parede: rotas que antes saíam pela quina agora
-  // percorrem uma borda segura, aumentando o comprimento sem mudar relações.
+  // Portas centrais com folga são tentadas antes do desvio estreito legado.
+  // Isso alonga rotas que antes raspavam terceiras salas com a largura do piso.
+  // O piso de 32 unidades exige folga de 22 em cada lado do obstáculo.
   assert.deepEqual(resultados, {
     cadeia: { cruzamentos: 0, corredoresAtravessandoSalas: 0, comprimentoTotal: 60 },
     ramificacao: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 160 },
+      comprimentoTotal: 378 },
     callers: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 240 },
+      comprimentoTotal: 458 },
     cruzado: { cruzamentos: 0, corredoresAtravessandoSalas: 0,
-      comprimentoTotal: 160 },
+      comprimentoTotal: 378 },
   });
   assert.ok(resultados.cruzado.cruzamentos < 1);
   assert.ok(resultados.cruzado.comprimentoTotal < 432.43);

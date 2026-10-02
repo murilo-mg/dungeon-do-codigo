@@ -1,4 +1,11 @@
 // Dublês de DOM e relógio para verificar cancelamento e entrada sem dependências.
+import { LARGURA_CORREDOR } from '../js/corredores.js';
+
+export function opacidadesPisosChamadas(canvas, quantidade) {
+  // Galerias, paredes e base opaca não são o destaque contextual das chamadas.
+  return canvas.tracos.filter(traco => traco.largura === LARGURA_CORREDOR &&
+    ['#807963', '#535e60'].includes(traco.cor)).slice(-quantidade).map(traco => traco.opacidade);
+}
 export class Emissor {
   ouvintes = new Map();
   addEventListener(tipo, funcao) {
@@ -49,6 +56,9 @@ class Elemento extends Emissor {
     let inicio = null;
     let fim = null;
     return { globalAlpha: 1,
+      createRadialGradient(...parametros) {
+        return { parametros, cores: [], addColorStop(posicao, cor) { this.cores.push({ posicao, cor }); } };
+      },
       save() { this.canvas.salvamentos++; opacidades.push(this.globalAlpha); },
       restore() { this.canvas.restauracoes++; this.globalAlpha = opacidades.pop(); },
       fillRect: function(x, y, largura, altura) {
@@ -78,7 +88,8 @@ class Elemento extends Emissor {
       beginPath() { inicio = null; fim = null; },
       moveTo(x, y) { inicio = { x, y }; },
       lineTo(x, y) { fim = { x, y }; },
-      stroke() { this.canvas.tracos.push({ inicio, fim, opacidade: this.globalAlpha }); },
+      stroke() { this.canvas.tracos.push({ inicio, fim, opacidade: this.globalAlpha,
+        cor: this.strokeStyle, largura: this.lineWidth }); },
       scale: (x, y) => this.escalas.push({ x, y }),
       translate: (x, y) => this.translacoes.push({ x, y }),
       fillText: function(texto, x, y) {

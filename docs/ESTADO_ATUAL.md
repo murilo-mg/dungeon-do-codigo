@@ -1,6 +1,6 @@
 # Estado atual
 
-Este documento registra o estado funcional e técnico atual do **Dungeon do Código** no momento de preparação da baseline estável.
+Este documento registra o estado funcional e técnico atual do **Dungeon do Código** nos refinamentos posteriores à baseline `v0.1.0`.
 
 Para entender a organização dos módulos, consulte `ARQUITETURA.md`.
 
@@ -12,11 +12,15 @@ Para funcionalidades planejadas, consulte `PLANO_TECNICO.md`.
 
 ## Repositório
 
-Branch de desenvolvimento atual:
+Branch da revisão atual:
 
 ```text
-melhoria/v1-publica
+main
 ```
+
+A baseline `v0.1.0` está na tag do commit `ae885db` e foi incorporada à
+`main` pelo commit `fc6da7a` (`release: incorpora baseline v0.1.0 na main (#1)`).
+Os refinamentos deste documento são posteriores a essa baseline.
 
 O projeto é um frontend estático feito com:
 
@@ -86,6 +90,13 @@ A tela inicial permite:
 - colar código;
 - abrir um arquivo `.c`;
 - arrastar um arquivo válido para a área de entrada.
+
+A página inicial usa uma parede em pixel art, tochas estáticas, estandartes e
+objetos de madeira e osso. O editor e seus controles continuam sendo elementos
+DOM. A ilustração de duas salas utiliza os mesmos materiais e sprites do mapa;
+ela não interpreta o conteúdo do editor. O fundo usa `ResizeObserver` quando
+disponível e o evento `resize` como alternativa; a decoração não deve impedir
+a inicialização do editor e dos botões.
 
 A importação aceita atualmente:
 
@@ -259,6 +270,10 @@ O layout regional considera:
 
 A mesma entrada deve produzir a mesma estrutura.
 
+Cada quantidade candidata de colunas é avaliada depois de aproximar as regiões
+relacionadas. A proporção da planta também entra no custo para evitar conjuntos
+muito estreitos e altos quando uma distribuição compacta é possível.
+
 O mundo lógico pode ser maior que o Canvas.
 
 ---
@@ -303,6 +318,15 @@ Os corredores atuais:
 - procuram evitar outras salas;
 - utilizam portas nas extremidades;
 - mantêm uma largura física compartilhada com a colisão.
+
+As chamadas mais curtas são roteadas primeiro. As demais podem aproveitar os
+mesmos eixos, mantendo um percurso completo por chamada. O custo favorece piso
+alinhado e desestimula faixas paralelas quase coladas, curvas e cruzamentos.
+O acabamento desenha uma única textura nos intervalos de piso coincidentes.
+O foco contextual conserva o destaque da chamada sobre o piso compartilhado.
+
+Portas e junções físicas são dados explícitos compartilhados pelo desenho e pela
+navegação. Portas centrais com folga são tentadas antes do fallback estreito legado.
 
 Quando a geometria não permite um caminho seguro dentro das regras atuais, existe um fallback identificável para casos compatíveis com o layout legado.
 
@@ -359,6 +383,10 @@ O estado de movimento preserva a identidade do percurso.
 
 Isso impede que dois caminhos que apenas se cruzam visualmente passem a funcionar como um entroncamento.
 
+Faixas paralelas sobrepostas e encontros em T possuem junções locais. Nelas o
+personagem pode atravessar o chão compartilhado sem uma divisão invisível entre
+percursos. A mesma junção pode ser usada pela navegação automática.
+
 ---
 
 # Colisão do personagem
@@ -383,6 +411,10 @@ A parte superior do sprite ainda pode se projetar visualmente sobre uma parede e
 # Personagem
 
 `personagem.js` mantém estado, direção, animação e velocidade.
+
+O sprite usa uma malha de 14 por 16 pixels, com roupa, rosto, botas e metal
+sombreados. As vistas de frente, costas e lados acompanham a direção; a vista
+esquerda espelha a direita. O acabamento conserva a base física e a velocidade.
 
 O módulo não conhece diretamente salas, grafo ou regiões.
 
@@ -611,6 +643,10 @@ Em visão distante, o mapa prioriza:
 
 Em níveis intermediários, nomes de funções ganham mais destaque.
 
+Salas com área suficiente na tela também mantêm o nome em visão distante.
+A fonte compensa o zoom até o limite definido para a placa; nomes extensos
+continuam abreviados, com o texto completo disponível no hover e no inspector.
+
 Em visão próxima, aparecem:
 
 - detalhes internos;
@@ -634,6 +670,9 @@ A versão atual possui elementos visuais como:
 - rochas;
 - musgo;
 - pilares;
+- bandeiras;
+- caixas, baús e barris;
+- crânios;
 - detalhes de alvenaria;
 - criaturas;
 - efeitos;
@@ -643,6 +682,39 @@ A versão atual possui elementos visuais como:
 O cenário evita ocupar as áreas reservadas para os percursos físicos.
 
 Elementos decorativos não alteram o grafo nem a área caminhável.
+
+Os adereços têm limites explícitos. Sua distribuição determinística verifica
+o objeto inteiro contra salas, corredores e outros objetos, preservando portas
+e evitando sobreposição. Eles não representam loot ou novas métricas do código.
+
+A fundação entre salas usa rocha escura e esparsa; o chão caminhável usa lajes com
+variação determinística. As portas possuem soleiras abertas e ombreiras laterais.
+Chamadas e galerias são desenhadas em camadas comuns de bordas, pisos e detalhes,
+evitando paredes decorativas dentro de passagens compartilhadas.
+
+O acabamento inclui pedras chanfradas, juntas e rachaduras nas lajes, reforços
+nas muralhas, placas de madeira com ferragens e tapete bordado na sala de entrada.
+Rochas com silhuetas variadas, musgo, samambaias, colunas quebradas e pequenas
+teias dão textura ao cenário sem ocupar os pisos caminháveis.
+
+Tochas usam halos translúcidos, chama e pequenas brasas. Com
+`prefers-reduced-motion`, a iluminação permanece estática. Os detalhes menores
+de pedra e vegetação simplificam conforme o zoom, nos dois modos visuais.
+
+O terreno possui manchas e fragmentos fixos com distribuição irregular.
+As bordas alternam rochas e folhagens, e a luz das tochas usa um halo radial
+translúcido. As muralhas recebem pigmento da cor regional existente.
+
+As criaturas também usam sprites de 14 por 16 pixels e paletas próprias, tanto
+nas salas quanto no retrato. Os limiares de complexidade e os nomes das três
+criaturas permanecem os mesmos.
+
+O piso dos corredores e galerias mede 32 pixels no mundo. Portas, folgas do
+roteamento, junções, colisão e desenho acompanham essa largura compartilhada.
+
+Os controles de zoom e modo visual compartilham a barra abaixo do Canvas.
+A legenda fica em um painel expansível acessível pelo teclado, liberando espaço
+para o mapa quando recolhida.
 
 ---
 
@@ -654,7 +726,8 @@ Isso não significa que exista uma conexão entre eles.
 
 A identidade de cada caminho é preservada pela física e pela navegação.
 
-Alguns cruzamentos recebem acabamento visual específico para ajudar na leitura.
+Os cruzamentos transversais independentes recebem acabamento de ponte, inclusive
+quando próximos de uma curva. Eles continuam sem permitir a troca de percurso.
 
 Encontros muito próximos de portas, curvas ou trechos sobrepostos ainda podem ser visualmente ambíguos em casos específicos.
 
@@ -668,11 +741,11 @@ A suíte automatizada é executada com:
 npm test
 ```
 
-No estado auditado desta baseline candidata:
+Na revisão dos refinamentos posteriores à baseline `v0.1.0`:
 
 ```text
-328 testes
-328 passando
+354 testes
+354 passando
 0 falhando
 ```
 
@@ -704,7 +777,11 @@ A suíte cobre, entre outros pontos:
 - clique;
 - duplo clique;
 - modos visuais;
-- importação de arquivos.
+- importação de arquivos;
+- limites e posicionamento dos adereços;
+- coerência entre piso, portas, junções, colisão e navegação;
+- roteamento de chamadas convergentes;
+- inicialização e redimensionamento da decoração da entrada.
 
 O estado atual também foi validado com:
 
@@ -775,18 +852,21 @@ O estado atual mantém as seguintes regras:
 
 ---
 
-# Situação da baseline
+# Situação da baseline e dos refinamentos
 
-Este estado é o candidato atual à baseline organizada da primeira versão pública.
+A baseline `v0.1.0` já existe e está incorporada à `main`.
+A revisão atual consolida as mudanças da página inicial e da exploração:
 
-Antes de congelar a baseline ainda devem ser concluídos:
+- materiais e sprites compartilhados entre a prévia e o jogo;
+- adereços decorativos com limites completos;
+- corredores com piso compartilhado e pontes em cruzamentos independentes;
+- portas e junções usadas pelo desenho, pela colisão e pela navegação;
+- composição regional mais compacta e nomes legíveis conforme o espaço;
+- barra de câmera e modo visual com legenda expansível.
 
-- revisão dos documentos;
-- limpeza de comentários e pequenos artefatos de código;
-- validação manual final;
-- definição do número da versão;
-- commit de estabilização;
-- criação da tag;
-- push, somente após autorização explícita.
+A suíte local passou com 354 testes. A inspeção visual desta revisão no navegador
+permanece pendente e deve conferir as duas telas, redimensionamento, importação,
+busca, clique/duplo clique, movimento, portas, zoom e retorno ao editor.
 
-Até essas etapas terminarem, o projeto continua em preparação para a baseline.
+O commit desta consolidação deve preservar a tag existente. A criação de outra
+tag e o push são etapas separadas, posteriores à validação visual.

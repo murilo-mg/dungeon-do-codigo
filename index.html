@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon do Código</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -10,6 +11,7 @@
 <body>
 
 <main id="tela-entrada" class="tela-entrada">
+<canvas id="fundo-entrada" aria-hidden="true"></canvas>
 
 <h1>Dungeon do Código</h1>
 <p class="subtitulo">Cole código C ou abra um arquivo .c. Cada função vira uma sala: quanto mais complexa a função, maior e mais perigosa a sala. Ande com as setas ou WASD para explorar.</p>
@@ -17,13 +19,17 @@
   Processado localmente no seu navegador. Seu código não é enviado, armazenado nem executado.
 </p>
 <div class="painel configuracao" id="painel-configuracao">
-  <label for="entrada-codigo">Código-fonte em C</label>
-  <p class="dica dica-editor">
-    Experimente com o código já carregado, cole o seu ou abra um arquivo .c.
-  </p>
+  <div class="cabecalho-editor">
+    <div>
+      <label for="entrada-codigo"><span class="icone-documento" aria-hidden="true"></span>Código-fonte em C</label>
+      <p class="dica dica-editor">
+        Experimente com o código já carregado, cole o seu ou abra um arquivo .c.
+      </p>
+    </div>
+    <button id="botao-abrir-c" class="fantasma" type="button"><span class="icone-pasta" aria-hidden="true"></span>Abrir .c</button>
+  </div>
   <textarea id="entrada-codigo" aria-describedby="dica-importacao"></textarea>
   <div class="importacao-codigo">
-    <button id="botao-abrir-c" class="fantasma" type="button">Abrir .c</button>
     <input id="arquivo-c" type="file" accept=".c,text/plain,text/x-c" hidden>
     <span id="dica-importacao" class="dica">Ou arraste um .c para a área de código (até 512 KiB).</span>
     <span id="arquivo-atual" class="dica" role="status" aria-live="polite"></span>
@@ -47,7 +53,7 @@
   <div class="preview-transformacao">
     <div class="preview-codigo">
       <span>int main() {</span>
-      <span class="preview-simples">  iniciar();</span>
+      <span class="preview-simples">  processar();</span>
       <span>}</span>
       <span>&nbsp;</span>
       <span>void processar() {</span>
@@ -59,17 +65,10 @@
 
     <span class="preview-fluxo">→</span>
 
-    <div class="preview-mapa">
-      <div class="preview-sala preview-sala-simples">
-        <span class="preview-nome">main()</span>
-      </div>
-
-      <div class="preview-corredor"></div>
-
-      <div class="preview-sala preview-sala-complexa">
-        <span class="preview-nome">processar()</span>
-      </div>
-    </div>
+    <canvas id="preview-mapa" class="preview-mapa" width="412" height="172"
+      role="img" aria-label="Ilustração: main chama processar. As funções aparecem como salas ligadas por um corredor.">
+      main() chama processar(): duas salas conectadas por um corredor.
+    </canvas>
   </div>
 
   <p class="preview-legenda">
@@ -102,31 +101,36 @@
         width="560"
         height="480"
       ></canvas>
-      <div class="controles-camera" role="group" aria-label="Controles da câmera">
-        <button id="camera-afastar" type="button" aria-label="Afastar zoom">−</button>
-        <button id="camera-zoom" type="button" aria-label="Zoom atual: 100%. Restaurar para 100%">100%</button>
-        <button id="camera-aproximar" type="button" aria-label="Aproximar zoom">+</button>
-        <button id="camera-encaixar" type="button">Encaixar</button>
+      <div class="barra-mapa">
+        <div class="controles-camera" role="group" aria-label="Controles da câmera">
+          <button id="camera-afastar" type="button" aria-label="Afastar zoom">−</button>
+          <button id="camera-zoom" type="button" aria-label="Zoom atual: 100%. Restaurar para 100%">100%</button>
+          <button id="camera-aproximar" type="button" aria-label="Aproximar zoom">+</button>
+          <button id="camera-encaixar" type="button">Encaixar</button>
+        </div>
+        <div class="controles-modo" role="group" aria-label="Modo de leitura do mapa">
+          <span>Modo:</span>
+          <button id="modo-complexidade" type="button" aria-pressed="true">Complexidade</button>
+          <button id="modo-estrutura" type="button" aria-pressed="false">Estrutura</button>
+        </div>
       </div>
-      <div class="controles-modo" role="group" aria-label="Modo de leitura do mapa">
-        <span>Modo:</span>
-        <button id="modo-complexidade" type="button" aria-pressed="true">Complexidade</button>
-        <button id="modo-estrutura" type="button" aria-pressed="false">Estrutura</button>
-      </div>
-      <section class="legenda-estrutural" aria-label="Legenda dos marcadores das salas">
-        <span>Estruturas:</span>
-        <ul>
-          <li><strong>I</strong> if</li>
-          <li><strong>F</strong> for</li>
-          <li><strong>W</strong> while</li>
-          <li><strong>S</strong> switch</li>
-          <li><strong>R</strong> recursão direta</li>
-          <li><strong>C</strong> ciclo indireto</li>
-        </ul>
-        <span>Complexidade: cores e criaturas; Estrutura: marcadores de estruturas e ciclos.</span>
-        <span>Pontes: caminhos sobrepostos, sem passagem de um para o outro.</span>
-        <span>Galerias verdes com marcas quadradas: circulação livre, não representam chamadas.</span>
-      </section>
+      <details class="legenda-mapa">
+        <summary>Legenda do mapa</summary>
+        <section class="legenda-estrutural" aria-label="Legenda dos marcadores das salas">
+          <span>Estruturas:</span>
+          <ul>
+            <li><strong>I</strong> if</li>
+            <li><strong>F</strong> for</li>
+            <li><strong>W</strong> while</li>
+            <li><strong>S</strong> switch</li>
+            <li><strong>R</strong> recursão direta</li>
+            <li><strong>C</strong> ciclo indireto</li>
+          </ul>
+          <span>Complexidade: cores e criaturas; Estrutura: marcadores de estruturas e ciclos.</span>
+          <span>Pontes: caminhos sobrepostos, sem passagem de um para o outro.</span>
+          <span>Galerias verdes com marcas quadradas: circulação livre, não representam chamadas.</span>
+        </section>
+      </details>
     </div>
 
     <aside class="workspace-inspetor">

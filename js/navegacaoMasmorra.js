@@ -1,6 +1,6 @@
 // Traça deslocamentos apenas dentro de salas e sobre percursos físicos existentes.
 
-import { chaveDoPercurso } from './corredores.js';
+import { chaveDoPercurso, calcularJuncoesCorredores } from './corredores.js';
 import { pontoNoTrecho } from './areaCaminhavel.js';
 
 function centro(sala) {
@@ -73,40 +73,82 @@ function simplificarPontos(pontos) {
   return resultado;
 }
 
+function pontoNoEixo(ponto, inicio, fim) {
+  const projecao = projecaoNoSegmento(ponto, inicio, fim);
+  return distancia(ponto, projecao) < 1e-8;
+}
+
+// As junções pertencem à circulação física. A malha conserva cada percurso nos
+// cruzamentos independentes e não acrescenta chamadas ao grafo do programa.
+function criarMalha(salasPorNome, segmentos, rotas) {
+  const nos = new Map();
+  const trechos = [];
+  const cortes = new Map(rotas.map(rota => [rota.id, []]));
+  const rotasPorId = new Map(rotas.map(rota => [rota.id, rota]));
+  const chaveSala = nome => JSON.stringify(['sala', nome]);
+  const chavePonto = (rota, ponto) => {
+    for (const nome of [rota.origem, rota.destino]) {
+      if (distancia(ponto, centro(salasPorNome.get(nome))) < 1e-8) return chaveSala(nome);
+    }
+    return JSON.stringify(['percurso', rota.id, ponto.x, ponto.y]);
+  };
+  const ligar = (a, b, pontos) => {
+    if (!nos.has(a)) nos.set(a, []);
+    if (!nos.has(b)) nos.set(b, []);
+    const custo = comprimento(pontos);
+    if (a === b) return;
+    nos.get(a).push({ no: b, custo, pontos: pontos.slice(1) });
+    nos.get(b).push({ no: a, custo, pontos: pontos.slice(0, -1).reverse() });
+  };
+  for (const nome of salasPorNome.keys()) nos.set(chaveSala(nome), []);
+  const juncoes = calcularJuncoesCorredores(segmentos).filter(juncao =>
+    juncao.ids.every(id => rotasPorId.has(id)));
+  for (const juncao of juncoes) {
+    cortes.get(juncao.ids[0]).push(juncao.pontoA);
+    cortes.get(juncao.ids[1]).push(juncao.pontoB);
+  }
+  for (const rota of rotas) {
+    for (let i = 1; i < rota.pontos.length; i++) {
+      const a = rota.pontos[i - 1], b = rota.pontos[i];
+      if (distancia(a, b) < 1e-8) continue;
+      const pontos = [a, ...cortes.get(rota.id).filter(ponto => pontoNoEixo(ponto, a, b)), b]
+        .sort((p, q) => distancia(a, p) - distancia(a, q));
+      for (let j = 1; j < pontos.length; j++) {
+        if (distancia(pontos[j - 1], pontos[j]) < 1e-8) continue;
+        const inicio = pontos[j - 1], fim = pontos[j];
+        const noInicio = chavePonto(rota, inicio), noFim = chavePonto(rota, fim);
+        ligar(noInicio, noFim, [inicio, fim]);
+        trechos.push({ id: rota.id, inicio, fim, noInicio, noFim });
+      }
+    }
+  }
+  for (const juncao of juncoes) {
+    const a = chavePonto(rotasPorId.get(juncao.ids[0]), juncao.pontoA);
+    const b = chavePonto(rotasPorId.get(juncao.ids[1]), juncao.pontoB);
+    ligar(a, b, [juncao.pontoA, juncao.pontoB]);
+  }
+  return { nos, trechos, chaveSala };
+}
+
 export function calcularRotaCaminhavel(salas, segmentos, posicaoAtual, nomeDestino, local = null) {
   const salasPorNome = new Map(salas.map(sala => [sala.nome, sala]));
   if (!salasPorNome.has(nomeDestino)) return null;
-
   const rotas = agruparRotas(segmentos, salasPorNome);
-  const vizinhos = new Map([...salasPorNome.keys()].map(nome => [nome, []]));
-  for (const rota of rotas) {
-    const custo = comprimento(rota.pontos);
-    if (custo === 0) continue;
-    vizinhos.get(rota.origem).push({ nome: rota.destino, custo, pontos: rota.pontos });
-    vizinhos.get(rota.destino).push({ nome: rota.origem, custo, pontos: [...rota.pontos].reverse() });
-  }
-
+  const malha = criarMalha(salasPorNome, segmentos, rotas);
   const acessos = [];
   const salaAtual = local ? salasPorNome.get(local.sala)
     : salas.find(sala => estaNaSala(posicaoAtual, sala));
   if (salaAtual) {
     const ponto = centro(salaAtual);
-    acessos.push({ nome: salaAtual.nome, custo: distancia(posicaoAtual, ponto), pontos: [ponto] });
+    acessos.push({ no: malha.chaveSala(salaAtual.nome), custo: distancia(posicaoAtual, ponto), pontos: [ponto] });
   } else {
-    for (const rota of rotas) {
-      if (local && !local.corredores.includes(rota.id)) continue;
-      for (let indice = 1; indice < rota.pontos.length; indice++) {
-        const ponto = projecaoNoSegmento(posicaoAtual, rota.pontos[indice - 1], rota.pontos[indice]);
-        const afastamento = distancia(posicaoAtual, ponto);
-        if (!pontoNoTrecho(posicaoAtual, {
-          inicio: rota.pontos[indice - 1], fim: rota.pontos[indice],
-        })) continue;
-        const ateOrigem = [ponto, ...rota.pontos.slice(0, indice).reverse()];
-        const ateDestino = [ponto, ...rota.pontos.slice(indice)];
-        acessos.push({ nome: rota.origem,
-          custo: afastamento + comprimento(ateOrigem), pontos: ateOrigem });
-        acessos.push({ nome: rota.destino,
-          custo: afastamento + comprimento(ateDestino), pontos: ateDestino });
+    for (const trecho of malha.trechos) {
+      if (local && !local.corredores.includes(trecho.id)) continue;
+      if (!pontoNoTrecho(posicaoAtual, trecho)) continue;
+      const ponto = projecaoNoSegmento(posicaoAtual, trecho.inicio, trecho.fim);
+      const afastamento = distancia(posicaoAtual, ponto);
+      for (const [no, extremo] of [[trecho.noInicio, trecho.inicio], [trecho.noFim, trecho.fim]]) {
+        acessos.push({ no, custo: afastamento + distancia(ponto, extremo), pontos: [ponto, extremo] });
       }
     }
   }
@@ -114,37 +156,36 @@ export function calcularRotaCaminhavel(salas, segmentos, posicaoAtual, nomeDesti
 
   const custos = new Map();
   const anteriores = new Map();
-  const acessosPorSala = new Map();
+  const acessosPorNo = new Map();
   for (const acesso of acessos) {
-    if (acesso.custo >= (custos.get(acesso.nome) ?? Infinity)) continue;
-    custos.set(acesso.nome, acesso.custo);
-    anteriores.set(acesso.nome, null);
-    acessosPorSala.set(acesso.nome, acesso);
+    if (acesso.custo >= (custos.get(acesso.no) ?? Infinity)) continue;
+    custos.set(acesso.no, acesso.custo);
+    anteriores.set(acesso.no, null);
+    acessosPorNo.set(acesso.no, acesso);
   }
-
+  const destino = malha.chaveSala(nomeDestino);
   const visitados = new Set();
   while (true) {
     let atual = null;
-    for (const [nome, custo] of custos) {
-      if (!visitados.has(nome) && (atual === null || custo < custos.get(atual))) atual = nome;
+    for (const [no, custo] of custos) {
+      if (!visitados.has(no) && (atual === null || custo < custos.get(atual))) atual = no;
     }
-    if (atual === null || atual === nomeDestino) break;
+    if (atual === null || atual === destino) break;
     visitados.add(atual);
-    for (const vizinho of vizinhos.get(atual)) {
+    for (const vizinho of malha.nos.get(atual)) {
       const novoCusto = custos.get(atual) + vizinho.custo;
-      if (novoCusto >= (custos.get(vizinho.nome) ?? Infinity)) continue;
-      custos.set(vizinho.nome, novoCusto);
-      anteriores.set(vizinho.nome, { nome: atual, pontos: vizinho.pontos });
+      if (novoCusto >= (custos.get(vizinho.no) ?? Infinity)) continue;
+      custos.set(vizinho.no, novoCusto);
+      anteriores.set(vizinho.no, { no: atual, pontos: vizinho.pontos });
     }
   }
-  if (!custos.has(nomeDestino)) return null;
-
+  if (!custos.has(destino)) return null;
   const etapas = [];
-  let nome = nomeDestino;
-  while (anteriores.get(nome) !== null) {
-    const anterior = anteriores.get(nome);
+  let no = destino;
+  while (anteriores.get(no) !== null) {
+    const anterior = anteriores.get(no);
     etapas.unshift(anterior.pontos);
-    nome = anterior.nome;
+    no = anterior.no;
   }
-  return simplificarPontos([...acessosPorSala.get(nome).pontos, ...etapas.flat()]);
+  return simplificarPontos([...acessosPorNo.get(no).pontos, ...etapas.flat()]);
 }

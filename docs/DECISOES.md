@@ -217,6 +217,12 @@ A identidade dos percursos deve continuar explícita.
 
 Não se deve inferir uma ligação apenas porque duas linhas se encontram na tela.
 
+Faixas paralelas com chão sobreposto e encontros em T são classificados como
+junções físicas locais na geometria. A colisão e a navegação automática usam essa
+mesma classificação; cruzamentos transversais interiores continuam separados.
+Isso evita divisões invisíveis dentro de uma passagem desenhada como contínua,
+sem alterar callers, callees ou alcançabilidade no grafo.
+
 ---
 
 # Regiões semânticas
@@ -416,6 +422,16 @@ Uma chamada pode ser representada por:
 
 Enquanto a identidade da chamada for preservada, a geometria pode evoluir.
 
+O roteamento considera primeiro as relações mais curtas e usa seus eixos como
+alternativas para as próximas. Compartilhar um trecho físico reduz o emaranhado
+de faixas paralelas; cada relação mantém seus extremos, identidade e sequência
+de pontos. A ordem retornada continua sendo a ordem das arestas do grafo.
+
+A preferência por piso existente é um custo geométrico, não uma nova relação
+entre funções. Obstáculos e a folga das portas continuam obrigatórios. Pisos
+coincidentes recebem uma textura única; chamadas em foco são desenhadas por
+último para que a atenuação das demais não apague seu destaque.
+
 ---
 
 ## Portas devem surgir de conexões reais
@@ -423,6 +439,9 @@ Enquanto a identidade da chamada for preservada, a geometria pode evoluir.
 Uma abertura em uma sala deve corresponder a um percurso físico real.
 
 Portas não devem aparecer como decoração aleatória.
+
+Os acessos são extraídos uma vez das extremidades dos percursos e validados na
+borda completa da sala. Coincidir apenas com a coordenada de uma parede não basta.
 
 ---
 
@@ -590,6 +609,10 @@ Eles não devem reconstruir:
 Paredes, musgo, tochas, pedras e outros acabamentos pertencem à apresentação.
 
 A física deve continuar baseada na geometria explícita de salas e percursos.
+
+Por isso a fundação regional tem aparência de rocha escura, enquanto apenas os
+espaços caminháveis recebem piso pavimentado. Na rede de passagens, todas as bordas
+são desenhadas antes dos pisos, para não criar paredes decorativas em junções.
 
 ---
 
@@ -820,3 +843,15 @@ estrutura criada apenas para visualização e exploração
 ```
 
 Essa separação é a base de confiança do projeto.
+
+---
+
+## A decoração da entrada não deve bloquear a aplicação
+
+A página inicial desenha materiais compartilhados, mas mantém editor e botões
+no DOM. O fundo é estático e redimensionado conforme o viewport; não recebe um
+ciclo contínuo de animação nem interpreta o código do usuário.
+
+`ResizeObserver` é usado quando disponível. O evento `resize` é a alternativa
+para que a ausência dessa API não impeça a inicialização do editor, a geração
+da dungeon ou o retorno da exploração. Essa garantia possui testes de integração.

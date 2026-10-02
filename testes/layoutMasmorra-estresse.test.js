@@ -7,14 +7,14 @@ import { medirCorredores } from './metricasCorredores.js';
 
 const TAMANHOS = [5, 15, 30, 60];
 // Comprimento mede agora os caminhos externos entre bordas; trechos dentro
-// das salas não entram na conta. Folga de 18 acompanha o piso de 24 unidades;
+// das salas não entram na conta. Folga de 22 acompanha o piso de 32 unidades;
 // plantas antigas muito apertadas usam o fallback sem folga do roteador.
 const BASE_CORREDORES = {
   '5-cadeia': [0, 0, 80],
   '5-mesmoNivel': [0, 0, 570],
   '5-combinacao': [0, 0, 185],
   '15-cadeia': [0, 0, 280],
-  '15-mesmoNivel': [0, 0, 5475],
+  '15-mesmoNivel': [0, 0, 5490],
   '15-combinacao': [0, 0, 325],
   '30-cadeia': [0, 0, 580],
   '30-mesmoNivel': [0, 0, 22420],
@@ -273,8 +273,10 @@ test('cenário denso mede ganho sem mudar níveis, arestas ou dimensões', () =>
   const novas = [cruzamentos, corredoresAtravessandoSalas,
     Number(comprimentoTotal.toFixed(2))];
   const anteriores = [59, 15, 6439.16];
-  // A margem nas portas elimina saídas pela quina; os desvios ficam maiores.
-  assert.deepEqual(novas, [16, 0, 6350]);
+  // Eixos compartilhados reduzem os cruzamentos da planta anterior (12),
+  // mantendo todas as relações estruturais. A folga de 22 alonga os desvios
+  // em 36 unidades em relação ao piso anterior, que media 28.
+  assert.deepEqual(novas, [8, 0, 6106]);
   novas.forEach((valor, indice) => assert.ok(valor < anteriores[indice]));
   console.log('Cenário denso antes/depois:', JSON.stringify({ anteriores, novas }));
 });
