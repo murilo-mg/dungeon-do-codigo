@@ -41,19 +41,10 @@ O histórico está em `../EVOLUCAO.md`; o escopo da publicação está em `PUBLI
 
 ---
 
-# Etapa 0 — Licenciamento e apresentação do repositório
-
-A publicação foi fechada na `v0.2.0`: README, capturas e documentação estão
-integrados; a versão hospedada foi conferida em Firefox e Chromium; e a tag e
-release foram criadas a partir da `main` final.
-
-Restam os seguintes registros independentes do funcionamento da aplicação:
-
-1. Escolher e registrar a licença do código do projeto. As fontes já possuem
-   suas licenças em `assets/fontes/`.
-2. Preencher a descrição e o link público no About do repositório.
-
-A tag `v0.1.0` permanece como referência histórica e não deve ser recriada.
+O licenciamento do projeto usa MIT, registrada em `../LICENSE` e `package.json`.
+As fontes mantêm suas licenças em `assets/fontes/`. O About do GitHub já contém
+a descrição e o link da demonstração. Esses registros de fechamento estão
+concluídos; o plano passa a priorizar os próximos ciclos educativos.
 
 ---
 
@@ -470,12 +461,11 @@ Não é objetivo imediato:
 
 # Ordem recomendada
 
-1. Registrar a licença e preencher o About do repositório.
-2. Explicar melhor a análise e seus limites.
-3. Adicionar exemplos prontos.
-4. Melhorar UX e acessibilidade a partir de problemas observados.
-5. Adicionar exportação.
-6. Iniciar os recursos de versões posteriores.
+1. Explicar melhor a análise e seus limites.
+2. Adicionar exemplos prontos.
+3. Melhorar UX e acessibilidade a partir de problemas observados.
+4. Adicionar exportação.
+5. Iniciar os recursos de versões posteriores.
 
 Segurança e validação da hospedagem acompanham cada ciclo.
 

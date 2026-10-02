@@ -31,6 +31,10 @@ que registra a versão publicada. O fechamento documental é posterior à tag.
 Demonstração: [dungeon-do-codigo.pages.dev](https://dungeon-do-codigo.pages.dev/).
 Configuração e verificações da hospedagem: [PUBLICACAO.md](PUBLICACAO.md).
 
+O projeto usa a [licença MIT](../LICENSE), com autoria de Murilo da Mota
+Gonçalves. As fontes mantêm suas licenças próprias em `assets/fontes/`. O About
+do repositório possui descrição e link público.
+
 O projeto é um frontend estático feito com:
 
 - HTML;

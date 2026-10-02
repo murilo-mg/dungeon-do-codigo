@@ -713,6 +713,18 @@ pública consolidada do projeto.
 
 ---
 
+# 32. Licenciamento e apresentação do repositório
+
+Em 2 de outubro de 2026, foi adotada a licença MIT, com autoria de Murilo da
+Mota Gonçalves e registro em `LICENSE` e `package.json`. As fontes mantêm suas
+licenças SIL Open Font License. A descrição e o link da demonstração também
+foram preenchidos no About do GitHub.
+
+O licenciamento e os registros documentais são posteriores à tag `v0.2.0`;
+a referência histórica da release permanece no commit `5fded90`.
+
+---
+
 # Linha resumida de evolução
 
 ```text

@@ -1,6 +1,7 @@
 {
   "name": "dungeon-do-codigo",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": { "test": "node --test testes/*.test.js" }
 }
