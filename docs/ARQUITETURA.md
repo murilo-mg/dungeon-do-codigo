@@ -1,6 +1,6 @@
 # Arquitetura
 
-Este documento descreve a arquitetura atual do **Dungeon do Código** na baseline em preparação.
+Este documento descreve a arquitetura atual do **Dungeon do Código** na versão publicada, com os refinamentos posteriores à baseline `v0.1.0`.
 
 O objetivo é registrar:
 
@@ -262,12 +262,15 @@ As regras semânticas e físicas da dungeon não devem depender do CSS.
 
 ## `js/entradaCodigo.js`
 
-Centraliza regras básicas da importação de arquivos C.
+Centraliza regras da importação, do texto colado e das funções extraídas.
 
-Atualmente valida principalmente:
+Valida:
 
-- extensão `.c`;
-- limite de 512 KiB.
+- extensão `.c` e tamanho declarado do arquivo antes da leitura;
+- limite de 512 KiB em bytes UTF-8, inclusive depois da leitura;
+- entrada não vazia;
+- até 64 funções com nomes únicos de até 128 caracteres;
+- até 256 relações de chamada distintas.
 
 O módulo não:
 
@@ -1547,3 +1550,8 @@ O HTML usa CSP sem scripts inline, conexões de dados ou objetos. Fontes e
 estilos são locais. `_headers` oferece a política HTTP, incluindo bloqueio de
 enquadramento, para servidores que reconheçam o formato; a resposta real deve
 ser conferida. Privacidade e limites estão documentados em `../SECURITY.md`.
+
+A produção usa Cloudflare Pages, com saída estática em `dist/` e `_headers`
+na raiz dessa saída. A configuração, a URL e as verificações da resposta HTTP
+estão em [PUBLICACAO.md](PUBLICACAO.md). As capturas em `docs/imagens/` pertencem
+somente à documentação e ficam fora da saída publicada.

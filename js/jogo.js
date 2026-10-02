@@ -1,5 +1,5 @@
-// Responsável exclusivamente pela renderização em canvas e pela física do jogador.
-// Não manipula DOM diretamente: notifica mudanças de sala por callback.
+// Coordena renderização, interação e física no Canvas.
+// Acessa o Canvas e seus eventos; informa mudanças de sala por callback.
 
 import { desenharTerritorio, desenharAlvenariaSala, desenharPlacaRegiao, desenharRedeCorredores, desenharPortaisSalas } from './desenhoMasmorra.js';
 import { prepararCenaDungeon } from './preparacaoDungeon.js';

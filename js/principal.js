@@ -70,7 +70,7 @@ void cadastrar_produto(Produto lista[], int *total) {
     printf("Codigo: ");
     scanf("%d", &p.codigo);
     printf("Nome: ");
-    scanf(" %[^\\n]", p.nome);
+    scanf(" %49[^\\n]", p.nome);
     printf("Quantidade: ");
     scanf("%d", &p.quantidade);
     printf("Preco: ");
