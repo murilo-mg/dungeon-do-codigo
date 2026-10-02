@@ -1,5 +1,6 @@
 // Colisão sobre a geometria existente; não conhece Canvas, câmera ou grafo.
-import { chaveDoPercurso, LARGURA_CORREDOR } from './corredores.js';
+import { chaveDoPercurso, calcularJuncoesCorredores, extrairPortasDosCorredores,
+  LARGURA_CORREDOR } from './corredores.js';
 
 const RAIO_CORREDOR = LARGURA_CORREDOR / 2;
 const PASSO_MAXIMO = 1;
@@ -11,54 +12,43 @@ export function pontoNaSala(ponto, sala) {
 }
 
 function pertoDaPorta(ponto, porta) {
-  return Math.abs(ponto.x - porta.x) <= RAIO_CORREDOR + EPSILON &&
+  return porta && Math.abs(ponto.x - porta.x) <= RAIO_CORREDOR + EPSILON &&
     Math.abs(ponto.y - porta.y) <= RAIO_CORREDOR + EPSILON;
 }
 
-function pontoNoEixo(ponto, trecho) {
-  if (trecho.inicio.y === trecho.fim.y) {
-    return ponto.y === trecho.inicio.y &&
-      ponto.x >= Math.min(trecho.inicio.x, trecho.fim.x) - EPSILON &&
-      ponto.x <= Math.max(trecho.inicio.x, trecho.fim.x) + EPSILON;
-  }
-  if (trecho.inicio.x === trecho.fim.x) {
-    return ponto.x === trecho.inicio.x &&
-      ponto.y >= Math.min(trecho.inicio.y, trecho.fim.y) - EPSILON &&
-      ponto.y <= Math.max(trecho.inicio.y, trecho.fim.y) + EPSILON;
-  }
-  return false;
+function pertoDaJuncao(ponto, juncao, margem = 0) {
+  const { x, y, largura, altura } = juncao.area;
+  return ponto.x >= x - margem - EPSILON && ponto.x <= x + largura + margem + EPSILON &&
+    ponto.y >= y - margem - EPSILON && ponto.y <= y + altura + margem + EPSILON;
 }
 
-function trechosFisicamenteConectados(a, b) {
-  const aHorizontal = a.inicio.y === a.fim.y;
-  const bHorizontal = b.inicio.y === b.fim.y;
-
-  if (aHorizontal && bHorizontal && a.inicio.y === b.inicio.y) {
-    return Math.min(a.fim.x, a.inicio.x) <= Math.max(b.inicio.x, b.fim.x) + EPSILON &&
-      Math.min(b.fim.x, b.inicio.x) <= Math.max(a.inicio.x, a.fim.x) + EPSILON;
+function atravessaJuncao(anterior, ponto, juncao) {
+  let entrada = 0, saida = 1;
+  for (const [eixo, tamanho] of [['x', 'largura'], ['y', 'altura']]) {
+    const minimo = juncao.area[eixo], maximo = minimo + juncao.area[tamanho];
+    const delta = ponto[eixo] - anterior[eixo];
+    if (Math.abs(delta) < EPSILON) {
+      if (anterior[eixo] < minimo - EPSILON || anterior[eixo] > maximo + EPSILON) return false;
+    } else {
+      const a = (minimo - anterior[eixo]) / delta, b = (maximo - anterior[eixo]) / delta;
+      entrada = Math.max(entrada, Math.min(a, b));
+      saida = Math.min(saida, Math.max(a, b));
+    }
   }
-
-  if (!aHorizontal && !bHorizontal && a.inicio.x === b.inicio.x) {
-    return Math.min(a.fim.y, a.inicio.y) <= Math.max(b.inicio.y, b.fim.y) + EPSILON &&
-      Math.min(b.fim.y, b.inicio.y) <= Math.max(a.inicio.y, a.fim.y) + EPSILON;
-  }
-
-  return [a.inicio, a.fim].some(ponto => pontoNoEixo(ponto, b)) ||
-    [b.inicio, b.fim].some(ponto => pontoNoEixo(ponto, a));
+  return entrada <= saida + EPSILON;
 }
 
 function expandirPercursosConectados(area, ids, anterior, ponto) {
   const resultado = new Set(ids);
-  for (const id of ids) {
-    const atual = area.corredores.get(id);
-    for (const trechoAtual of atual.segmentos) {
-      if (!pontoNoTrecho(anterior, trechoAtual) && !pontoNoTrecho(ponto, trechoAtual)) continue;
-      for (const [outroId, outro] of area.corredores) {
-        if (outroId === id) continue;
-        if (outro.segmentos.some(trecho =>
-          pontoNoTrecho(ponto, trecho) && trechosFisicamenteConectados(trechoAtual, trecho))) {
-          resultado.add(outroId);
-        }
+  const fila = [...ids];
+  for (const id of fila) {
+    for (const juncao of area.juncoes) {
+      // Uma faixa compartilhada pode ser menor que um passo, ou ter largura
+      // zero quando dois pisos encostam. Testa a travessia, não só o ponto final.
+      if (!juncao.ids.includes(id) || !atravessaJuncao(anterior, ponto, juncao)) continue;
+      for (const outroId of juncao.ids) if (!resultado.has(outroId)) {
+        resultado.add(outroId);
+        fila.push(outroId);
       }
     }
   }
@@ -89,15 +79,20 @@ export function criarAreaCaminhavel(salas, segmentos, raioPersonagem = 0) {
     const id = chaveDoPercurso(segmento);
     if (!corredores.has(id)) {
       corredores.set(id, { id, origem: segmento.origem, destino: segmento.destino,
-        entrada: segmento.inicio, saida: segmento.fim, segmentos: [] });
-      porSala.get(segmento.origem).push(id);
-      porSala.get(segmento.destino).push(id);
+        entrada: null, saida: null, segmentos: [] });
     }
     const corredor = corredores.get(id);
     corredor.segmentos.push(segmento);
-    corredor.saida = segmento.fim;
   }
-  return { salas: salasPorNome, corredores, porSala, raioPersonagem };
+  const validos = segmentos.filter(segmento => corredores.has(chaveDoPercurso(segmento)));
+  const portas = extrairPortasDosCorredores(salas, validos);
+  for (const porta of portas) for (const id of porta.ids) {
+    const corredor = corredores.get(id);
+    corredor[corredor.origem === porta.nomeSala ? 'entrada' : 'saida'] = porta.ponto;
+    porSala.get(porta.nomeSala).push(id);
+  }
+  return { salas: salasPorNome, corredores, porSala, raioPersonagem,
+    portas, juncoes: calcularJuncoesCorredores(validos) };
 }
 
 export function localizarNaArea(area, ponto) {
@@ -110,22 +105,24 @@ export function localizarNaArea(area, ponto) {
 function transicao(area, local, anterior, ponto) {
   if (local.sala !== null) {
     const sala = area.salas.get(local.sala);
-    if (pontoNaSala(ponto, sala)) return local;
+    if (pontoNaSala(ponto, sala)) return [local];
     const candidatos = area.porSala.get(local.sala).filter(id => {
       const corredor = area.corredores.get(id);
       const porta = corredor.origem === local.sala ? corredor.entrada : corredor.saida;
       return pertoDaPorta(anterior, porta) &&
         corredor.segmentos.some(trecho => pontoNoTrecho(ponto, trecho));
     });
-    return candidatos.length ? { sala: null, corredores: candidatos } : null;
+    return candidatos.length ? [{ sala: null, corredores: candidatos }] : [];
   }
 
+  const alternativas = [];
   for (const id of local.corredores) {
     const corredor = area.corredores.get(id);
     for (const [nome, porta] of [[corredor.origem, corredor.entrada],
       [corredor.destino, corredor.saida]]) {
-      if (pertoDaPorta(anterior, porta) && pontoNaSala(ponto, area.salas.get(nome))) {
-        return { sala: nome, corredores: [] };
+      const sala = area.salas.get(nome);
+      if (pontoNaSala(ponto, sala) && pertoDaPorta(anterior, porta)) {
+        alternativas.push({ sala: nome, corredores: [] });
       }
     }
   }
@@ -133,14 +130,16 @@ function transicao(area, local, anterior, ponto) {
   // encontrados num cruzamento. A direção escolhida resolve a ambiguidade.
   const candidatos = expandirPercursosConectados(area, local.corredores, anterior, ponto)
     .filter(id => area.corredores.get(id).segmentos.some(trecho => pontoNoTrecho(ponto, trecho)));
-  return candidatos.length ? { sala: null, corredores: candidatos } : null;
+  if (candidatos.length) alternativas.push({ sala: null, corredores: candidatos });
+  return alternativas;
 }
 
 function tentarPasso(area, estado, dx, dy) {
   const ponto = { x: estado.x + dx, y: estado.y + dy };
-  const local = transicao(area, estado.local, estado, ponto);
-  if (!local || !corpoCabeNaArea(area, local, ponto)) return null;
-  return { ...ponto, local };
+  const alternativas = transicao(area, estado.local, estado, ponto);
+  // Uma sala próxima pode rejeitar a base; isso não fecha o corredor de origem.
+  const local = alternativas.find(opcao => corpoCabeNaArea(area, opcao, ponto));
+  return local ? { ...ponto, local } : null;
 }
 
 function corpoCabeNaArea(area, local, ponto) {
@@ -156,11 +155,18 @@ function corpoCabeNaArea(area, local, ponto) {
   if (local.sala === null) for (const corredor of corredores) {
     salas.push(area.salas.get(corredor.origem), area.salas.get(corredor.destino));
   }
-  // A base ocupa espaço, mas nunca empresta piso de um caminho que só cruza aqui.
+  const trechos = corredores.flatMap(corredor => corredor.segmentos);
+  // Ao atravessar uma união, a base pode ainda ocupar o piso que o centro deixou.
+  // Somente trechos da junção local dão esse apoio; cruzamentos não emprestam piso.
+  for (const juncao of area.juncoes) {
+    if (juncao.ids.some(id => ids.includes(id)) && pertoDaJuncao(ponto, juncao, raio)) {
+      trechos.push(...juncao.trechos);
+    }
+  }
   return [-raio, 0, raio].every(dx => [-raio, 0, raio].every(dy => {
     const amostra = { x: ponto.x + dx, y: ponto.y + dy };
     return salas.some(sala => pontoNaSala(amostra, sala)) ||
-      corredores.some(corredor => corredor.segmentos.some(trecho => pontoNoTrecho(amostra, trecho)));
+      trechos.some(trecho => pontoNoTrecho(amostra, trecho));
   }));
 }
 

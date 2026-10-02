@@ -32,150 +32,63 @@ O projeto já possui uma base funcional ampla:
 - navegação manual e automática;
 - visual completo de dungeon.
 
-O objetivo agora é transformar esse estado em uma **baseline organizada, reproduzível e segura**, para depois continuar evoluindo sem perder um ponto estável.
+A baseline `v0.1.0` já está incorporada à `main`. O objetivo deste ciclo é
+consolidar os refinamentos da página inicial e da exploração com documentação
+alinhada, testes e revisão visual, preservando esse ponto estável.
 
 ---
 
-# Etapa 0 — Fechar a baseline
+# Etapa 0 — Consolidar os refinamentos posteriores à baseline
 
-Esta é a prioridade imediata.
+## 0.1 Estado já concluído
 
-## 0.1 Documentação
+- baseline `v0.1.0` criada no commit `ae885db`;
+- incorporação à `main` pelo commit `fc6da7a`;
+- página inicial com materiais e sprites compartilhados;
+- revisão da composição regional, dos caminhos, das portas e da decoração;
+- barra de câmera e modo visual com legenda expansível;
+- documentação atualizada para o código desta revisão;
+- suíte local com 354 testes passando e nenhuma falha.
 
-Atualizar e alinhar:
+Não recriar a tag `v0.1.0` nem tratar essas funcionalidades como trabalho futuro.
 
-- `README.md`;
-- `docs/ESTADO_ATUAL.md`;
-- `docs/ARQUITETURA.md`;
-- `docs/DECISOES.md`;
-- `docs/PLANO_TECNICO.md`;
-- `EVOLUCAO.md`;
-- `CORRECOES.md`, apenas se houver inconsistência histórica.
+## 0.2 Validação visual pendente nesta revisão
 
-Critério de conclusão:
+Conferir as duas telas no navegador com código pequeno e com muitas funções:
 
-- nenhum documento deve descrever como futuro algo que já existe;
-- limitações atuais precisam ser reais;
-- arquitetura e comportamento devem contar a mesma história;
-- os documentos devem evitar repetição desnecessária.
+- editor, arquivo `.c`, mensagens de erro e retorno ao editor;
+- busca, inspector, callers/callees e foco contextual;
+- clique, duplo clique e navegação automática;
+- WASD, setas, liberação do foco e colisão em portas e cruzamentos;
+- zoom, Encaixar, câmera livre e troca de modo visual;
+- legenda expansível e redimensionamento do viewport;
+- função isolada, programa sem `main`, recursão e ciclos;
+- geração de outra dungeon depois da anterior.
 
----
+Os testes de integração não substituem a avaliação visual de legibilidade e
+acabamento. Não registrar como concluída uma inspeção que não foi realizada.
 
-## 0.2 Limpeza pequena de código
+## 0.3 Registrar esta consolidação
 
-Antes da baseline:
+Depois da revisão visual e da aplicação das correções:
 
-- corrigir comentários desatualizados;
-- corrigir espaços e formatação quebrados por edições automáticas;
-- remover comentários que contradizem o comportamento atual;
-- evitar refatorações grandes.
+1. executar `npm test` e `git diff --check`;
+2. conferir os arquivos alterados e novos;
+3. adicionar apenas os arquivos usados pelo projeto;
+4. revisar o conteúdo preparado e executar `git diff --cached --check`;
+5. commitar a consolidação das duas telas e da circulação física.
 
-Exemplos já identificados:
+A imagem de referência solta na raiz não é usada pelo HTML, CSS ou JavaScript
+atual e não faz parte desta consolidação. Não é necessário apagá-la.
 
-- comentários em `navegacaoMasmorra.js` que ainda falam apenas em corredores;
-- pequenas palavras coladas em comentários de `corredores.js`.
-
-A regra desta etapa é:
-
-> limpar sem alterar arquitetura.
-
----
-
-## 0.3 Validação automatizada
-
-Executar:
-
-```bash
-npm test
-git diff --check
-```
-
-Estado auditado antes da reorganização documental:
-
-```text
-328 testes
-328 passando
-0 falhando
-```
-
-A baseline só pode ser congelada se a suíte continuar totalmente verde.
-
----
-
-## 0.4 Validação manual final
-
-Revalidar pelo menos:
-
-- código C pequeno;
-- código C com muitas funções;
-- arquivo `.c`;
-- colar código;
-- programa sem `main`;
-- função isolada;
-- recursão;
-- ciclo;
-- busca;
-- inspector;
-- callers e callees;
-- foco contextual;
-- clique;
-- duplo clique;
-- navegação automática;
-- WASD;
-- setas;
-- portas;
-- colisão;
-- cruzamentos;
-- galerias;
-- Criptas;
-- zoom;
-- Encaixar;
-- câmera livre;
-- viewport pequeno;
-- troca de modo visual;
-- gerar uma nova dungeon depois da anterior.
-
----
-
-## 0.5 Definir versão
-
-Somente depois da validação final escolher o número da baseline.
-
-Possibilidades a avaliar:
-
-```text
-v0.1.0
-```
-
-ou:
-
-```text
-v1.0.0-beta.1
-```
-
-A escolha deve refletir o grau de maturidade pública do projeto.
-
-Não definir a versão apenas por aparência.
-
----
-
-## 0.6 Congelamento
-
-Depois de documentação, testes e validação:
-
-1. revisar `git status`;
-2. revisar arquivos novos;
-3. fazer commit de estabilização;
-4. criar tag;
-5. fazer push somente com autorização explícita.
-
-A baseline deve ser um ponto fácil de recuperar no futuro.
+A tag `v0.1.0` permanece como referência histórica. Outra tag exige uma escolha
+de versão para um ciclo posterior. Fazer push somente com autorização explícita.
 
 ---
 
 # Etapa 1 — Confiança na análise
 
-Depois da baseline, o próximo foco técnico deve ser aumentar a confiança no que o Dungeon afirma sobre o código.
+Depois desta consolidação, o próximo foco técnico deve ser aumentar a confiança no que o Dungeon afirma sobre o código.
 
 ---
 
@@ -491,11 +404,15 @@ Depois da revisão de segurança:
 
 # Etapa 6 — Refinamentos estruturais posteriores
 
-Esses itens não são necessários para fechar a baseline.
+Esses itens não são necessários para concluir a consolidação atual.
 
 ---
 
 ## 6.1 Melhorar encontros de percursos
+
+Concluído neste refinamento: junções locais compartilhadas pela física e navegação,
+prioridade para portas com folga e desenho dos caminhos em camadas para remover
+paredes internas decorativas. As relações do grafo permanecem separadas dessas junções.
 
 Ainda podem existir situações visualmente densas próximas de:
 

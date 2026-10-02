@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { criarAmbiente } from './ambiente.js';
+import { criarAmbiente, opacidadesPisosChamadas } from './ambiente.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
   iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from '../js/jogo.js';
 import { PALETA } from '../js/pixelArt.js';
@@ -49,21 +49,21 @@ test('clique seleciona a sala, troca o foco topológico e ignora área vazia', (
   clicarNoMapa(ambiente, 330, 240);
   ambiente.avancar();
   assert.deepEqual(selecoes, ['B']);
-  assert.deepEqual(canvas.tracos.slice(-3).map(traco => traco.opacidade), [1, 0.25, 1]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 3), [0.25, 1, 1]);
   assert.deepEqual(canvas.contornos.filter(contorno => contorno.cor === PALETA.ouro)
     .slice(-1).map(contorno => [contorno.x, contorno.y]), [[295, 205]]);
 
   clicarNoMapa(ambiente, 200, 240);
   ambiente.avancar();
   assert.deepEqual(selecoes, ['B', 'A']);
-  assert.deepEqual(canvas.tracos.slice(-3).map(traco => traco.opacidade), [1, 0.25, 0.25]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 3), [0.25, 0.25, 1]);
   assert.deepEqual(canvas.contornos.filter(contorno => contorno.cor === PALETA.ouro)
     .slice(-1).map(contorno => [contorno.x, contorno.y]), [[165, 205]]);
 
   clicarNoMapa(ambiente, 5, 5);
   ambiente.avancar();
   assert.deepEqual(selecoes, ['B', 'A']);
-  assert.deepEqual(canvas.tracos.slice(-3).map(traco => traco.opacidade), [1, 1, 1]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 3), [1, 1, 1]);
   pararJogo();
 });
 
@@ -265,8 +265,7 @@ test('foco contextual atenua apenas salas e corredores fora das rotas e restaura
   const canvas = ambiente.elementos.get('canvas-jogo');
   const opacidadesSalas = () => canvas.preenchimentosSalas.slice(-6)
     .map(sala => sala.opacidade);
-  const opacidadesCorredores = () => canvas.tracos.slice(-5)
-    .map(traco => traco.opacidade);
+  const opacidadesCorredores = () => opacidadesPisosChamadas(canvas, 5);
 
   ambiente.avancar();
   const salasSemFoco = opacidadesSalas();
@@ -277,7 +276,7 @@ test('foco contextual atenua apenas salas e corredores fora das rotas e restaura
   const contornosAntes = canvas.contornos.length;
   ambiente.avancar();
   assert.deepEqual(opacidadesSalas(), [1, 0.85, 0.85, 0.85, 0.2975, 0.2975]);
-  assert.deepEqual(opacidadesCorredores(), [1, 1, 0.25, 1, 1]);
+  assert.deepEqual(opacidadesCorredores(), [0.25, 1, 1, 1, 1]);
   assert.deepEqual(canvas.contornos.slice(contornosAntes)
     .filter(contorno => contorno.cor === PALETA.ouro)
     .map(({ x, y, opacidade }) => ({ x, y, opacidade })),
@@ -884,13 +883,13 @@ test('níveis semânticos preservam salas, personagem, foco e nome selecionado n
   ambiente.avancar();
   assert.equal(canvas.escalas.at(-1).x, 0.5);
   assert.deepEqual(canvas.textos, []);
-  assert.deepEqual(canvas.tracos.slice(-2).map(traco => traco.opacidade), [1, 1]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 2), [1, 1]);
 
   focarSala(nomeLongo, calcularContextoTopologico(grafo, nomeLongo));
   canvas.textos = [];
   ambiente.avancar();
   assert.deepEqual(canvas.textos.map(item => item.texto), [`${nomeLongo}()`]);
-  assert.deepEqual(canvas.tracos.slice(-2).map(traco => traco.opacidade), [1, 0.25]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 2), [0.25, 1]);
   assert.deepEqual(canvas.posicoesPersonagem.at(-1), jogadorAntes);
   assert.deepEqual(notificacoes, ['main']);
   assert.deepEqual(mundo, mundoAntes);

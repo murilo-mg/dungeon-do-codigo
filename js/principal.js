@@ -6,6 +6,7 @@ import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
 import { calcularContextoTopologico, criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
 import { construirMasmorra } from './masmorra.js';
 import { validarArquivoC } from './entradaCodigo.js';
+import { inicializarDecoracaoEntrada } from './entradaDungeon.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
   iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from './jogo.js';
 import {
@@ -110,6 +111,7 @@ int main() {
 document.addEventListener('DOMContentLoaded', inicializarAplicacao);
 
 function inicializarAplicacao() {
+  inicializarDecoracaoEntrada();
   inicializarBuscaFuncoes();
   configurarImportacaoCodigo(aoSelecionarArquivos, () => { sequenciaImportacao++; });
   configurarControlesCamera({

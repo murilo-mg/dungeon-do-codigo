@@ -215,6 +215,7 @@ const MARGEM_MUNDO_REGIONAL = 40;
 const GAP_REGIOES = 64;
 const GAP_CRIPTAS = 112;
 const PROPORCAO_CONJUNTO = 1.65;
+const PESO_PROPORCAO_PLANTA = 1.4;
 
 function distribuirTerritorios(alcancaveis, hub, entrada, isoladas, dimensoes, colunas) {
   const quantidade = alcancaveis.length + (hub ? 1 : 0);
@@ -309,7 +310,6 @@ function comporTerritorios(alcancaveis, hub, entrada, isoladas, dimensoes, relac
   const limiteColunas = Math.max(1, Math.min(quantidade, Math.ceil(Math.sqrt(quantidade)) * 2));
   let melhor = new Map();
   let menorCusto = Infinity;
-  let melhoresColunas = 1;
 
   const avaliar = territorios => {
     const retangulos = [...territorios.values()];
@@ -330,38 +330,37 @@ function comporTerritorios(alcancaveis, hub, entrada, isoladas, dimensoes, relac
     }
     // Relações reais influenciam proximidade; significado e membros não mudam.
     const proporcao = hub ? 1.3 : PROPORCAO_CONJUNTO;
-    return largura * altura * (1 + Math.abs(Math.log(largura / altura / proporcao))) +
+    return largura * altura * (1 + PESO_PROPORCAO_PLANTA * Math.abs(Math.log(largura / altura / proporcao))) +
       distancia * Math.sqrt(largura * altura) * 0.18;
   };
 
   for (let colunas = 1; colunas <= limiteColunas; colunas++) {
     // Uma coluna central mantém o salão entre as alas, independentemente dos títulos.
     if (hub && colunas % 2 === 0) continue;
-    const territorios = distribuirTerritorios(
+    let territorios = distribuirTerritorios(
       alcancaveis, hub, entrada, isoladas, dimensoes, colunas
     );
     const retangulos = [...territorios.values()];
     if (!retangulos.length) return melhor;
-    const custo = avaliar(territorios);
+    let custo = avaliar(territorios);
+    const ordem = [...alcancaveis];
+    // Compare plantas já organizadas: uma ordem inicial ruim não deve eliminar
+    // uma grade compacta antes de aproximar as regiões que possuem chamadas.
+    for (let passagem = 0; passagem < 2; passagem++) {
+      for (let i = 0; i < ordem.length; i++) {
+        for (let j = i + 1; j < ordem.length; j++) {
+          [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
+          const candidato = distribuirTerritorios(ordem, hub, entrada, isoladas, dimensoes, colunas);
+          const novoCusto = avaliar(candidato);
+          if (novoCusto < custo) { territorios = candidato; custo = novoCusto; }
+          else [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
+        }
+      }
+    }
 
     if (custo < menorCusto) {
       melhor = territorios;
       menorCusto = custo;
-      melhoresColunas = colunas;
-    }
-  }
-
-  const ordem = [...alcancaveis];
-  // Duas passadas determinísticas: evita busca combinatória por uma planta ideal.
-  for (let passagem = 0; passagem < 2; passagem++) {
-    for (let i = 0; i < ordem.length; i++) {
-      for (let j = i + 1; j < ordem.length; j++) {
-        [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
-        const candidato = distribuirTerritorios(ordem, hub, entrada, isoladas, dimensoes, melhoresColunas);
-        const custo = avaliar(candidato);
-        if (custo < menorCusto) { melhor = candidato; menorCusto = custo; }
-        else [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
-      }
     }
   }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { criarAmbiente, encontrar } from './ambiente.js';
+import { criarAmbiente, encontrar, opacidadesPisosChamadas } from './ambiente.js';
 import { PALETA } from '../js/pixelArt.js';
 
 test('gerar avisa sobre código inválido, mantém o editor e permite corrigir a entrada', async () => {
@@ -190,7 +190,7 @@ test('busca aplica foco às duas cadeias até a função e clique restaura os co
   ambiente.elementos.get('botao-gerar').emitir('click');
   ambiente.avancar();
   const canvas = ambiente.elementos.get('canvas-jogo');
-  assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade), [1, 1, 1, 1, 1]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 5), [1, 1, 1, 1, 1]);
 
   const busca = ambiente.elementos.get('busca-funcao');
   busca.value = 'C';
@@ -199,12 +199,12 @@ test('busca aplica foco às duas cadeias até a função e clique restaura os co
   ambiente.avancar();
   assert.equal(encontrar(ambiente.elementos.get('info-sala'), 'nome-funcao').textContent,
     'C()');
-  assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade),
-    [1, 1, 1, 1, 0.25]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 5),
+    [0.25, 1, 1, 1, 1]);
 
   ambiente.documento.emitir('pointerdown', { composedPath: () => [canvas] });
   ambiente.avancar();
-  assert.deepEqual(canvas.tracos.slice(-5).map(traco => traco.opacidade), [1, 1, 1, 1, 1]);
+  assert.deepEqual(opacidadesPisosChamadas(canvas, 5), [1, 1, 1, 1, 1]);
   ambiente.elementos.get('botao-voltar').emitir('click');
 });
 
@@ -237,21 +237,21 @@ test('busca e clique na sala compartilham painel, seleção e foco topológico',
   };
   const estado = () => ({
     nome: encontrar(painel, 'nome-funcao').textContent,
-    corredores: canvas.tracos.slice(-3).map(traco => traco.opacidade),
+    corredores: opacidadesPisosChamadas(canvas, 3),
     contorno: canvas.contornos.filter(contorno => contorno.cor === PALETA.ouro).at(-1)?.x,
   });
 
   pesquisar('B');
   const estadoB = estado();
   assert.equal(estadoB.nome, 'B()');
-  assert.deepEqual(estadoB.corredores, [1, 1, 0.25]);
+  assert.deepEqual(estadoB.corredores, [0.25, 1, 1]);
   clique(salas[1]);
   assert.deepEqual(estado(), estadoB);
 
   clique(salas[2]);
   const estadoA = estado();
   assert.equal(estadoA.nome, 'A()');
-  assert.deepEqual(estadoA.corredores, [0.25, 1, 0.25]);
+  assert.deepEqual(estadoA.corredores, [0.25, 0.25, 1]);
   pesquisar('A');
   assert.deepEqual(estado(), estadoA);
   ambiente.elementos.get('botao-voltar').emitir('click');

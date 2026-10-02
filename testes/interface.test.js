@@ -11,7 +11,7 @@ const sala = { nome: 'investigar', linhas: 12, estruturasControle: 4, complexida
 
 test('entrada de arquivo tem botão acessível e drop discreto perto do textarea', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /<button id="botao-abrir-c"[^>]*type="button">Abrir \.c<\/button>/);
+  assert.match(html, /<button id="botao-abrir-c"[^>]*type="button"><span class="icone-pasta" aria-hidden="true"><\/span>Abrir \.c<\/button>/);
   assert.match(html, /<input id="arquivo-c" type="file"[^>]*accept="\.c,text\/plain,text\/x-c"[^>]*hidden>/);
   assert.doesNotMatch(html, /id="arquivo-c"[^>]*multiple/);
   assert.match(html, /id="arquivo-atual"[^>]*role="status"/);

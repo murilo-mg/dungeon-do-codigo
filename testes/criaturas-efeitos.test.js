@@ -21,11 +21,15 @@ test('desenhos cabem no retrato e a mesma criatura escala sem trocar os pixels',
   }
   for (const complexidade of [0, 4, 10]) {
     const criatura = obterCriatura(complexidade);
-    assert.equal(criatura.desenho.length, 14);
-    assert.ok(criatura.desenho.every(linha => linha.length === 12));
+    // A malha maior dá espaço ao rosto e à armadura e continua cabendo no retrato de 80px.
+    assert.equal(criatura.desenho.length, 16);
+    assert.ok(criatura.desenho.every(linha => linha.length === 14));
+    assert.ok([...criatura.desenho.join('')].every(pixel => pixel === '.' || criatura.cores[pixel]));
     const pequeno = renderizar(complexidade, 2);
     const grande = renderizar(complexidade, 4);
     assert.deepEqual(grande, pequeno.map(pixel => pixel.map(valor => valor * 2)));
+    assert.ok(grande.every(([x, y, largura, altura]) =>
+      x >= -40 && y >= -40 && x + largura <= 40 && y + altura <= 40));
   }
 });
 

@@ -34,7 +34,7 @@ test('fora da faixa e destino desconectado não produzem caminho artificial', ()
   assert.equal(calcularRotaCaminhavel(salas, segmentos, { x: 100, y: 100 }, 'ausente'), null);
 });
 
-test('cruzamento geométrico sem sala não vira passagem e não modifica dados', () => {
+test('trecho colinear compartilhado oferece a mesma junção do movimento manual sem modificar dados', () => {
   const salasCruzadas = [
     { nome: 'a', x: 70, y: 70, largura: 60, altura: 60 },
     { nome: 'b', x: 270, y: 270, largura: 60, altura: 60 },
@@ -47,8 +47,10 @@ test('cruzamento geométrico sem sala não vira passagem e não modifica dados',
   const salasAntes = structuredClone(salasCruzadas);
   const corredoresAntes = structuredClone(corredores);
 
-  assert.equal(calcularRotaCaminhavel(salasCruzadas, corredores, { x: 100, y: 100 }, 'd'),
-    null);
+  // O roteamento ortogonal compartilha o eixo vertical entre as duas curvas.
+  // O automático agora usa essa junção que já era permitida pelo movimento manual.
+  assert.deepEqual(calcularRotaCaminhavel(salasCruzadas, corredores, { x: 100, y: 100 }, 'd'),
+    [{ x: 100, y: 100 }, { x: 300, y: 100 }]);
   assert.deepEqual(salasCruzadas, salasAntes);
   assert.deepEqual(corredores, corredoresAntes);
 });

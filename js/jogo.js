@@ -1,10 +1,10 @@
 // Responsável exclusivamente pela renderização em canvas e pela física do jogador.
 // Não manipula DOM diretamente: notifica mudanças de sala por callback.
 
-import { desenharTerritorio, desenharAlvenariaSala, desenharPlacaRegiao, desenharAcabamentoCorredores, desenharPortalSala, desenharGalerias } from './desenhoMasmorra.js';
+import { desenharTerritorio, desenharAlvenariaSala, desenharPlacaRegiao, desenharRedeCorredores, desenharPortaisSalas } from './desenhoMasmorra.js';
 import { calcularFormaTerritorio } from './layoutRegioes.js';
 import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
-import { criarSegmentosDeCorredores, calcularCruzamentosCorredores, chaveDoCorredor, LARGURA_CORREDOR } from './corredores.js';
+import { criarSegmentosDeCorredores, calcularCruzamentosCorredores } from './corredores.js';
 import { criarAreaCaminhavel, localizarNaArea, moverNaArea } from './areaCaminhavel.js';
 import { calcularRotaCaminhavel } from './navegacaoMasmorra.js';
 import { atualizarCamera, criarCamera, definirZoom, deslocarCamera, encaixarCamera,
@@ -16,6 +16,7 @@ import {
   classificarVisualmenteCorredores,
   calcularLimitesVisuaisRegioes,
   obterEstiloVisualDaSala,
+  obterEstiloNomeSala,
   obterMarcadoresEstruturais,
   obterNivelDetalhe
 } from './semanticaVisual.js';
@@ -606,13 +607,14 @@ function desenharCena() {
   contexto.scale(camera.zoom, camera.zoom);
   contexto.translate(camera.x ? -camera.x : 0, camera.y ? -camera.y : 0);
   const tempoAmbiente = preferenciaMovimento.matches ? 0 : tempoCena;
-  desenharFundo(contexto, cenario, tempoAmbiente);
+  desenharFundo(contexto, cenario, tempoAmbiente, camera.zoom);
   desenharPisosRegioes(nivelDetalhe);
-  desenharGalerias(contexto, passagensExploracao, camera.zoom);
-  desenharCorredores();
-  desenharDecoracoes(contexto, cenario, tempoAmbiente);
+  desenharRedeCorredores(contexto, segmentosNavegaveis, cruzamentosCorredores,
+    camera.zoom, contextoTopologico, tiposVisuaisCorredores);
+  desenharDecoracoes(contexto, cenario, tempoAmbiente, camera.zoom);
   salas.forEach(sala => desenharSala(sala, nivelDetalhe));
-  desenharPortas();
+  desenharPortaisSalas(contexto, areaCaminhavel.portas,
+    preferenciaMovimento.matches ? 0 : tempoCena, camera.zoom >= 0.7, contextoTopologico);
   desenharPassos(contexto, jogador);
   desenharParticulas(contexto, particulas);
   desenharPersonagem(contexto, jogador, preferenciaMovimento.matches);
@@ -652,80 +654,6 @@ function desenharTitulosRegioes() {
   }
 }
 
-function desenharCorredores() {
-  contexto.save();
-  contexto.lineCap = 'square';
-  contexto.lineJoin = 'miter';
-
-  // A navegação continua usando cada trecho físico separadamente.
-  // Para renderização, porém, todos os trechos da mesma chamada
-  // formam um único caminho visual.
-  const caminhos = new Map();
-
-  for (const segmento of segmentosDeCorredores) {
-    const chave = `${segmento.origem}\0${segmento.destino}`;
-
-    if (!caminhos.has(chave)) {
-      caminhos.set(chave, []);
-    }
-
-    caminhos.get(chave).push(segmento);
-  }
-
-  for (const [largura, cor] of [
-    [LARGURA_CORREDOR + 16, '#080d10'],
-    [LARGURA_CORREDOR + 10, '#354245'],
-    [LARGURA_CORREDOR, '#807963'],
-  ]) {
-    if (largura === LARGURA_CORREDOR) {
-      desenharAcabamentoCorredores(contexto, segmentosDeCorredores,
-        cruzamentosCorredores, camera.zoom, contextoTopologico, true);
-    }
-    contexto.lineWidth = largura;
-    contexto.strokeStyle = cor;
-
-    for (const segmentos of caminhos.values()) {
-      if (!segmentos.length) continue;
-
-      const primeiro = segmentos[0];
-      const tipo = tiposVisuaisCorredores.get(chaveDoCorredor(primeiro.origem, primeiro.destino));
-      // Caminhos entre alas ficam em pedra fria; caminhos locais em pedra quente.
-      contexto.strokeStyle = largura === LARGURA_CORREDOR && tipo === 'entre-regioes'
-        ? '#535e60' : cor;
-
-      contexto.globalAlpha =
-        contextoTopologico &&
-        !contextoTopologico.arestas.get(primeiro.origem)?.has(primeiro.destino)
-          ? 0.25
-          : !contextoTopologico && camera.zoom < 0.55 && tipo === 'entre-regioes' ? 0.65 : 1;
-
-      contexto.beginPath();
-      contexto.moveTo(primeiro.inicio.x, primeiro.inicio.y);
-
-      let ultimo = primeiro.inicio;
-
-      for (const segmento of segmentos) {
-        if (
-          ultimo.x !== segmento.inicio.x ||
-          ultimo.y !== segmento.inicio.y
-        ) {
-          contexto.moveTo(segmento.inicio.x, segmento.inicio.y);
-        }
-
-        contexto.lineTo(segmento.fim.x, segmento.fim.y);
-        ultimo = segmento.fim;
-      }
-
-      contexto.stroke();
-    }
-  }
-
-  desenharAcabamentoCorredores(contexto, segmentosDeCorredores,
-    cruzamentosCorredores, camera.zoom, contextoTopologico);
-
-  contexto.restore();
-}
-
 function desenharSala(sala, nivelDetalhe) {
   const ativa = sala === salaAtual;
   const atenuacao = contextoTopologico && !contextoTopologico.funcoes.has(sala.nome) ? 0.35 : 1;
@@ -753,20 +681,21 @@ function desenharSala(sala, nivelDetalhe) {
     contexto.lineWidth = 2;
     contexto.strokeRect(x - 5, y - 5, sala.largura + 10, sala.altura + 10);
   }
-  if (nivelDetalhe !== 'distante') {
+  const estiloNome = obterEstiloNomeSala(sala, camera.zoom);
+  if (estiloNome.visivel) {
     // Faixa separada mantém o nome legível acima da criatura.
     contexto.fillStyle = PALETA.pedraEscura;
     contexto.globalAlpha = 0.85 * atenuacao;
-    contexto.fillRect(x + 4, y + 4, sala.largura - 8, 15);
+    contexto.fillRect(x + 4, y + 4, sala.largura - 8, 18);
     contexto.globalAlpha = atenuacao;
     contexto.fillStyle = PALETA.pergaminho;
-    contexto.font = '10px "JetBrains Mono", monospace';
+    contexto.font = `${estiloNome.fonte}px "JetBrains Mono", monospace`;
     contexto.textAlign = 'center';
     let nome = `${sala.nome}()`;
     while (nome.length > 1 && contexto.measureText(nome).width > sala.largura - 14) {
       nome = nome.replace(/…$/, '').slice(0, -1) + '…';
     }
-    contexto.fillText(nome, x + sala.largura / 2, y + 15);
+    contexto.fillText(nome, x + sala.largura / 2, y + 17);
   }
   const criaturaLegivel = nivelDetalhe === 'proxima' ||
     Math.min(sala.largura, sala.altura) * camera.zoom >= 48;
@@ -776,34 +705,6 @@ function desenharSala(sala, nivelDetalhe) {
   }
   if (nivelDetalhe === 'proxima')
     desenharMarcadoresDaSala(sala, x, y, estilo.destacarMarcadores);
-  contexto.restore();
-}
-
-function desenharPortas() {
-  contexto.save();
-  const desenhadas = new Set();
-  const destacadas = new Set(segmentosNavegaveis.filter(trecho =>
-    trecho.tipo === 'exploracao' || !contextoTopologico || contextoTopologico.arestas.get(trecho.origem)?.has(trecho.destino))
-    .flatMap(trecho => [
-      `${trecho.origem}:${trecho.inicio.x}:${trecho.inicio.y}`,
-      `${trecho.destino}:${trecho.fim.x}:${trecho.fim.y}`,
-    ]));
-  for (const segmento of segmentosNavegaveis) {
-    for (const [nome, ponto] of [[segmento.origem, segmento.inicio],
-      [segmento.destino, segmento.fim]]) {
-      const sala = salas.find(item => item.nome === nome);
-      if (!sala) continue;
-      const vertical = ponto.x === sala.x || ponto.x === sala.x + sala.largura;
-      const horizontal = ponto.y === sala.y || ponto.y === sala.y + sala.altura;
-      if (!vertical && !horizontal) continue;
-      const chave = `${nome}:${ponto.x}:${ponto.y}`;
-      if (desenhadas.has(chave)) continue;
-      desenhadas.add(chave);
-      contexto.globalAlpha = destacadas.has(chave) ? 1 : 0.25;
-      desenharPortalSala(contexto, ponto, vertical,
-        preferenciaMovimento.matches ? 0 : tempoCena, camera.zoom >= 0.7, segmento.tipo === 'exploracao');
-    }
-  }
   contexto.restore();
 }
 

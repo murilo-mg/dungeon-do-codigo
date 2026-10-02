@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { criarPersonagem, atualizarPersonagem } from '../js/personagem.js';
+import { criarPersonagem, atualizarPersonagem, desenharPersonagem } from '../js/personagem.js';
 
 const limites = { largura: 560, altura: 480 };
 function caminhar(quadros, direcao) {
@@ -49,4 +49,36 @@ test('redução de movimento conserva a navegação e elimina rastros', () => {
   atualizarPersonagem(jogador, { x: 0, y: 1 }, 1 / 60, limites, true);
   assert.ok(jogador.y > y);
   assert.equal(jogador.passos.length, 0);
+});
+
+function desenhar(jogador, reduzirMovimento = false) {
+  const pixels = [];
+  const contexto = { save() {}, restore() {},
+    fillRect(x, y, largura, altura) { pixels.push({ x, y, largura, altura, cor: this.fillStyle }); } };
+  desenharPersonagem(contexto, jogador, reduzirMovimento);
+  return pixels;
+}
+
+test('sprites direcionais preservam a base, os pixels inteiros e o estado físico', () => {
+  for (const direcao of ['baixo', 'cima', 'direita', 'esquerda']) for (const tempoAndando of [0, 0.2, 0.5]) {
+    const jogador = { ...criarPersonagem(100, 100), direcao, andando: true, tempoAndando };
+    const antes = structuredClone(jogador);
+    const pixels = desenhar(jogador).filter(pixel => pixel.cor !== '#00000055');
+    assert.ok(pixels.length > 0);
+    assert.ok(pixels.every(p => Number.isInteger(p.x) && Number.isInteger(p.y)));
+    assert.ok(pixels.every(p => p.x >= 86 && p.x + p.largura <= 114));
+    assert.ok(pixels.every(p => p.y >= 82 && p.y + p.altura <= 114));
+    assert.equal(Math.max(...pixels.map(p => p.y + p.altura)), 114);
+    assert.deepEqual(jogador, antes);
+  }
+});
+
+test('vista esquerda espelha a direita e reduced motion mantém uma pose fixa', () => {
+  const jogador = criarPersonagem(100, 100);
+  const direita = desenhar({ ...jogador, direcao: 'direita' });
+  const esquerda = desenhar({ ...jogador, direcao: 'esquerda' });
+  assert.deepEqual(esquerda, direita.map(p => ({ ...p, x: 200 - p.x - p.largura })));
+  const andando = { ...jogador, andando: true, tempoAndando: 0.2 };
+  assert.notDeepEqual(desenhar(andando), desenhar(jogador));
+  assert.deepEqual(desenhar(andando, true), desenhar({ ...andando, tempoAndando: 0.5 }, true));
 });

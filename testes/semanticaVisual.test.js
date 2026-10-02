@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { LIMIAR_DETALHES, LIMIAR_IDENTIFICACAO, obterEstiloVisualDaSala,
-  obterMarcadoresEstruturais, obterNivelDetalhe } from '../js/semanticaVisual.js';
+  obterMarcadoresEstruturais, obterNivelDetalhe, obterEstiloNomeSala } from '../js/semanticaVisual.js';
 import { GLIFOS_MARCADORES, PALETA } from '../js/pixelArt.js';
 import { corPorSala } from '../js/masmorra.js';
 
@@ -15,6 +15,19 @@ test('zoom semântico classifica mapa, identificação e detalhes nos limiares e
   assert.equal(obterNivelDetalhe(LIMIAR_DETALHES), 'proxima');
   assert.equal(obterNivelDetalhe(2), 'proxima');
   assert.ok(LIMIAR_IDENTIFICACAO < LIMIAR_DETALHES);
+});
+
+test('nomes permanecem legíveis em salas grandes ao encaixar e simplificam salas pequenas', () => {
+  const grande = { largura: 100, altura: 80 };
+  const pequena = { largura: 60, altura: 60 };
+  const antes = structuredClone({ grande, pequena });
+  assert.equal(obterEstiloNomeSala(grande, 0.69).visivel, true);
+  assert.equal(obterEstiloNomeSala(pequena, 0.5).visivel, false);
+  assert.equal(obterEstiloNomeSala(grande, 0.25).visivel, false);
+  for (const zoom of [0.69, 0.75, 1, 1.5, 2]) {
+    assert.ok(Math.abs(obterEstiloNomeSala(grande, zoom).fonte * zoom - 10) < 0.001);
+  }
+  assert.deepEqual({ grande, pequena }, antes);
 });
 
 for (const [tipo, marcador] of [

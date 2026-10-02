@@ -6,23 +6,27 @@ export const RAIO_BASE_PERSONAGEM = 10;
 const DURACAO_PASSO = 0.8;
 const INTERVALO_PASSO = 0.14;
 const QUADROS_CAMINHADA = [0, 1, 0, 2];
-const CORES = { p: PALETA.pedraEscura, c: PALETA.brasa, b: PALETA.brasaClara,
-  r: PALETA.pergaminho, o: PALETA.ouro, s: PALETA.pedraClara };
+const CORES = { p: '#13191c', c: '#cb6b27', b: '#ec9c42', s: '#8b431e',
+  r: '#edbc83', h: '#ac7147', e: '#382c24', o: '#d6b266',
+  g: '#a1bbc1', t: '#51666d', k: '#46322a', l: '#715443' };
 const CORPOS = {
-  baixo: ['....pppp....', '...pbbbbp...', '..pbbccbbp..', '..pbrrrrbp..',
-    '..prprprrp..', '...prrrrp...', '..ppccccpp..', '.prbcccbbrp.',
-    '.ppbccccbpp.', '..pccocccp..', '..pccccccp..', '...pppppp...'],
-  cima: ['....pppp....', '...pbbbbp...', '..pbbccbbp..', '..pbccccbp..',
-    '..pbccccbp..', '...pbbbbp...', '..ppccccpp..', '.prbcccbbrp.',
-    '.ppbccccbpp.', '..pbccccbp..', '..pbbbbbbp..', '...pppppp...'],
-  direita: ['....pppp....', '...pbbbbp...', '...pbccbbp..', '...pbrrrrp..',
-    '...pbrprrp..', '....prrrpp..', '...pccccp...', '..pbccbrrp..',
-    '..pbccpppp..', '..pccoccp...', '..pcccccp...', '...ppppp....'],
+  baixo: ['.....pppp.....', '....pbbbbp....', '...pbccccbp...', '...pcrrrrcp...',
+    '...prerrerp...', '...phrrrrhp...', '....phhhhp....', '...psccccsp...',
+    '..prbccccbrp..', '..prbcccbprp..', '..ppccccccpp..', '..pgpcoccpcp..',
+    '..pgpcccccsp..', '...ppccccpp...'],
+  cima: ['.....pppp.....', '....pbbbbp....', '...pbccccbp...', '...pbccccbp...',
+    '...pbccsscp...', '...pccssscp...', '....pccccp....', '...psccccsp...',
+    '..prbccccbrp..', '..prbcsccbrp..', '..ppbcscccpp..', '..pgpcoccpcp..',
+    '..pgpcscscsp..', '...ppccccpp...'],
+  direita: ['.....pppp.....', '.....pbbbp....', '....pbcccbp...', '....pcrrrrp...',
+    '....phrerrpp..', '.....phrrrp...', '.....phhhp....', '....pscccp....',
+    '...pbcccbrp...', '...pbccprhp...', '...psccpppp...', '..pgpcoccp....',
+    '..pgpcccsp....', '...ppccppp....'],
 };
 const PERNAS = [
-  ['...psppsp...', '..ppp..ppp..'],
-  ['..pspp.ppp..', '..ppp.......'],
-  ['...ppp.psp..', '.......ppp..'],
+  ['....pkppkp....', '...plp..plp...'],
+  ['...pkp..ppp...', '...plp........'],
+  ['...ppp..pkp...', '........plp...'],
 ];
 
 export function criarPersonagem(x, y) {
@@ -89,6 +93,6 @@ export function desenharPersonagem(contexto, jogador, reduzirMovimento = false) 
   contexto.fillStyle = '#00000055';
   contexto.fillRect(Math.round(jogador.x - 10), Math.round(jogador.y + 10), 20, 5);
   desenharPixels(contexto, [...corpo, ...PERNAS[quadro]], CORES,
-    jogador.x - 12, jogador.y - 14 - respiracao, 2, jogador.direcao === 'esquerda');
+    jogador.x - 14, jogador.y - 18 - respiracao, 2, jogador.direcao === 'esquerda');
   contexto.restore();
 }

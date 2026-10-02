@@ -290,6 +290,11 @@ Um cruzamento visual entre dois percursos **não significa que eles estão conec
 
 A topologia continua explícita.
 
+Faixas paralelas que compartilham chão e encontros em T possuem junções físicas
+locais, usadas tanto pelo movimento manual quanto pelo automático. Cruzamentos
+transversais independentes aparecem como pontes e não permitem trocar de caminho.
+Essas junções não adicionam chamadas ao grafo.
+
 ---
 
 ## Galerias de exploração
@@ -335,6 +340,9 @@ A área caminhável é formada por:
 - galerias de exploração.
 
 A colisão considera também uma margem para a base do personagem.
+
+Corredores e galerias possuem piso de 32 pixels nas coordenadas do mundo.
+A mesma largura define o desenho, as portas e a área caminhável.
 
 Isso permite:
 
@@ -393,6 +401,9 @@ desloca horizontalmente.
 Mover a câmera não move o personagem.
 
 O zoom também altera o nível de detalhe apresentado no Canvas, mas não altera a geometria real da dungeon.
+
+Zoom e modo visual ficam na mesma barra abaixo do Canvas. **Legenda do mapa**
+expande as explicações dos marcadores e das passagens, inclusive pelo teclado.
 
 ---
 
@@ -467,6 +478,30 @@ A versão atual possui elementos como:
 - efeitos;
 - detalhes que simplificam conforme o zoom.
 
+Salas e passagens usam lajes; a fundação entre elas usa rocha escura para distinguir
+as áreas bloqueadas. Portas são desenhadas a partir dos mesmos acessos usados pela
+física, e o acabamento dos caminhos é composto em camadas para evitar paredes
+decorativas dentro do chão compartilhado.
+
+Paredes com relevo, lajes gastas, placas de madeira com ferragens e tochas com
+luz quente reforçam o ambiente. Rochas musgosas, samambaias, colunas quebradas
+e pequenas teias compõem os detalhes; a sala de entrada possui um tapete bordado.
+Estandartes, caixas, baús, barris e crânios decorativos ficam fora das passagens,
+com a silhueta inteira verificada para não cobrir salas, portas ou outros objetos.
+Esses acabamentos são determinísticos e simplificados ao afastar a câmera.
+
+A página inicial compartilha essa linguagem visual: paredes de pedra, luz
+quente, bandeiras e adereços em pixel art cercam o editor. A prévia de salas
+reutiliza os materiais e sprites da dungeon.
+
+O entorno usa terreno pedregoso, folhagens e rochas com silhuetas variadas.
+A luz suave das tochas contrasta com a pedra fria, e as muralhas recebem a cor
+da região. Nomes mantêm tamanho de leitura estável enquanto houver espaço na sala.
+
+O aventureiro usa capuz, roupa sombreada, botas e detalhes de metal, com vistas
+direcionais e passos animados. Gosma, sentinela e guardião possuem rostos e
+silhuetas próprios; o inspector utiliza os mesmos sprites das salas.
+
 Esses elementos pertencem à apresentação.
 
 Eles não devem alterar a análise do programa.
@@ -527,6 +562,8 @@ dungeon-do-codigo/
 │   ├── semanticaVisual.js
 │   ├── desenhoMasmorra.js
 │   ├── cenario.js
+│   ├── aderecosDungeon.js
+│   ├── entradaDungeon.js
 │   ├── personagem.js
 │   ├── criaturas.js
 │   ├── efeitos.js
@@ -562,6 +599,8 @@ Alguns módulos centrais:
 | `navegacaoMasmorra.js` | Calcula rotas pela rede física existente |
 | `camera.js` | Controla viewport, zoom e deslocamento |
 | `desenhoMasmorra.js` | Desenha arquitetura e acabamentos da dungeon |
+| `aderecosDungeon.js` | Define sprites e limites dos objetos decorativos |
+| `entradaDungeon.js` | Desenha o fundo e a prévia estática da página inicial |
 | `personagem.js` | Estado e animação do personagem |
 | `jogo.js` | Coordena renderização, interação e física |
 | `interface.js` | Controla a interface fora do Canvas |
@@ -599,13 +638,16 @@ Na pasta que contém `package.json`:
 npm test
 ```
 
-No estado auditado desta baseline candidata:
+Na revisão dos refinamentos posteriores à baseline `v0.1.0`:
 
 ```text
-328 testes
-328 passando
+354 testes
+354 passando
 0 falhando
 ```
+
+Os testes incluem a inicialização da página decorada, o redimensionamento do fundo
+e o fluxo de gerar e voltar ao editor, inclusive sem suporte a `ResizeObserver`.
 
 Também existe um workflow do GitHub Actions que executa a suíte automaticamente em pushes e pull requests.
 
@@ -648,7 +690,7 @@ Com a estrutura principal da dungeon estabilizada, os próximos ciclos passam a 
 5. adicionar exemplos prontos de programas C;
 6. continuar melhorias de UX e acessibilidade;
 7. revisar segurança e publicação;
-8. preparar a primeira versão pública estável.
+8. preparar a próxima versão pública a partir da baseline `v0.1.0`, já incorporada à `main`.
 
 Ideias posteriores incluem:
 
