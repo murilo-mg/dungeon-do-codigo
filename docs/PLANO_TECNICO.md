@@ -32,63 +32,54 @@ O projeto já possui uma base funcional ampla:
 - navegação manual e automática;
 - visual completo de dungeon.
 
-A baseline `v0.1.0` já está incorporada à `main`. O objetivo deste ciclo é
-consolidar os refinamentos da página inicial e da exploração com documentação
-alinhada, testes e revisão visual, preservando esse ponto estável.
+A baseline `v0.1.0` já está incorporada à `main`. A consolidação das duas telas
+foi integrada pelo PR #2 no commit `9c9c0b7`, com a suíte e o check `testes`
+aprovados. O próximo marco é concluir a revisão de segurança e validar a
+publicação. Melhorias educativas continuam no plano para os ciclos seguintes.
 
 ---
 
-# Etapa 0 — Consolidar os refinamentos posteriores à baseline
+# Etapa 0 — Consolidação concluída e revisão de segurança
 
-## 0.1 Estado já concluído
+## 0.1 Histórico concluído
 
-- baseline `v0.1.0` criada no commit `ae885db`;
-- incorporação à `main` pelo commit `fc6da7a`;
-- página inicial com materiais e sprites compartilhados;
-- revisão da composição regional, dos caminhos, das portas e da decoração;
-- barra de câmera e modo visual com legenda expansível;
-- documentação atualizada para o código desta revisão;
-- suíte local com 354 testes passando e nenhuma falha.
+- baseline `v0.1.0` no commit `ae885db`, incorporada em `fc6da7a`;
+- consolidação das duas telas e circulação em `9c9c0b7`;
+- 354 testes aprovados na consolidação;
+- revisão visual das duas telas informada pelo mantenedor;
+- cópia local do mantenedor sincronizada com `origin/main` e limpa.
 
-Não recriar a tag `v0.1.0` nem tratar essas funcionalidades como trabalho futuro.
+Não recriar a tag `v0.1.0` nem repetir a consolidação como trabalho futuro.
 
-## 0.2 Validação visual pendente nesta revisão
+## 0.2 Revisão de segurança preparada
 
-Conferir as duas telas no navegador com código pequeno e com muitas funções:
+- limite de 512 KiB também no texto colado, contando bytes UTF-8;
+- limites de funções, relações, nomes e dimensões do mapa;
+- preparação em Worker dedicado, cancelamento e prazo de 8 segundos;
+- fontes locais com licenças, CSP e configuração HTTP;
+- CI com permissões de leitura, ações fixadas por commit e prazo;
+- documentação em `SECURITY.md` e testes específicos.
 
-- editor, arquivo `.c`, mensagens de erro e retorno ao editor;
-- busca, inspector, callers/callees e foco contextual;
-- clique, duplo clique e navegação automática;
-- WASD, setas, liberação do foco e colisão em portas e cruzamentos;
-- zoom, Encaixar, câmera livre e troca de modo visual;
-- legenda expansível e redimensionamento do viewport;
-- função isolada, programa sem `main`, recursão e ciclos;
-- geração de outra dungeon depois da anterior.
+Essa revisão ainda deve ser aplicada no repositório do mantenedor, conferida,
+commitada em uma branch e integrada por PR. A versão publicada precisa de
+verificação própria: `_headers` não funciona em qualquer hospedagem.
 
-Os testes de integração não substituem a avaliação visual de legibilidade e
-acabamento. Não registrar como concluída uma inspeção que não foi realizada.
+## 0.3 Próximo marco: publicação validada
 
-## 0.3 Registrar esta consolidação
+1. Aplicar as mudanças, executar `npm test` e `git diff --check`.
+2. Revisar o diff, commitar e aguardar o check `testes` no PR.
+3. Escolher a hospedagem estática e aplicar os cabeçalhos exigidos.
+4. Validar HTTPS, MIME, cache, caminhos relativos e ausência de envio do código.
+5. Testar os fluxos em Firefox e Chromium na versão realmente hospedada.
+6. Registrar a próxima versão e a demonstração pública após a validação.
 
-Depois da revisão visual e da aplicação das correções:
-
-1. executar `npm test` e `git diff --check`;
-2. conferir os arquivos alterados e novos;
-3. adicionar apenas os arquivos usados pelo projeto;
-4. revisar o conteúdo preparado e executar `git diff --cached --check`;
-5. commitar a consolidação das duas telas e da circulação física.
-
-A imagem de referência solta na raiz não é usada pelo HTML, CSS ou JavaScript
-atual e não faz parte desta consolidação. Não é necessário apagá-la.
-
-A tag `v0.1.0` permanece como referência histórica. Outra tag exige uma escolha
-de versão para um ciclo posterior. Fazer push somente com autorização explícita.
+A tag `v0.1.0` permanece como referência histórica.
 
 ---
 
 # Etapa 1 — Confiança na análise
 
-Depois desta consolidação, o próximo foco técnico deve ser aumentar a confiança no que o Dungeon afirma sobre o código.
+Depois da revisão de segurança e da publicação validada, o próximo foco educativo será aumentar a confiança no que o Dungeon afirma sobre o código.
 
 ---
 
@@ -347,7 +338,7 @@ Galerias físicas devem ser identificadas como circulação, não chamadas.
 
 # Etapa 5 — Segurança e publicação
 
-Antes de disponibilizar a primeira versão pública, fazer uma revisão específica.
+A revisão de código está preparada. A validação de publicação continua pendente; o detalhe dos controles está em `../SECURITY.md`.
 
 ---
 
@@ -563,8 +554,8 @@ A ordem de trabalho depois desta reorganização é:
 3. adicionar exemplos prontos
 4. melhorar UX e acessibilidade
 5. adicionar exportação
-6. revisar segurança
-7. publicar
+6. aplicar a revisão de segurança e validar a hospedagem
+7. publicar e registrar a versão
 8. iniciar recursos de versões posteriores
 ```
 

@@ -744,8 +744,8 @@ npm test
 Na revisão dos refinamentos posteriores à baseline `v0.1.0`:
 
 ```text
-354 testes
-354 passando
+367 testes
+367 passando
 0 falhando
 ```
 
@@ -864,9 +864,23 @@ A revisão atual consolida as mudanças da página inicial e da exploração:
 - composição regional mais compacta e nomes legíveis conforme o espaço;
 - barra de câmera e modo visual com legenda expansível.
 
-A suíte local passou com 354 testes. A inspeção visual desta revisão no navegador
-permanece pendente e deve conferir as duas telas, redimensionamento, importação,
-busca, clique/duplo clique, movimento, portas, zoom e retorno ao editor.
+A consolidação foi integrada à `main` em `9c9c0b7`, com 354 testes aprovados.
+A revisão visual das duas telas foi informada pelo mantenedor.
 
-O commit desta consolidação deve preservar a tag existente. A criação de outra
-tag e o push são etapas separadas, posteriores à validação visual.
+A revisão de segurança seguinte acrescenta limite UTF-8 para texto colado,
+validação após leitura de arquivo, limites de funções e chamadas, preparação
+cancelável em Worker com prazo de 8 segundos, limites de tamanho do mapa,
+fontes locais, CSP e configuração HTTP. Ela inclui 367 testes automatizados.
+
+As regras de publicação e privacidade estão em `../SECURITY.md`. Essa revisão
+precisa ser aplicada e integrada por PR. A validação da hospedagem real e do
+Firefox ainda é uma etapa separada; testar Chromium local não a substitui.
+
+A validação local desta revisão foi executada em Chromium headless com CSP e
+os cabeçalhos aplicados, incluindo hospedagem em subdiretório. Passaram os
+fluxos de geração, importação, busca, modos, zoom e retorno ao editor; conteúdos
+com aparência de HTML permaneceram texto. Cancelamento, edição durante a
+preparação, encerramento de Worker bloqueado ao atingir o prazo e nova tentativa
+foram verificados. As tentativas deliberadas de conexão e script inline foram
+bloqueadas pela CSP. Nos fluxos normais não houve erro de página ou violação da
+política, e os recursos carregados vieram somente da hospedagem local.

@@ -1,0 +1,8 @@
+# Aplicado apenas por hospedagens que reconhecem este formato.
+# Em outros servidores, configurar os mesmos cabeçalhos e conferir a resposta HTTP.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

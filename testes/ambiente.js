@@ -1,4 +1,5 @@
 // Dublês de DOM e relógio para verificar cancelamento e entrada sem dependências.
+import { processarDungeon } from '../js/processamentoDungeon.js';
 import { LARGURA_CORREDOR } from '../js/corredores.js';
 
 export function opacidadesPisosChamadas(canvas, quantidade) {
@@ -15,7 +16,8 @@ export class Emissor {
   removeEventListener(tipo, funcao) { this.ouvintes.get(tipo)?.delete(funcao); }
   emitir(tipo, dados = {}) {
     const evento = { target: null, preventDefault() { this.prevenido = true; }, ...dados };
-    this.ouvintes.get(tipo)?.forEach(funcao => funcao(evento));
+    const resultados = [...(this.ouvintes.get(tipo) ?? [])].map(funcao => funcao(evento));
+    evento.conclusao = Promise.all(resultados);
     return evento;
   }
 }
@@ -101,6 +103,18 @@ class Elemento extends Emissor {
 }
 
 export function criarAmbiente() {
+  const workers = [];
+  globalThis.Worker = class {
+    constructor() { workers.push(this); }
+    postMessage(codigo) {
+      queueMicrotask(() => {
+        if (this.terminado) return;
+        try { this.onmessage?.({ data: { resultado: structuredClone(processarDungeon(codigo)) } }); }
+        catch (erro) { this.onmessage?.({ data: { erro: { mensagem: erro.message, tipo: 'entrada' } } }); }
+      });
+    }
+    terminate() { this.terminado = true; }
+  };
   const janela = new Emissor();
   const documento = new Emissor();
   const preferencia = new Emissor();
@@ -110,6 +124,7 @@ export function criarAmbiente() {
       : id === 'busca-funcao' || id === 'arquivo-c' ? 'input'
         : id.startsWith('camera-') || id.startsWith('modo-') || id === 'botao-abrir-c' ? 'button' : 'div')]));
   elementos.get('busca-funcao').value = '';
+  for (const id of ['botao-cancelar', 'status-geracao']) elementos.set(id, new Elemento('div'));
   elementos.get('arquivo-c').value = '';
   elementos.get('arquivo-c').files = [];
   elementos.get('canvas-jogo').width = 560;
@@ -128,7 +143,7 @@ export function criarAmbiente() {
   globalThis.document = documento;
   globalThis.requestAnimationFrame = funcao => { pendentes.set(proximo, funcao); return proximo++; };
   globalThis.cancelAnimationFrame = id => pendentes.delete(id);
-  return { janela, documento, preferencia, elementos, pendentes,
+  return { janela, documento, preferencia, elementos, pendentes, workers,
     avancar(quantidade = 1, intervalo = 1000 / 60) {
       for (let indice = 0; indice < quantidade; indice++) {
         tempo += intervalo;

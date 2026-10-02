@@ -78,7 +78,16 @@ extensão .c
 até 512 KiB
 ```
 
-Todo o processamento acontece localmente no navegador.
+O limite de 512 KiB também vale para texto colado, medido em bytes UTF-8.
+Esta versão aceita até 64 funções e 256 relações de chamada. A preparação
+acontece em um Worker local, pode ser cancelada e é interrompida depois de
+8 segundos. Mapas grandes demais são recusados com uma mensagem.
+
+O aplicativo não envia, salva em armazenamento persistente, compila ou executa
+seu código C. As fontes também são locais. A hospedagem ainda recebe requisições
+pelos arquivos do site e pode manter registros de acesso.
+
+As proteções e as verificações de publicação estão em [SECURITY.md](SECURITY.md).
 
 ### Análise estrutural
 
@@ -608,6 +617,19 @@ Alguns módulos centrais:
 
 ---
 
+## Preparação e segurança
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `js/processadorDungeon.js` | Controla o Worker, cancelamento e prazo |
+| `js/dungeonWorker.js` | Recebe texto e devolve resultado ou erro controlado |
+| `js/processamentoDungeon.js` | Valida e coordena a preparação pura |
+| `js/preparacaoDungeon.js` | Prepara regiões visuais, corredores, colisão e cenário |
+| `css/fontes.css`, `assets/fontes/` | Distribuem as fontes localmente |
+| `_headers` | Configuração HTTP para hospedagens que reconhecem esse formato |
+| `SECURITY.md` | Proteções, limites, privacidade e pendências de publicação |
+
+
 ## Como executar
 
 Como o projeto usa ES Modules, sirva a pasta por HTTP.
@@ -641,8 +663,8 @@ npm test
 Na revisão dos refinamentos posteriores à baseline `v0.1.0`:
 
 ```text
-354 testes
-354 passando
+367 testes
+367 passando
 0 falhando
 ```
 
@@ -681,7 +703,12 @@ Essas limitações não devem ser escondidas da interface ou da documentação.
 
 ## Próximos passos
 
-Com a estrutura principal da dungeon estabilizada, os próximos ciclos passam a priorizar:
+A consolidação das duas telas foi integrada à `main` em `9c9c0b7`.
+A revisão seguinte adiciona limites de entrada, preparação cancelável,
+fontes locais, CSP e CI com permissões menores. Antes de lançar, aplicar essa
+revisão e validar a hospedagem e os navegadores usados pelos visitantes.
+
+Depois dessa validação, os próximos ciclos educativos passam a priorizar:
 
 1. aumentar a confiabilidade e a explicação da análise;
 2. tornar a métrica de complexidade mais transparente;
@@ -689,7 +716,7 @@ Com a estrutura principal da dungeon estabilizada, os próximos ciclos passam a 
 4. apresentar chamadas externas como informação complementar;
 5. adicionar exemplos prontos de programas C;
 6. continuar melhorias de UX e acessibilidade;
-7. revisar segurança e publicação;
+7. validar os cabeçalhos e os fluxos na hospedagem final, conforme `SECURITY.md`;
 8. preparar a próxima versão pública a partir da baseline `v0.1.0`, já incorporada à `main`.
 
 Ideias posteriores incluem:

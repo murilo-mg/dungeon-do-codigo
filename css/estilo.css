@@ -1195,3 +1195,7 @@ textarea:focus-visible {
   .tela-entrada .configuracao label { font-size: 14px; }
   .tela-entrada #entrada-codigo { height: 240px; padding: 12px; font-size: 12px; }
 }
+
+#area-jogo {
+  display: none;
+}

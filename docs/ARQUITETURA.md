@@ -1162,9 +1162,9 @@ Coordena o fluxo entre:
 Entre suas responsabilidades estão:
 
 - receber a solicitação de geração;
-- analisar o código;
-- criar o grafo;
-- construir a dungeon;
+- solicitar análise e preparação ao Worker;
+- controlar cancelamento, prazo e resultados antigos;
+- receber o grafo e a dungeon preparados;
 - iniciar o jogo;
 - conectar seleção;
 - atualizar inspector;
@@ -1197,6 +1197,8 @@ texto C
 
 ```text
 principal.js
+   ↓
+processadorDungeon.js → dungeonWorker.js → processamentoDungeon.js
    ↓
 analisadorC.js
    ↕
@@ -1516,3 +1518,32 @@ o que foi criado apenas para representar e explorar esse código
 ```
 
 Essa separação é o principal mecanismo de confiança do Dungeon do Código.
+
+
+# Preparação isolada e segurança
+
+`entradaCodigo.js` valida importação e texto colado em bytes UTF-8. O limite
+por conteúdo é conferido antes de iniciar um Worker e novamente dentro dele.
+As funções extraídas são limitadas em quantidade, nomes e relações antes do
+layout. Definições repetidas não são aceitas.
+
+`processadorDungeon.js` cria um Worker de módulo local por tentativa. Ele
+encerra o Worker ao concluir, cancelar, substituir a entrada, falhar ou
+exceder 8 segundos. Não há fallback síncrono para navegadores incompatíveis.
+
+`dungeonWorker.js` usa `processamentoDungeon.js` para executar o léxico, a
+análise, o grafo, o layout e a preparação da cena. Resultados são transferidos
+por clonagem estruturada, preservando `Map` e `Set`; não há JSON com perda de
+identidades estruturais. Erros conhecidos têm mensagem controlada e falhas
+inesperadas não expõem stacks ou conteúdo da entrada.
+
+`preparacaoDungeon.js` concentra o trabalho determinístico antes feito ao
+iniciar o jogo: regiões visuais, corredores, cruzamentos, área caminhável e
+cenografia. O jogo usa os dados preparados, mantém desenho e interações no
+thread da interface e conserva uma preparação direta para uso dos testes
+unitários. O fluxo de produção sempre usa o Worker.
+
+O HTML usa CSP sem scripts inline, conexões de dados ou objetos. Fontes e
+estilos são locais. `_headers` oferece a política HTTP, incluindo bloqueio de
+enquadramento, para servidores que reconheçam o formato; a resposta real deve
+ser conferida. Privacidade e limites estão documentados em `../SECURITY.md`.
