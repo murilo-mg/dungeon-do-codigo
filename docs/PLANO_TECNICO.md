@@ -34,22 +34,24 @@ O projeto já possui uma base funcional ampla:
 
 A baseline `v0.1.0`, a consolidação das duas telas (`9c9c0b7`) e a revisão de
 segurança (`e5253c2`) já estão integradas à `main`. A demonstração está publicada
-no Cloudflare Pages, com HTTPS, cabeçalhos e fluxos conferidos em Chromium.
+no Cloudflare Pages, com HTTPS, cabeçalhos e fluxos conferidos em Firefox e
+Chromium. A versão pública consolidada está marcada como `v0.2.0` no commit
+`5fded90`.
 O histórico está em `../EVOLUCAO.md`; o escopo da publicação está em `PUBLICACAO.md`.
 
 ---
 
-# Etapa 0 — Fechamento da publicação
+# Etapa 0 — Licenciamento e apresentação do repositório
 
-Restam os registros e as conferências complementares:
+A publicação foi fechada na `v0.2.0`: README, capturas e documentação estão
+integrados; a versão hospedada foi conferida em Firefox e Chromium; e a tag e
+release foram criadas a partir da `main` final.
 
-1. Integrar por PR o README, as capturas e a documentação da publicação.
-2. Registrar a conferência manual do site hospedado em Firefox, incluindo
-   geração, importação, controles, duplo clique, cancelamento e retorno.
-3. Preencher a descrição e o link do site no About do repositório.
-4. Escolher e registrar a licença do código do projeto; as fontes já possuem
+Restam os seguintes registros independentes do funcionamento da aplicação:
+
+1. Escolher e registrar a licença do código do projeto. As fontes já possuem
    suas licenças em `assets/fontes/`.
-5. Criar a próxima tag e release a partir da `main` final, com CI aprovado.
+2. Preencher a descrição e o link público no About do repositório.
 
 A tag `v0.1.0` permanece como referência histórica e não deve ser recriada.
 
@@ -468,7 +470,7 @@ Não é objetivo imediato:
 
 # Ordem recomendada
 
-1. Fechar os registros da publicação, a conferência em Firefox e a release.
+1. Registrar a licença e preencher o About do repositório.
 2. Explicar melhor a análise e seus limites.
 3. Adicionar exemplos prontos.
 4. Melhorar UX e acessibilidade a partir de problemas observados.

@@ -55,8 +55,9 @@ demais cabeçalhos HTTP. Cabeçalhos devem valer também para o módulo do Worke
 A produção está em [dungeon-do-codigo.pages.dev](https://dungeon-do-codigo.pages.dev/),
 no Cloudflare Pages. HTTPS, CSP e cabeçalhos adicionais foram conferidos na
 página e no Worker; os fluxos testados em Chromium e seus resultados estão em
-[docs/PUBLICACAO.md](docs/PUBLICACAO.md). A conferência manual da versão hospedada
-em Firefox permanece sem registro de conclusão.
+[docs/PUBLICACAO.md](docs/PUBLICACAO.md). A versão hospedada também foi conferida
+manualmente em Firefox em 2 de outubro de 2026, incluindo geração, importação,
+controles, duplo clique, cancelamento e retorno ao editor.
 
 Para manter e ampliar essa validação:
 
