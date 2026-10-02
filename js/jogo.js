@@ -2,19 +2,15 @@
 // Não manipula DOM diretamente: notifica mudanças de sala por callback.
 
 import { desenharTerritorio, desenharAlvenariaSala, desenharPlacaRegiao, desenharRedeCorredores, desenharPortaisSalas } from './desenhoMasmorra.js';
-import { calcularFormaTerritorio } from './layoutRegioes.js';
-import { criarCenario, desenharFundo, desenharDecoracoes } from './cenario.js';
-import { criarSegmentosDeCorredores, calcularCruzamentosCorredores } from './corredores.js';
-import { criarAreaCaminhavel, localizarNaArea, moverNaArea } from './areaCaminhavel.js';
+import { prepararCenaDungeon } from './preparacaoDungeon.js';
+import { desenharFundo, desenharDecoracoes } from './cenario.js';
+import { localizarNaArea, moverNaArea } from './areaCaminhavel.js';
 import { calcularRotaCaminhavel } from './navegacaoMasmorra.js';
 import { atualizarCamera, criarCamera, definirZoom, deslocarCamera, encaixarCamera,
   zoomParaEncaixar } from './camera.js';
 import { proximoZoomDiscreto } from './zoomDiscreto.js';
 import { GLIFOS_MARCADORES, PALETA, desenharPixels } from './pixelArt.js';
 import {
-  atribuirCoresRegioes,
-  classificarVisualmenteCorredores,
-  calcularLimitesVisuaisRegioes,
   obterEstiloVisualDaSala,
   obterEstiloNomeSala,
   obterMarcadoresEstruturais,
@@ -23,7 +19,7 @@ import {
 import { desenharCriatura } from './criaturas.js';
 import { criarParticulasDeEntrada, atualizarParticulas, desenharParticulas } from './efeitos.js';
 import { criarPersonagem, atualizarPersonagem, desenharPassos, desenharPersonagem,
-  VELOCIDADE_PERSONAGEM, RAIO_BASE_PERSONAGEM } from './personagem.js';
+  VELOCIDADE_PERSONAGEM } from './personagem.js';
 
 const POSICAO_INICIAL_JOGADOR = { x: 280, y: 240 };
 const CORES_MARCADORES = { 1: PALETA.pergaminho };
@@ -32,7 +28,6 @@ const MARGEM_ETIQUETA = 8;
 const ESPACAMENTO_ETIQUETA = 6;
 const ALTURA_LINHA_ETIQUETA = 14;
 const LARGURA_MAXIMA_ETIQUETA = 240;
-const MARGEM_REGIAO = 20;
 const INTERVALO_DUPLO_CLIQUE = 500;
 
 let funcaoDeNotificacaoControles = null;
@@ -85,63 +80,11 @@ export function iniciarJogo(
   pararJogo();
 
   salas = novaMasmorra.salas;
-  const regioes = novaMasmorra.regioes ?? [];
-  const territoriosRegioes = novaMasmorra.territoriosRegioes;
-
-  const limitesRegioes =
-    territoriosRegioes instanceof Map &&
-    territoriosRegioes.size
-      ? regioes
-        .map(regiao => {
-          const territorio = territoriosRegioes.get(regiao.id);
-
-          if (!territorio) return null;
-
-          return {
-            ...regiao,
-            ...territorio,
-          };
-        })
-        .filter(Boolean)
-      : calcularLimitesVisuaisRegioes(
-        regioes,
-        salas,
-        MARGEM_REGIAO
-      );
-
-  const coresRegioes = atribuirCoresRegioes(regioes);
-  const funcoesPorRegiao = new Map(
-    regioes.map(regiao => [regiao.id, regiao.funcoes]));
-
-  regioesVisuais = limitesRegioes.map(regiao => {
-    const membros = (funcoesPorRegiao.get(regiao.id) ?? [])
-      .map(nome => salas.find(sala => sala.nome === nome))
-      .filter(Boolean);
-
-    const ancora = membros.reduce((melhor, sala) => {
-      if (!melhor || sala.y < melhor.y ||
-        (sala.y === melhor.y && sala.x < melhor.x)) {
-        return sala;
-      }
-      return melhor;
-    }, null);
-
-    return {
-      ...regiao,
-      membros,
-      ancora,
-      forma: calcularFormaTerritorio(regiao, membros),
-      cor: coresRegioes.get(regiao.id),
-    };
-  });
-
+  ({ regioesVisuais, segmentosDeCorredores, passagensExploracao, segmentosNavegaveis,
+    tiposVisuaisCorredores, cruzamentosCorredores, areaCaminhavel, cenario } =
+    novaMasmorra.preparacao ?? prepararCenaDungeon(novaMasmorra, novasArestas));
   larguraMundo = novaMasmorra.larguraMundo;
   alturaMundo = novaMasmorra.alturaMundo;
-  segmentosDeCorredores = criarSegmentosDeCorredores(salas, novasArestas);
-  passagensExploracao = novaMasmorra.passagensExploracao ?? [];
-  segmentosNavegaveis = [...segmentosDeCorredores, ...passagensExploracao];
-  tiposVisuaisCorredores = classificarVisualmenteCorredores(regioes, novasArestas);
-  cruzamentosCorredores = calcularCruzamentosCorredores(segmentosNavegaveis);
 
   funcaoDeNotificacao = aoMudarDeSala;
   funcaoDeNotificacaoControles = aoMudarControles;
@@ -161,7 +104,6 @@ export function iniciarJogo(
       : POSICAO_INICIAL_JOGADOR.y
   );
 
-  areaCaminhavel = criarAreaCaminhavel(salas, segmentosNavegaveis, RAIO_BASE_PERSONAGEM);
   localFisico = localizarNaArea(areaCaminhavel, jogador);
 
   salaAtual = null;
@@ -190,13 +132,6 @@ export function iniciarJogo(
     observadorViewport = new window.ResizeObserver(redimensionarViewport);
     observadorViewport.observe(canvas);
   }
-
-  cenario = criarCenario(
-    salas,
-    larguraMundo,
-    alturaMundo,
-    segmentosNavegaveis
-  );
 
   preferenciaMovimento = window.matchMedia(
     '(prefers-reduced-motion: reduce)'

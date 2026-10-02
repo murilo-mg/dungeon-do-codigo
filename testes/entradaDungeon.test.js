@@ -61,7 +61,7 @@ test('sem ResizeObserver a decoração acompanha resize e o fluxo gerar/voltar c
     assert.deepEqual([fundo.width, fundo.height], [130, 282]);
     const editor = ambiente.elementos.get('entrada-codigo');
     editor.value = 'int main(void) { return 0; }';
-    ambiente.elementos.get('botao-gerar').emitir('click');
+    await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
     ambiente.avancar(2);
     assert.equal(ambiente.elementos.get('area-jogo').style.display, 'flex');
     assert.ok(ambiente.pendentes.size > 0);

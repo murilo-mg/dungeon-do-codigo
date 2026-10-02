@@ -855,3 +855,21 @@ ciclo contínuo de animação nem interpreta o código do usuário.
 `ResizeObserver` é usado quando disponível. O evento `resize` é a alternativa
 para que a ausência dessa API não impeça a inicialização do editor, a geração
 da dungeon ou o retorno da exploração. Essa garantia possui testes de integração.
+
+
+# Revisão de segurança antes da próxima publicação
+
+A preparação do mapa deve acontecer em um Worker local e cancelável. Limites
+de entrada e de grafo reduzem a carga; o prazo de 8 segundos interrompe uma
+preparação que não termina. Limites de dimensões e segmentos também contêm o
+custo do desenho e da navegação posteriores. O Worker não representa execução
+do código C: este continua sendo apenas texto analisado.
+
+A tipografia existente é preservada com arquivos locais e licenças. A página
+não depende de requisições ao Google Fonts. A CSP é uma camada adicional aos
+métodos seguros de inserção de texto, não sua substituta.
+
+A proteção de enquadramento e outros cabeçalhos dependem do servidor. A próxima
+publicação só deve ser considerada validada depois de conferir a resposta HTTP
+e testar os fluxos na hospedagem real. Testes aprovados não autorizam afirmar
+segurança absoluta. O índice de complexidade também não mede vulnerabilidades.

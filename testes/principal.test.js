@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarAmbiente, encontrar, opacidadesPisosChamadas } from './ambiente.js';
 import { PALETA } from '../js/pixelArt.js';
+import { LIMITE_ARQUIVO_C } from '../js/entradaCodigo.js';
 
 test('gerar avisa sobre código inválido, mantém o editor e permite corrigir a entrada', async () => {
   const ambiente = criarAmbiente();
@@ -20,7 +21,7 @@ test('gerar avisa sobre código inválido, mantém o editor e permite corrigir a
   const exemplo = entrada.value;
 
   entrada.value = 'void f() { return;';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
 
   assert.match(
     mensagemErro.textContent,
@@ -33,7 +34,7 @@ test('gerar avisa sobre código inválido, mantém o editor e permite corrigir a
   assert.equal(ambiente.pendentes.size, 0);
 
   entrada.value = exemplo;
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
 
   ambiente.avancar(2);
 
@@ -45,7 +46,7 @@ test('gerar avisa sobre código inválido, mantém o editor e permite corrigir a
   assert.equal(ambiente.pendentes.size, 0);
 
   entrada.value = '';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
 
   assert.match(
     mensagemErro.textContent,
@@ -61,7 +62,7 @@ test('ao caminhar para outra sala, inspector recebe relações e caminho do graf
   ambiente.documento.emitir('DOMContentLoaded');
   ambiente.elementos.get('entrada-codigo').value =
     'void a(void) {}\nint main(void) { a(); return 0; }';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
 
   const painel = ambiente.elementos.get('info-sala');
@@ -103,7 +104,7 @@ test('navegação pelo inspector troca a função e retoma a sala física ao cli
     'void a(){}\nvoid b(){}\nvoid c(){}\nvoid d(){}\n'
     + 'void e(){}\nvoid f(){}\nvoid g(){}\nvoid h(){}\n'
     + 'void distante(){}\nint main(){a();b();c();d();e();f();g();h();distante();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
 
   const painel = ambiente.elementos.get('info-sala');
@@ -139,7 +140,7 @@ test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra 
   const entrada = ambiente.elementos.get('entrada-codigo');
   entrada.value = 'void isolada(){}\nvoid a(){b();}\nvoid b(){c();}\n'
     + 'void c(){d();}\nvoid d(){e();}\nvoid e(){}\nint main(){a();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
 
   const campo = ambiente.elementos.get('busca-funcao');
@@ -172,7 +173,7 @@ test('busca usa a seleção existente, foca sala isolada e limpa ao gerar outra 
   assert.equal(campo.value, '');
   assert.equal(resultados.filhos.length, 0);
   entrada.value = 'void nova(){}\nint main(){nova();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   campo.value = 'isol';
   campo.emitir('input');
@@ -187,7 +188,7 @@ test('busca aplica foco às duas cadeias até a função e clique restaura os co
   ambiente.elementos.get('entrada-codigo').value =
     'void C(){}\nvoid A(){C();}\nvoid B(){C();}\nvoid extra(){}\n'
     + 'int main(){A();B();extra();return 0;}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   const canvas = ambiente.elementos.get('canvas-jogo');
   assert.deepEqual(opacidadesPisosChamadas(canvas, 5), [1, 1, 1, 1, 1]);
@@ -214,7 +215,7 @@ test('busca e clique na sala compartilham painel, seleção e foco topológico',
   ambiente.documento.emitir('DOMContentLoaded');
   ambiente.elementos.get('entrada-codigo').value =
     'void B(){}\nvoid A(){B();}\nvoid extra(){}\nint main(){A();extra();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   const canvas = ambiente.elementos.get('canvas-jogo');
   const painel = ambiente.elementos.get('info-sala');
@@ -264,7 +265,7 @@ test('controles de câmera convivem com caller, callee, busca e nova dungeon', a
   const entrada = ambiente.elementos.get('entrada-codigo');
   entrada.value = 'void f(){}\nvoid e(){f();}\nvoid d(){e();}\nvoid c(){d();}\n'
     + 'void b(){c();}\nvoid a(){b();}\nint main(){a();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   const zoom = ambiente.elementos.get('camera-zoom');
   const painel = ambiente.elementos.get('info-sala');
@@ -301,7 +302,7 @@ test('controles de câmera convivem com caller, callee, busca e nova dungeon', a
   assert.equal(zoom.textContent, '100%');
   ambiente.elementos.get('botao-voltar').emitir('click');
   entrada.value = 'int main(){return 0;}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   assert.equal(zoom.textContent, '100%');
   assert.equal(ambiente.elementos.get('camera-encaixar').ouvintes.get('click').size, 1);
@@ -314,7 +315,7 @@ test('perfil estrutural e ciclos chegam ao inspector por exploração, relaçõe
   ambiente.documento.emitir('DOMContentLoaded');
   ambiente.elementos.get('entrada-codigo').value =
     'void a(){if (1) {} b();}\nvoid b(){a();}\nint main(){a();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   const painel = ambiente.elementos.get('info-sala');
   const conteudo = classe => painel.filhos.find(filho =>
@@ -345,7 +346,7 @@ test('modo visual convive com busca, relações, câmera e reinício da dungeon'
   const entrada = ambiente.elementos.get('entrada-codigo');
   entrada.value = 'void f(){if (1) {}}\nvoid e(){f();}\nvoid d(){e();}\n'
     + 'void c(){d();}\nvoid b(){c();}\nvoid a(){b();}\nint main(){a();}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   const estrutura = ambiente.elementos.get('modo-estrutura');
   const complexidade = ambiente.elementos.get('modo-complexidade');
@@ -383,7 +384,7 @@ test('modo visual convive com busca, relações, câmera e reinício da dungeon'
   ambiente.elementos.get('botao-voltar').emitir('click');
   assert.equal(complexidade.atributos['aria-pressed'], 'true');
   entrada.value = 'int main(){return 0;}';
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   assert.equal(complexidade.atributos['aria-pressed'], 'true');
   assert.equal(estrutura.atributos['aria-pressed'], 'false');
@@ -409,7 +410,7 @@ test('Abrir .c carrega texto local sem gerar dungeon e Gerar continua funcionand
   assert.equal(ambiente.elementos.get('arquivo-atual').textContent, 'Arquivo: teste.c');
   assert.equal(ambiente.pendentes.size, 0);
   assert.notEqual(ambiente.elementos.get('area-jogo').style.display, 'flex');
-  ambiente.elementos.get('botao-gerar').emitir('click');
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
   ambiente.avancar();
   assert.equal(ambiente.elementos.get('area-jogo').style.display, 'flex');
   assert.equal(encontrar(ambiente.elementos.get('info-sala'), 'nome-funcao').textContent,
@@ -487,4 +488,76 @@ test('drop válido carrega uma vez e leitura antiga não sobrescreve edição ou
   await Promise.resolve();
   assert.equal(editor.value, 'int main(){return 2;}');
   assert.equal(ambiente.elementos.get('arquivo-atual').textContent, 'Arquivo: novo.C');
+});
+
+
+test('limite do texto colado e revalidação da leitura preservam o editor', async () => {
+  const ambiente = criarAmbiente();
+  await import('../js/principal.js?limites-seguranca');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const editor = ambiente.elementos.get('entrada-codigo');
+  const campo = ambiente.elementos.get('arquivo-c');
+  const erro = ambiente.elementos.get('mensagem-erro');
+  editor.value = 'é'.repeat(LIMITE_ARQUIVO_C / 2 + 1);
+  await ambiente.elementos.get('botao-gerar').emitir('click').conclusao;
+  assert.match(erro.textContent, /512 KiB/);
+  assert.equal(ambiente.workers.length, 0);
+  assert.equal(editor.value.length, LIMITE_ARQUIVO_C / 2 + 1);
+  editor.value = 'int main(){return 0;}';
+  campo.files = [{ name: 'enganoso.c', size: 10,
+    text: async () => 'x'.repeat(LIMITE_ARQUIVO_C + 1) }];
+  campo.emitir('change');
+  await Promise.resolve();
+  assert.match(erro.textContent, /512 KiB/);
+  assert.equal(editor.value, 'int main(){return 0;}');
+  assert.equal(ambiente.elementos.get('arquivo-atual').textContent, '');
+});
+
+test('cancelar ou editar durante a preparação encerra o trabalho e mantém a entrada', async () => {
+  const ambiente = criarAmbiente();
+  const workers = [];
+  globalThis.Worker = class {
+    constructor() { workers.push(this); }
+    postMessage() {}
+    terminate() { this.terminado = true; }
+  };
+  await import('../js/principal.js?cancelamento-preparacao');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const editor = ambiente.elementos.get('entrada-codigo');
+  const gerar = ambiente.elementos.get('botao-gerar');
+  const cancelar = ambiente.elementos.get('botao-cancelar');
+  for (const acao of ['cancelar', 'editar']) {
+    editor.value = 'int main(){return 0;}';
+    const evento = gerar.emitir('click');
+    assert.equal(gerar.disabled, true);
+    assert.equal(cancelar.hidden, false);
+    assert.equal(ambiente.elementos.get('painel-configuracao').atributos['aria-busy'], 'true');
+    const worker = workers.at(-1);
+    const respostaAntiga = worker.onmessage;
+    if (acao === 'cancelar') cancelar.emitir('click');
+    else { editor.value = 'void novo(){}'; editor.emitir('input'); }
+    await evento.conclusao;
+    respostaAntiga({ data: { resultado: { grafo: null, masmorra: null } } });
+    assert.equal(worker.terminado, true);
+    assert.equal(gerar.disabled, false);
+    assert.equal(cancelar.hidden, true);
+    assert.equal(ambiente.elementos.get('status-geracao').textContent, '');
+    assert.notEqual(ambiente.elementos.get('area-jogo').style.display, 'flex');
+    assert.equal(editor.value, acao === 'cancelar' ? 'int main(){return 0;}' : 'void novo(){}');
+  }
+});
+
+test('falha de Worker mostra aviso controlado e permite outra tentativa', async () => {
+  const ambiente = criarAmbiente();
+  globalThis.Worker = class { constructor() { throw new Error('segredo interno'); } };
+  await import('../js/principal.js?worker-indisponivel');
+  ambiente.documento.emitir('DOMContentLoaded');
+  const gerar = ambiente.elementos.get('botao-gerar');
+  await gerar.emitir('click').conclusao;
+  const mensagem = ambiente.elementos.get('mensagem-erro').textContent;
+  assert.match(mensagem, /navegador atualizado/);
+  assert.doesNotMatch(mensagem, /segredo interno/);
+  assert.equal(gerar.disabled, false);
+  assert.equal(ambiente.elementos.get('botao-cancelar').hidden, true);
+  assert.equal(ambiente.pendentes.size, 0);
 });

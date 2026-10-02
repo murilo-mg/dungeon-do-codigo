@@ -2,10 +2,8 @@
 // Orquestra o pipeline completo: entrada de código, análise, geração da
 // masmorra, renderização do jogo e atualização da interface.
 
-import { analisarFuncoes, ErroAnaliseC } from './analisadorC.js';
-import { calcularContextoTopologico, criarGrafo, obterEstruturaDaFuncao } from './grafoC.js';
-import { construirMasmorra } from './masmorra.js';
-import { validarArquivoC } from './entradaCodigo.js';
+import { calcularContextoTopologico, obterEstruturaDaFuncao } from './grafoC.js';
+import { validarArquivoC, validarCodigoC } from './entradaCodigo.js';
 import { inicializarDecoracaoEntrada } from './entradaDungeon.js';
 import { afastarCamera, aproximarCamera, encaixarMasmorra, focarSala,
   iniciarJogo, pararJogo, restaurarZoomCamera, selecionarModoVisual } from './jogo.js';
@@ -19,7 +17,26 @@ import {
   mostrarArquivoImportado,
 } from './interface.js';
 
+import { criarProcessadorDungeon } from './processadorDungeon.js';
+
 let sequenciaImportacao = 0;
+let sequenciaGeracao = 0;
+const processador = criarProcessadorDungeon();
+
+function atualizarPreparacao(ativa) {
+  const botao = document.getElementById('botao-gerar');
+  botao.disabled = ativa;
+  botao.textContent = ativa ? 'Preparando dungeon…' : 'Gerar dungeon';
+  document.getElementById('botao-cancelar').hidden = !ativa;
+  document.getElementById('status-geracao').textContent = ativa ? 'Analisando e preparando o mapa…' : '';
+  document.getElementById('painel-configuracao').setAttribute('aria-busy', String(ativa));
+}
+
+function cancelarPreparacao() {
+  sequenciaGeracao++;
+  processador.cancelar();
+  atualizarPreparacao(false);
+}
 
 const codigoPadrao = `#include <stdio.h>
 #include <stdlib.h>
@@ -113,7 +130,7 @@ document.addEventListener('DOMContentLoaded', inicializarAplicacao);
 function inicializarAplicacao() {
   inicializarDecoracaoEntrada();
   inicializarBuscaFuncoes();
-  configurarImportacaoCodigo(aoSelecionarArquivos, () => { sequenciaImportacao++; });
+  configurarImportacaoCodigo(aoSelecionarArquivos, () => { sequenciaImportacao++; cancelarPreparacao(); });
   configurarControlesCamera({
     aoAfastar: afastarCamera,
     aoRestaurar: restaurarZoomCamera,
@@ -126,10 +143,12 @@ function inicializarAplicacao() {
   entradaCodigo.value = codigoPadrao;
 
   document.getElementById('botao-gerar').addEventListener('click', () => aoClicarEmGerar(entradaCodigo));
+  document.getElementById('botao-cancelar').addEventListener('click', cancelarPreparacao);
   document.getElementById('botao-voltar').addEventListener('click', aoClicarEmVoltar);
 }
 
 async function aoSelecionarArquivos(arquivos) {
+  cancelarPreparacao();
   const tentativa = ++sequenciaImportacao;
   if (arquivos.length !== 1) {
     mostrarErroEntrada('Selecione apenas um arquivo .c por vez.');
@@ -144,6 +163,8 @@ async function aoSelecionarArquivos(arquivos) {
   try {
     const conteudo = await arquivo.text();
     if (tentativa !== sequenciaImportacao) return;
+    const erroConteudo = validarCodigoC(conteudo);
+    if (erroConteudo && conteudo.trim()) { mostrarErroEntrada(erroConteudo); return; }
     if (!conteudo.trim()) {
       mostrarErroEntrada('O arquivo está vazio.');
       return;
@@ -156,42 +177,30 @@ async function aoSelecionarArquivos(arquivos) {
   }
 }
 
-function aoClicarEmGerar(entradaCodigo) {
+async function aoClicarEmGerar(entradaCodigo) {
   sequenciaImportacao++;
+  cancelarPreparacao();
   limparErroEntrada();
-
-  if (!entradaCodigo.value.trim()) {
-    mostrarErroEntrada('Cole um código em C antes de gerar a dungeon.');
+  const erroEntrada = validarCodigoC(entradaCodigo.value);
+  if (erroEntrada) {
+    mostrarErroEntrada(erroEntrada);
     entradaCodigo.focus({ preventScroll: true });
     return;
   }
-
-  let funcoes;
-
+  const tentativa = ++sequenciaGeracao;
+  atualizarPreparacao(true);
+  let grafo, masmorra;
   try {
-    funcoes = analisarFuncoes(entradaCodigo.value);
+    ({ grafo, masmorra } = await processador.executar(entradaCodigo.value));
   } catch (erro) {
-    if (!(erro instanceof ErroAnaliseC)) throw erro;
-
-    mostrarErroEntrada(`Não foi possível analisar o código. ${erro.message}`);
-
+    if (tentativa !== sequenciaGeracao || erro.tipo === 'cancelado') return;
+    mostrarErroEntrada(erro.message);
     entradaCodigo.focus({ preventScroll: true });
     return;
+  } finally {
+    if (tentativa === sequenciaGeracao) atualizarPreparacao(false);
   }
-
-  if (funcoes.length === 0) {
-    mostrarErroEntrada(
-      'Não consegui encontrar funções nesse código. Confira se está no formato padrão de C.'
-    );
-    return;
-  }
-
-  const grafo = criarGrafo(funcoes);
-  const masmorra = construirMasmorra(
-    funcoes,
-    grafo,
-    { layoutRegional: true }
-  );
+  if (tentativa !== sequenciaGeracao) return;
 
   exibirTelaDeJogo();
   atualizarPainelDeSala(null);
@@ -213,6 +222,7 @@ function aoClicarEmGerar(entradaCodigo) {
 }
 
 function aoClicarEmVoltar() {
+  cancelarPreparacao();
   pararJogo();
   atualizarModoVisual('complexidade');
   limparBuscaFuncoes();
