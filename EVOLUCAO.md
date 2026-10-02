@@ -699,6 +699,20 @@ e conferências complementares estão em `docs/PUBLICACAO.md`.
 
 ---
 
+# 31. Fechamento da versão pública v0.2.0
+
+Em 2 de outubro de 2026, a versão hospedada também foi conferida manualmente
+em Firefox, cobrindo geração, importação, controles, duplo clique, cancelamento
+e retorno ao editor. A suíte permaneceu com 367 testes aprovados e nenhum
+falhando.
+
+A documentação da publicação foi consolidada, o favicon próprio foi integrado
+pelo PR #5 e a tag/release `v0.2.0` foi criada sobre o commit `5fded90`. Esse
+marco fecha o ciclo iniciado na baseline `v0.1.0` e passa a representar a versão
+pública consolidada do projeto.
+
+---
+
 # Linha resumida de evolução
 
 ```text
@@ -741,6 +755,8 @@ consolidação das duas telas
 preparação em Worker e segurança
     ↓
 demonstração pública
+    ↓
+release v0.2.0
 ```
 
 ---

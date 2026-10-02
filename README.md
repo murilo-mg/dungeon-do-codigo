@@ -139,6 +139,8 @@ Os módulos ficam em `js/`. Testes ficam em `testes/`; capturas e documentação
 - [Evolução](EVOLUCAO.md): histórico dos marcos concluídos.
 - [Correções](CORRECOES.md): registro histórico de uma revisão de bugs.
 
-A baseline `v0.1.0`, a consolidação das duas telas e a revisão de segurança já estão integradas à `main`. Os próximos ciclos priorizam explicar melhor a análise, avisar sobre construções parcialmente suportadas, adicionar exemplos e melhorar acessibilidade. Exportação e atividades de leitura de código permanecem como evoluções futuras.
+A baseline `v0.1.0`, a consolidação das duas telas e a revisão de segurança já estão integradas à `main`. A versão pública consolidada está marcada como `v0.2.0`, no commit `5fded90`, com a publicação conferida em Firefox e Chromium.
+
+Os próximos ciclos priorizam explicar melhor a análise, avisar sobre construções parcialmente suportadas, adicionar exemplos e melhorar acessibilidade. Exportação e atividades de leitura de código permanecem como evoluções futuras.
 
 > Se um significado visual não puder ser justificado pelos dados analisados, ele não deve ser apresentado como fato.

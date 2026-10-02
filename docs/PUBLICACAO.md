@@ -49,6 +49,7 @@ Verificação em 1º de outubro de 2026, horário de Manaus
 | Erros nos fluxos normais | Nenhum erro de página, console ou violação de CSP observado |
 | Interface estreita | Captura e fluxo de retorno verificados em largura de 390 px; sem controles de movimento por toque |
 | Suíte da `main` | 367 testes aprovados; CI do GitHub aprovado |
+| Fluxos no Firefox | Geração, importação, controles, duplo clique, cancelamento e retorno aprovados manualmente em 2 de outubro de 2026 |
 
 A conexão HTTPS também foi conferida por um cliente HTTP com validação de
 certificado. O navegador automatizado usa o proxy do ambiente de revisão;
@@ -60,7 +61,7 @@ inclusive com o aplicativo servido em subdiretório.
 
 Esses resultados registram verificações específicas, não uma auditoria exaustiva
 ou garantia de segurança absoluta. A conferência manual da versão hospedada em
-Firefox permanece sem registro de conclusão; deve incluir geração, importação,
+Firefox foi concluída em 2 de outubro de 2026, cobrindo geração, importação,
 controles, duplo clique, cancelamento e retorno.
 
 ## Capturas
@@ -88,5 +89,7 @@ curl -I https://dungeon-do-codigo.pages.dev/
 curl -I https://dungeon-do-codigo.pages.dev/js/dungeonWorker.js
 ```
 
-A tag `v0.1.0` permanece como baseline histórica. A próxima tag e release devem
-apontar para o commit final integrado na `main`, após a documentação da publicação.
+A tag `v0.1.0` permanece como baseline histórica. A versão pública consolidada
+está marcada como `v0.2.0`, com tag e release apontando para o commit `5fded90`.
+A atualização documental do fechamento é posterior à tag; ela não altera essa
+referência nem exige recriar a release.
