@@ -22,7 +22,9 @@ Comando de build configurado no painel:
 mkdir -p dist && cp index.html _headers dist/ && cp -R css js assets dist/
 ```
 
-A saída contém HTML, CSS, módulos, fontes e suas licenças. Documentação, testes,
+A saída contém HTML, CSS, módulos, fontes e suas licenças. A licença MIT do
+projeto também é distribuída em `assets/LICENSE-MIT.txt`, copiada com `assets/`
+pelo comando de build existente. Documentação, testes,
 metadados do Git e `package.json` ficam fora da saída. A pasta `dist/` é gerada
 na hospedagem e está ignorada pelo Git. `_headers` fica na raiz da saída e é
 interpretado pelo Cloudflare Pages para configurar as respostas dos recursos.

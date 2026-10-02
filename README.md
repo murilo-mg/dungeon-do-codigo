@@ -144,3 +144,7 @@ A baseline `v0.1.0`, a consolidação das duas telas e a revisão de segurança 
 Os próximos ciclos priorizam explicar melhor a análise, avisar sobre construções parcialmente suportadas, adicionar exemplos e melhorar acessibilidade. Exportação e atividades de leitura de código permanecem como evoluções futuras.
 
 > Se um significado visual não puder ser justificado pelos dados analisados, ele não deve ser apresentado como fato.
+
+## Licença
+
+Projeto distribuído sob a [licença MIT](LICENSE), com autoria de Murilo da Mota Gonçalves. Uma cópia também acompanha os recursos publicados em `assets/LICENSE-MIT.txt`. As fontes Cinzel e JetBrains Mono mantêm suas licenças SIL Open Font License em [assets/fontes/](assets/fontes/).
