@@ -21,6 +21,11 @@ main
 A baseline `v0.1.0` está na tag do commit `ae885db` e foi incorporada à
 `main` pelo commit `fc6da7a` (`release: incorpora baseline v0.1.0 na main (#1)`).
 Os refinamentos deste documento são posteriores a essa baseline.
+A consolidação das duas telas está integrada em `9c9c0b7`; a revisão de
+segurança está integrada em `e5253c2`.
+
+Demonstração: [dungeon-do-codigo.pages.dev](https://dungeon-do-codigo.pages.dev/).
+Configuração e verificações da hospedagem: [PUBLICACAO.md](PUBLICACAO.md).
 
 O projeto é um frontend estático feito com:
 
@@ -872,9 +877,14 @@ validação após leitura de arquivo, limites de funções e chamadas, preparaç
 cancelável em Worker com prazo de 8 segundos, limites de tamanho do mapa,
 fontes locais, CSP e configuração HTTP. Ela inclui 367 testes automatizados.
 
-As regras de publicação e privacidade estão em `../SECURITY.md`. Essa revisão
-precisa ser aplicada e integrada por PR. A validação da hospedagem real e do
-Firefox ainda é uma etapa separada; testar Chromium local não a substitui.
+A revisão de segurança foi integrada por PR no commit `e5253c2`, com o check
+`testes` aprovado. As regras de privacidade estão em `../SECURITY.md`.
+
+O site está publicado no Cloudflare Pages. HTTPS, cabeçalhos HTTP e os fluxos
+de geração, Encaixar, Estrutura, busca, retorno e importação foram conferidos
+na URL pública em Chromium 154, sem erros de página ou violações de CSP nos
+fluxos normais. A conferência manual da versão hospedada em Firefox permanece
+sem registro de conclusão. O escopo da verificação está em `PUBLICACAO.md`.
 
 A validação local desta revisão foi executada em Chromium headless com CSP e
 os cabeçalhos aplicados, incluindo hospedagem em subdiretório. Passaram os

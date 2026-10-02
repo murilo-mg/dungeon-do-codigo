@@ -32,48 +32,26 @@ O projeto já possui uma base funcional ampla:
 - navegação manual e automática;
 - visual completo de dungeon.
 
-A baseline `v0.1.0` já está incorporada à `main`. A consolidação das duas telas
-foi integrada pelo PR #2 no commit `9c9c0b7`, com a suíte e o check `testes`
-aprovados. O próximo marco é concluir a revisão de segurança e validar a
-publicação. Melhorias educativas continuam no plano para os ciclos seguintes.
+A baseline `v0.1.0`, a consolidação das duas telas (`9c9c0b7`) e a revisão de
+segurança (`e5253c2`) já estão integradas à `main`. A demonstração está publicada
+no Cloudflare Pages, com HTTPS, cabeçalhos e fluxos conferidos em Chromium.
+O histórico está em `../EVOLUCAO.md`; o escopo da publicação está em `PUBLICACAO.md`.
 
 ---
 
-# Etapa 0 — Consolidação concluída e revisão de segurança
+# Etapa 0 — Fechamento da publicação
 
-## 0.1 Histórico concluído
+Restam os registros e as conferências complementares:
 
-- baseline `v0.1.0` no commit `ae885db`, incorporada em `fc6da7a`;
-- consolidação das duas telas e circulação em `9c9c0b7`;
-- 354 testes aprovados na consolidação;
-- revisão visual das duas telas informada pelo mantenedor;
-- cópia local do mantenedor sincronizada com `origin/main` e limpa.
+1. Integrar por PR o README, as capturas e a documentação da publicação.
+2. Registrar a conferência manual do site hospedado em Firefox, incluindo
+   geração, importação, controles, duplo clique, cancelamento e retorno.
+3. Preencher a descrição e o link do site no About do repositório.
+4. Escolher e registrar a licença do código do projeto; as fontes já possuem
+   suas licenças em `assets/fontes/`.
+5. Criar a próxima tag e release a partir da `main` final, com CI aprovado.
 
-Não recriar a tag `v0.1.0` nem repetir a consolidação como trabalho futuro.
-
-## 0.2 Revisão de segurança preparada
-
-- limite de 512 KiB também no texto colado, contando bytes UTF-8;
-- limites de funções, relações, nomes e dimensões do mapa;
-- preparação em Worker dedicado, cancelamento e prazo de 8 segundos;
-- fontes locais com licenças, CSP e configuração HTTP;
-- CI com permissões de leitura, ações fixadas por commit e prazo;
-- documentação em `SECURITY.md` e testes específicos.
-
-Essa revisão ainda deve ser aplicada no repositório do mantenedor, conferida,
-commitada em uma branch e integrada por PR. A versão publicada precisa de
-verificação própria: `_headers` não funciona em qualquer hospedagem.
-
-## 0.3 Próximo marco: publicação validada
-
-1. Aplicar as mudanças, executar `npm test` e `git diff --check`.
-2. Revisar o diff, commitar e aguardar o check `testes` no PR.
-3. Escolher a hospedagem estática e aplicar os cabeçalhos exigidos.
-4. Validar HTTPS, MIME, cache, caminhos relativos e ausência de envio do código.
-5. Testar os fluxos em Firefox e Chromium na versão realmente hospedada.
-6. Registrar a próxima versão e a demonstração pública após a validação.
-
-A tag `v0.1.0` permanece como referência histórica.
+A tag `v0.1.0` permanece como referência histórica e não deve ser recriada.
 
 ---
 
@@ -218,26 +196,11 @@ Depois da confiança básica da análise, melhorar pequenos pontos de alto retor
 
 ---
 
-## 3.1 Primeira tela
+## 3.1 Preservar as duas telas consolidadas
 
-A primeira tela pode receber refinamento visual para ficar mais coerente com a dungeon.
-
-Regras:
-
-- preservar a estrutura atual;
-- editor continua sendo o foco;
-- não transformar a página em dashboard;
-- não adicionar informação desnecessária;
-- usar decoração leve;
-- manter boa responsividade.
-
-Possíveis melhorias:
-
-- moldura arquitetônica discreta;
-- detalhes de pedra;
-- brilho leve;
-- tochas ou partículas sutis;
-- melhor integração visual com a tela de exploração.
+O refinamento visual da entrada e da exploração já foi concluído. Mudanças
+futuras devem responder a problemas observados, preservar o editor como foco
+na entrada e manter os controles, o mapa e o inspector legíveis.
 
 ---
 
@@ -336,60 +299,19 @@ Galerias físicas devem ser identificadas como circulação, não chamadas.
 
 ---
 
-# Etapa 5 — Segurança e publicação
+# Etapa 5 — Manutenção de segurança e hospedagem
 
-A revisão de código está preparada. A validação de publicação continua pendente; o detalhe dos controles está em `../SECURITY.md`.
+Os controles atuais estão implementados e a demonstração está publicada.
+Esta etapa é contínua: não repetir a revisão e o deploy como trabalho futuro.
 
----
+A cada mudança relevante:
 
-## 5.1 Entrada do usuário
-
-Revisar:
-
-- tratamento de texto;
-- tamanho máximo;
-- importação de arquivo;
-- nomes de funções;
-- conteúdo exibido no inspector;
-- mensagens de erro.
-
-Conteúdo do usuário não deve ser interpretado como HTML.
-
----
-
-## 5.2 Dependências e recursos externos
-
-Confirmar:
-
-- quais recursos externos existem;
-- se são realmente necessários;
-- se há risco de carregamento remoto inesperado;
-- se a aplicação continua funcional como frontend estático.
-
----
-
-## 5.3 Política de privacidade técnica
-
-A documentação pública deve deixar claro:
-
-- análise local;
-- ausência de backend próprio;
-- ausência de execução de C;
-- ausência de compilação;
-- comportamento da importação de arquivos.
-
----
-
-## 5.4 Deploy
-
-Depois da revisão de segurança:
-
-- escolher hospedagem estática;
-- validar caminhos relativos;
-- validar cache;
-- validar carregamento de módulos;
-- testar em navegadores comuns;
-- testar versão publicada.
+- revisar os pontos que recebem e exibem entrada do usuário;
+- preservar validações, limites, cancelamento e testes de regressão;
+- revisar novos recursos externos e seus efeitos na privacidade e na CSP;
+- conferir os cabeçalhos reais depois de alterações na hospedagem;
+- verificar módulos, Worker e fluxos afetados na versão ao vivo;
+- atualizar `../SECURITY.md` e `PUBLICACAO.md` quando houver mudança.
 
 ---
 
@@ -546,18 +468,14 @@ Não é objetivo imediato:
 
 # Ordem recomendada
 
-A ordem de trabalho depois desta reorganização é:
+1. Fechar os registros da publicação, a conferência em Firefox e a release.
+2. Explicar melhor a análise e seus limites.
+3. Adicionar exemplos prontos.
+4. Melhorar UX e acessibilidade a partir de problemas observados.
+5. Adicionar exportação.
+6. Iniciar os recursos de versões posteriores.
 
-```text
-1. fechar baseline
-2. confiar e explicar melhor a análise
-3. adicionar exemplos prontos
-4. melhorar UX e acessibilidade
-5. adicionar exportação
-6. aplicar a revisão de segurança e validar a hospedagem
-7. publicar e registrar a versão
-8. iniciar recursos de versões posteriores
-```
+Segurança e validação da hospedagem acompanham cada ciclo.
 
 ---
 

@@ -45,14 +45,20 @@ controlam extensões do navegador, recursos do próprio navegador ou o sistema
 operacional. Não há analytics, telemetria, cookies próprios ou backend próprio
 no código desta versão.
 
-## Publicação ainda precisa ser verificada
+## Hospedagem e verificações de publicação
 
 `_headers` só funciona em serviços que reconhecem seu formato. Em outros,
 copiar suas diretivas para a configuração do servidor. A CSP em `<meta>`
 continua sendo uma camada básica, mas não aplica `frame-ancestors`, nem os
 demais cabeçalhos HTTP. Cabeçalhos devem valer também para o módulo do Worker.
 
-Antes de lançar:
+A produção está em [dungeon-do-codigo.pages.dev](https://dungeon-do-codigo.pages.dev/),
+no Cloudflare Pages. HTTPS, CSP e cabeçalhos adicionais foram conferidos na
+página e no Worker; os fluxos testados em Chromium e seus resultados estão em
+[docs/PUBLICACAO.md](docs/PUBLICACAO.md). A conferência manual da versão hospedada
+em Firefox permanece sem registro de conclusão.
+
+Para manter e ampliar essa validação:
 
 1. Servir por HTTPS, com MIME correto para módulos, CSS e fontes. Usar servidor
    HTTP local para desenvolvimento; abrir `index.html` por `file://` não basta.

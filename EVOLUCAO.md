@@ -645,11 +645,8 @@ git diff --check
 
 sem problemas reportados.
 
-Esse estado ainda está sendo preparado para virar uma baseline oficial.
-
-A etapa atual não é adicionar novas funcionalidades grandes.
-
-É:
+Esse foi o estado usado para preparar a baseline oficial `v0.1.0`, posteriormente
+incorporada à `main`. Naquele momento, o foco era:
 
 ```text
 organizar
@@ -662,6 +659,43 @@ versionar
 ↓
 congelar uma referência estável
 ```
+
+---
+
+# 27. Baseline incorporada à main
+
+A tag `v0.1.0` registra o commit `ae885db`. O PR #1 incorporou essa baseline à
+`main` em `fc6da7a`, preservando a referência histórica.
+
+---
+
+# 28. Consolidação das duas telas e da circulação
+
+O PR #2 foi integrado em `9c9c0b7`, com 354 testes aprovados. A página inicial
+e a exploração passaram a compartilhar materiais, sprites e adereços. A
+revisão alinhou pisos, portas, junções, colisão e navegação, compactou o layout
+regional e reorganizou os controles abaixo do Canvas.
+
+---
+
+# 29. Preparação em Worker e revisão de segurança
+
+O PR #3 foi integrado em `e5253c2`, com 367 testes e CI aprovados. A revisão
+adicionou limites UTF-8 e de grafo/mapa, preparação cancelável em Worker com
+prazo de 8 segundos, fontes locais, CSP, configuração HTTP e permissões menores
+no CI. Os controles e a privacidade estão registrados em `SECURITY.md`.
+
+---
+
+# 30. Demonstração pública no Cloudflare Pages
+
+O site foi publicado em 1º de outubro de 2026, horário de Manaus, em
+[dungeon-do-codigo.pages.dev](https://dungeon-do-codigo.pages.dev/).
+
+HTTPS e cabeçalhos de segurança foram conferidos na resposta real. Os fluxos
+verificados em Chromium 154 passaram sem erros de página ou violações de CSP.
+As capturas mostram as duas telas publicadas; configuração, escopo dos testes
+e conferências complementares estão em `docs/PUBLICACAO.md`.
 
 ---
 
@@ -700,7 +734,13 @@ colisão corporal
     ↓
 galerias de exploração
     ↓
-baseline candidata
+baseline v0.1.0
+    ↓
+consolidação das duas telas
+    ↓
+preparação em Worker e segurança
+    ↓
+demonstração pública
 ```
 
 ---

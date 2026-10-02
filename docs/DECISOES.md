@@ -857,7 +857,7 @@ para que a ausência dessa API não impeça a inicialização do editor, a gera�
 da dungeon ou o retorno da exploração. Essa garantia possui testes de integração.
 
 
-# Revisão de segurança antes da próxima publicação
+# Preparação e segurança da versão publicada
 
 A preparação do mapa deve acontecer em um Worker local e cancelável. Limites
 de entrada e de grafo reduzem a carga; o prazo de 8 segundos interrompe uma
@@ -869,7 +869,16 @@ A tipografia existente é preservada com arquivos locais e licenças. A página
 não depende de requisições ao Google Fonts. A CSP é uma camada adicional aos
 métodos seguros de inserção de texto, não sua substituta.
 
-A proteção de enquadramento e outros cabeçalhos dependem do servidor. A próxima
-publicação só deve ser considerada validada depois de conferir a resposta HTTP
-e testar os fluxos na hospedagem real. Testes aprovados não autorizam afirmar
-segurança absoluta. O índice de complexidade também não mede vulnerabilidades.
+A proteção de enquadramento e outros cabeçalhos dependem do servidor. A produção
+usa Cloudflare Pages e reconhece `_headers` na saída estática. A configuração
+e as verificações da hospedagem estão em `PUBLICACAO.md`; alterações devem
+continuar sendo conferidas na resposta HTTP e nos fluxos reais. Testes aprovados
+não autorizam afirmar segurança absoluta. O índice de complexidade também não
+mede vulnerabilidades.
+
+## Publicar somente os recursos necessários
+
+O comando de build copia `index.html`, `_headers`, `css/`, `js/` e `assets/`
+para `dist/`. Documentação, capturas, testes e arquivos do Git ficam fora da
+saída. A `main` permanece protegida por PR e check `testes`; a produção acompanha
+essa branch. Não incluir analytics sem revisar a privacidade e a CSP.
