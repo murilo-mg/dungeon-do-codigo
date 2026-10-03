@@ -1,10 +1,18 @@
 # Dungeon do Código
 
+[![Testes](https://github.com/murilo-mg/dungeon-do-codigo/actions/workflows/testes.yml/badge.svg?branch=main)](https://github.com/murilo-mg/dungeon-do-codigo/actions/workflows/testes.yml)
+[![Versão pública](https://img.shields.io/github/v/release/murilo-mg/dungeon-do-codigo?label=vers%C3%A3o)](https://github.com/murilo-mg/dungeon-do-codigo/releases/latest)
+[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
+
 Transforma código C em uma dungeon explorável no navegador: cada função vira uma sala, e chamadas entre funções conhecidas formam corredores. O mapa permite explorar a estrutura do programa e consultar o código e as métricas de cada função.
 
 **[Abrir a demonstração](https://dungeon-do-codigo.pages.dev/)**
 
+**Versão pública:** [v0.2.0](https://github.com/murilo-mg/dungeon-do-codigo/releases/tag/v0.2.0) · **Hospedagem:** Cloudflare Pages · **Licença:** MIT.
+
 O projeto nasceu da ideia de combinar leitura de código, visualização de software e exploração em uma interface inspirada em jogos. Ele analisa o código como texto: **não compila nem executa C**.
+
+Serve como apoio para estudantes de C, professores e pessoas que querem explorar visualmente a organização de um programa. Use o painel e o código original para conferir o que cada elemento representa.
 
 ## As duas telas
 
@@ -41,6 +49,16 @@ As capturas são da versão publicada no Cloudflare Pages, usando o exemplo inic
 | **Legenda do mapa** | Expande a explicação dos marcadores e passagens |
 
 A exploração foi pensada para computador, com teclado e mouse. A interface se adapta a janelas estreitas, mas ainda não possui controles de movimento por toque.
+
+### Um primeiro roteiro de exploração
+
+Com o exemplo de estoque que já vem no editor:
+
+1. Gere a dungeon e busque `main` para inspecionar a entrada do programa.
+2. Confira no painel as chamadas para `exibir_menu`, `cadastrar_produto`, `listar_produtos` e `buscar_produto`.
+3. Selecione uma dessas funções para relacionar seu código às métricas exibidas.
+4. Alterne entre **Complexidade** e **Estrutura** para comparar as duas leituras do mesmo programa.
+5. Dê um duplo clique em uma sala para caminhar até ela quando houver uma rota física válida.
 
 ## O que o mapa representa
 
@@ -94,6 +112,8 @@ python3 -m http.server 8000
 
 Abra [http://localhost:8000](http://localhost:8000). Use um servidor HTTP: abrir `index.html` diretamente por `file://` não é suficiente para módulos e Worker.
 
+O servidor simples do Python não aplica o arquivo `_headers`. Para reproduzir os cabeçalhos HTTP da produção, siga [a documentação de publicação](docs/PUBLICACAO.md); a CSP declarada no HTML permanece disponível no servidor local.
+
 Não é necessário executar `npm install` para abrir a aplicação ou rodar a suíte atual.
 
 ## Testes
@@ -104,7 +124,7 @@ Na raiz do projeto:
 npm test
 ```
 
-Na revisão da publicação: **367 testes passando, nenhum falhando**. A suíte cobre análise, grafo, regiões, layout, corredores, colisão, navegação, câmera, interface, importação, limites, cancelamento e transporte pelo Worker. O GitHub Actions executa os testes em pushes e pull requests; a `main` exige PR e o check `testes`.
+Na revisão de 3 de outubro de 2026, sobre a `main` em `ac7e5d8`: **367 testes passando, nenhum falhando**, com Node.js 24. A suíte cobre análise, grafo, regiões, layout, corredores, colisão, navegação, câmera, interface, importação, limites, cancelamento e transporte pelo Worker. O GitHub Actions executa os testes em pushes e pull requests; a `main` exige PR e o check `testes`. Consulte o [histórico do CI](https://github.com/murilo-mg/dungeon-do-codigo/actions/workflows/testes.yml) para o resultado de mudanças posteriores.
 
 As verificações da versão hospedada e a configuração do Cloudflare Pages estão em [docs/PUBLICACAO.md](docs/PUBLICACAO.md).
 
@@ -140,6 +160,8 @@ Os módulos ficam em `js/`. Testes ficam em `testes/`; capturas e documentação
 - [Correções](CORRECOES.md): registro histórico de uma revisão de bugs.
 
 A baseline `v0.1.0`, a consolidação das duas telas e a revisão de segurança já estão integradas à `main`. A versão pública consolidada está marcada como `v0.2.0`, no commit `5fded90`, com a publicação conferida em Firefox e Chromium.
+
+O fechamento da documentação e a adoção da licença MIT foram integrados depois dessa release. A tag `v0.2.0` preserva seu commit original; a demonstração acompanha a `main` pelo deploy do Cloudflare Pages.
 
 Os próximos ciclos priorizam explicar melhor a análise, avisar sobre construções parcialmente suportadas, adicionar exemplos e melhorar acessibilidade. Exportação e atividades de leitura de código permanecem como evoluções futuras.
 
